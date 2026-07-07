@@ -930,6 +930,8 @@ def _plp_row_to_result(row, canonical_subcat):
         }
         if row.get("image"):      res["image"] = row["image"]
         if row.get("list_price"): res["old_price"] = row["list_price"]
+        _sid = row.get("sku") or row.get("sku_id")
+        if _sid: res["sku"] = str(_sid)     # retailer's own SKU id — stable identity for matching
         return res
 
     specs = {}
@@ -953,6 +955,8 @@ def _plp_row_to_result(row, canonical_subcat):
     if row.get("availability"): res["availability"] = row["availability"]
     if row.get("list_price"):   res["old_price"] = row["list_price"]
     if row.get("image"):        res["image"] = row["image"]
+    _sid = row.get("sku") or row.get("sku_id")
+    if _sid: res["sku"] = str(_sid)         # retailer's own SKU id — stable identity for matching
     return res
 
 

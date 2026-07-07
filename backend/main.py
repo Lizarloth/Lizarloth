@@ -1,10 +1,12 @@
 from fastapi import FastAPI, Depends, BackgroundTasks, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime, timedelta
 import json
 import os
 
@@ -32,6 +34,31 @@ init_db()
 
 if os.path.exists("static"):
     app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+# ── Dashboard API key ────────────────────────────────────────────────────
+# Set API_KEY on Railway to lock every /api/* route (reads, writes, exports)
+# behind an X-API-Key header. /api/ingest/* keeps its own X-Ingest-Token
+# check. If API_KEY is unset the API stays open (rollout-safe) and a warning
+# is printed at startup — set it as soon as the frontend has the key.
+DASHBOARD_API_KEY = os.getenv("API_KEY", "")
+if not DASHBOARD_API_KEY:
+    print("⚠ API_KEY is not set — the dashboard API is open to anyone with the URL. "
+          "Set the API_KEY environment variable to enable authentication.", flush=True)
+
+
+@app.middleware("http")
+async def _require_api_key(request: Request, call_next):
+    if (
+        DASHBOARD_API_KEY
+        and request.method != "OPTIONS"                      # CORS preflight must pass
+        and request.url.path.startswith("/api/")
+        and not request.url.path.startswith("/api/ingest/")  # runner uses X-Ingest-Token
+    ):
+        supplied = request.headers.get("X-API-Key") or request.query_params.get("api_key")
+        if supplied != DASHBOARD_API_KEY:
+            return JSONResponse({"detail": "Invalid or missing X-API-Key"}, status_code=401)
+    return await call_next(request)
 
 
 # ── Pydantic schemas ─────────────────────────────────────────────────────
@@ -173,9 +200,25 @@ def root():
 @app.get("/api/products")
 def list_products(db: Session = Depends(get_db)):
     products = db.query(Product).filter(Product.active == True).all()
+    # Latest history row per product in ONE query (instead of one query per
+    # product): find max(scraped_at) per product_id, then join back for rows.
+    latest_at = (
+        db.query(PriceHistory.product_id, func.max(PriceHistory.scraped_at).label("mx"))
+        .group_by(PriceHistory.product_id)
+        .subquery()
+    )
+    latest_rows = (
+        db.query(PriceHistory)
+        .join(latest_at, (PriceHistory.product_id == latest_at.c.product_id)
+                         & (PriceHistory.scraped_at == latest_at.c.mx))
+        .all()
+    )
+    latest_by_pid = {}
+    for h in latest_rows:                      # ties on scraped_at: keep first
+        latest_by_pid.setdefault(h.product_id, h)
     out = []
     for p in products:
-        latest = _latest_history(db, p.id)
+        latest = latest_by_pid.get(p.id)
         specs = {}
         if latest and latest.raw_data:
             try:
@@ -184,6 +227,7 @@ def list_products(db: Session = Depends(get_db)):
                 specs = {}
         out.append({
             "id": p.id, "name": p.name, "url": p.url, "site": p.site,
+            "sku": getattr(p, "retailer_sku", None),
             "category": p.category, "alert_threshold": p.alert_threshold,
             "alert_email": p.alert_email, "active": p.active,
             "created_at": p.created_at.isoformat() if p.created_at else None,
@@ -261,11 +305,18 @@ def ingest_results(payload: IngestPayload, request: Request, db: Session = Depen
                 name=r.get("name") or url,
                 site=site,
                 category=r.get("category", "general"),
+                retailer_sku=str(r["sku"]) if r.get("sku") else None,
+                is_new=True,
+                first_seen=datetime.utcnow(),
             )
             db.add(product)
             db.commit()
             db.refresh(product)
             created += 1
+        elif r.get("sku") and not product.retailer_sku:
+            # backfill the retailer's own SKU id on already-known products —
+            # it's the stable per-site identity that model-code matching lacks
+            product.retailer_sku = str(r["sku"])
         save_scrape_result(r, db)
         saved += 1
 
@@ -288,12 +339,42 @@ def scrape_all(background_tasks: BackgroundTasks, db: Session = Depends(get_db))
     return {"status": "started", "products": len(urls)}
 
 
+# ── Data freshness / scrape status ──────────────────────────────────────
+@app.get("/api/status")
+def data_status(db: Session = Depends(get_db)):
+    """Per-retailer freshness: when each site's data was last scraped and how
+    many active products it has. The dashboard uses this for its staleness
+    badge; a monitoring cron can alert when last_scraped falls behind."""
+    rows = (
+        db.query(Product.site,
+                 func.max(PriceHistory.scraped_at),
+                 func.count(func.distinct(Product.id)))
+        .join(PriceHistory, PriceHistory.product_id == Product.id)
+        .filter(Product.active == True)
+        .group_by(Product.site)
+        .all()
+    )
+    return {
+        "sites": {
+            site: {
+                "last_scraped": mx.isoformat() if mx else None,
+                "products": n,
+            }
+            for site, mx, n in rows
+        },
+        "server_time": datetime.utcnow().isoformat(),
+    }
+
+
 # ── Price history ────────────────────────────────────────────────────────
 @app.get("/api/history")
-def get_history(product_id: Optional[int] = None, limit: int = 200, db: Session = Depends(get_db)):
+def get_history(product_id: Optional[int] = None, limit: int = 200,
+                days: Optional[int] = None, db: Session = Depends(get_db)):
     q = db.query(PriceHistory, Product).join(Product, PriceHistory.product_id == Product.id)
     if product_id:
         q = q.filter(PriceHistory.product_id == product_id)
+    if days:
+        q = q.filter(PriceHistory.scraped_at >= datetime.utcnow() - timedelta(days=days))
     rows = q.order_by(PriceHistory.scraped_at.desc()).limit(limit).all()
     return [
         {

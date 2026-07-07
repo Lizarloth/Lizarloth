@@ -13,8 +13,9 @@ def export_price_history_csv(products, history_rows) -> bytes:
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["Product", "Site", "URL", "Price (€)", "Old Price (€)", "Availability", "Scraped At"])
+    product_map = {p.id: p for p in products}   # O(1) lookups; the linear scan per row was quadratic
     for h in history_rows:
-        p = next((x for x in products if x.id == h.product_id), None)
+        p = product_map.get(h.product_id)
         writer.writerow([
             p.name if p else "",
             p.site if p else "",

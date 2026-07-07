@@ -138,6 +138,17 @@ nav button.active{background:var(--cobalt);color:#fff}
 .run-btn:disabled{opacity:.6;cursor:wait}
 .avatar{width:38px;height:38px;border-radius:99px;background:linear-gradient(135deg,var(--cobalt),var(--aqua));color:#fff;display:grid;place-items:center;font:700 13px 'Hanken Grotesk'}
 
+/* data-freshness badge (last scrape per retailer) */
+.fresh{display:flex;gap:6px;align-items:center}
+.fresh .fr{font:600 10.5px 'JetBrains Mono',monospace;padding:3px 8px;border-radius:99px;white-space:nowrap;cursor:default}
+.fresh .fr-ok{background:#E2F8EE;color:#0E9263}
+.fresh .fr-warn{background:#FFF1E6;color:#C2630E}
+.fresh .fr-bad{background:#FDE8E8;color:#C42B2B}
+[data-theme="dark"] .fresh .fr-ok{background:#0E2A1F;color:#5BBF8F}
+[data-theme="dark"] .fresh .fr-warn{background:#2E2113;color:#E0A155}
+[data-theme="dark"] .fresh .fr-bad{background:#301715;color:#E8765C}
+@media(max-width:1100px){.fresh{display:none}}
+
 /* ---------- ticker ---------- */
 .ticker{border-bottom:1px solid var(--line);background:var(--frost);overflow:hidden;white-space:nowrap}
 .ticker-track{display:inline-block;padding:8px 0;animation:scroll 40s linear infinite}
@@ -648,6 +659,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
   </div>
   <div class="search"><input id="globalSearch" placeholder="Search products, brands, model codes…"></div>
   <div class="spacer"></div>
+  <div class="fresh" id="freshBadge" title="Data freshness — most recent scrape per retailer"></div>
   <button class="icon-btn" id="themeToggle" title="Toggle dark mode"><svg class="ic" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg></button>
   <button class="icon-btn" id="notifBtn" title="Alerts"><span class="ico" data-ico="alerts"></span><span class="badge" id="notifBadge" style="display:none">0</span></button>
   <button class="run-btn" id="dealRadar"><span class="ico" data-ico="deal"></span> Deal Radar<span class="dr-count" id="dealCount"></span></button>
@@ -1253,8 +1265,24 @@ function normChips(n){
 /* =========================================================
    API + DEMO FALLBACK
 ========================================================= */
+/* Dashboard API key: sent as X-API-Key on every request once the backend has
+   API_KEY set. Stored in localStorage; on the first 401 the user is asked
+   for it once, then all requests (including exports) carry it. */
+let _promptedKey = false;
+function apiKeyHeaders(){ const k = store.get("apiKey",""); return k ? {"X-API-Key": k} : {}; }
 async function api(path, opts){
-  const r = await fetch(API+path, opts);
+  const o = opts ? {...opts} : {};
+  o.headers = {...(o.headers||{}), ...apiKeyHeaders()};
+  let r = await fetch(API+path, o);
+  if(r.status===401 && !_promptedKey){
+    _promptedKey = true;
+    const k = prompt("This Pricedge backend requires an API key. Paste it to continue:");
+    if(k && k.trim()){
+      store.set("apiKey", k.trim());
+      o.headers["X-API-Key"] = k.trim();
+      r = await fetch(API+path, o);
+    }
+  }
   if(!r.ok) throw new Error(r.status);
   return r.json();
 }
@@ -1569,11 +1597,11 @@ function renderLaundry(){
     const eL=["A","B","C","D","E","F","G"].filter(x=>enmix[x]);
     if(eL.length) makeChart("lEnergyChart","doughnut",{labels:eL,datasets:[{data:eL.map(x=>enmix[x]),backgroundColor:eL.map(x=>L_EC[x]||"#94A3B8")}]},{plugins:{legend:{position:"right"}}});
     else emptyChart("lEnergyChart","No energy data yet");
-    const bk=["In stock","On order","Last pieces","Display","Out of stock"];
-    const av={kotsovolos:[0,0,0,0,0],public:[0,0,0,0,0],plaisio:[0,0,0,0,0]};
+    const bk=["In stock","On order","Last pieces","Display","Out of stock","Unknown"];
+    const av={kotsovolos:[0,0,0,0,0,0],public:[0,0,0,0,0,0],plaisio:[0,0,0,0,0,0]};
     cset.forEach(p=>{const s=f.site(p); if(!(s in av))return; const i=bk.indexOf(availBucket(f.avail(p))); if(i>=0)av[s][i]++;});
     if(Object.values(av).some(a=>a.some(x=>x>0))){
-      const bc=["#10B981","#0B6E6E","#F59E0B","#A78BFA","#EF4444"];
+      const bc=["#10B981","#0B6E6E","#F59E0B","#A78BFA","#EF4444","#94A3B8"];
       makeChart("lAvailChart","bar",{labels:["Kotsovolos","Public","Plaisio"],datasets:bk.map((b,i)=>({label:b,data:["kotsovolos","public","plaisio"].map(s=>av[s][i]),backgroundColor:bc[i]}))},{plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true}}});
     } else emptyChart("lAvailChart","No availability data yet");
   }
@@ -1669,6 +1697,7 @@ function renderLProducts(){
 }
 
 function renderAll(){
+  safeRender("freshness",renderFreshness);
   safeRender("ticker",renderTicker);
   if(state.dept==="laundry"){
     safeRender("l-dashboard",renderLDashboard);
@@ -1691,6 +1720,29 @@ function renderAll(){
   safeRender("history",renderHistory);
   safeRender("alerts",renderAlerts);
   safeRender("dealCount",updateDealCount);
+}
+
+/* Freshness badge: newest scraped_at per retailer, from data the API already
+   returns. Green ≤24h, amber ≤48h, red beyond — stale data is now visible
+   instead of silently trusted. */
+function renderFreshness(){
+  const el=document.getElementById("freshBadge"); if(!el) return;
+  if(state.demo){ el.innerHTML='<span class="fr fr-bad">DEMO DATA</span>'; return; }
+  const per={};
+  for(const p of [...(state.products||[]), ...(state.laundry||[])]){
+    const s=f.site(p), t=p.scraped_at;
+    if(t && (!per[s]||t>per[s])) per[s]=t;
+  }
+  const now=Date.now();
+  el.innerHTML=["kotsovolos","public","plaisio"].map(s=>{
+    const t=per[s];
+    if(!t) return `<span class="fr fr-bad">${SITE_LABEL[s]}: no data</span>`;
+    // backend timestamps are UTC without a zone suffix — mark them as UTC
+    const h=(now-new Date(/Z$|[+-]\d\d:?\d\d$/.test(t)?t:t+"Z").getTime())/36e5;
+    const cls = h<=24?"fr-ok" : h<=48?"fr-warn" : "fr-bad";
+    const txt = h<1?"<1h" : h<48?Math.round(h)+"h" : Math.round(h/24)+"d";
+    return `<span class="fr ${cls}" title="${SITE_LABEL[s]} last scraped ${t.replace("T"," ").slice(0,16)} UTC">${SITE_LABEL[s]} ${txt}</span>`;
+  }).join("");
 }
 
 function renderTicker(){
@@ -1865,12 +1917,12 @@ function renderDashboard(){
   } else emptyChart("energyChart","Energy class fills in after the next price update");
 
   // ── availability mix (stacked) ────────────────────────────
-  const buckets=["In stock","On order","Last pieces","Display","Out of stock"];
-  const av={kotsovolos:[0,0,0,0,0],public:[0,0,0,0,0],plaisio:[0,0,0,0,0]};
+  const buckets=["In stock","On order","Last pieces","Display","Out of stock","Unknown"];
+  const av={kotsovolos:[0,0,0,0,0,0],public:[0,0,0,0,0,0],plaisio:[0,0,0,0,0,0]};
   prods.forEach(p=>{ const s=f.site(p); if(!(s in av))return; const b=availBucket(f.avail(p)); const i=buckets.indexOf(b); if(i>=0)av[s][i]++; });
   const anyAvail = Object.values(av).some(arr=>arr.some(x=>x>0));
   if(anyAvail){
-    const bcol=["#10B981","#0B6E6E","#F59E0B","#A78BFA","#EF4444"];
+    const bcol=["#10B981","#0B6E6E","#F59E0B","#A78BFA","#EF4444","#94A3B8"];
     makeChart("availChart","bar",{labels:["Kotsovolos","Public","Plaisio"],datasets:buckets.map((b,i)=>({label:b,data:["kotsovolos","public","plaisio"].map(s=>av[s][i]),backgroundColor:bcol[i]}))},{plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true}}});
   } else emptyChart("availChart","No availability data yet");
 
@@ -1888,16 +1940,20 @@ function miniRows(list){
 }
 function miniEmpty(){ return '<div class="empty" style="padding:24px"><div class="big"><svg class="ic2" viewBox="0 0 24 24"><rect class="body" x="3" y="4" width="18" height="16" rx="3"/><path class="det" d="M7.5 10.5h9M7.5 14h6"/></svg></div>No data yet</div>'; }
 
-/* availability text → bucket */
+/* availability text → bucket. Unrecognised (or missing) strings are reported
+   as "Unknown" instead of silently counted as in-stock — so a retailer
+   changing their availability wording surfaces as a parsing gap, not as
+   phantom stock. */
 function availBucket(a){
   const s=(a||"").toLowerCase();
+  if(!s) return "Unknown";
   if(s.includes("instock")||s.includes("άμεσα")||s.includes("διαθέσιμο άμεσα")) return "In stock";
   if(s.includes("κατόπιν")||s.includes("παραγγελία")) return "On order";
   if(s.includes("τελευταία")) return "Last pieces";
   if(s.includes("εκθεσιακό")||s.includes("display")) return "Display";
   if(s.includes("outofstock")||s.includes("εξαντλήθηκε")) return "Out of stock";
   if(s.includes("instoreonly")) return "On order";
-  return "In stock";
+  return "Unknown";
 }
 
 let brandFilter = "ALL";
@@ -2330,12 +2386,16 @@ const CONF = {
 };
 
 function renderProducts(){
-  document.getElementById("productTable").innerHTML = state.products.map(p=>`
+  // cap the render (every other list does) — with 1000+ SKUs an unbounded
+  // table was the slowest render in the app, re-run on every refresh
+  const capped = state.products.slice(0,200);
+  const more = state.products.length - capped.length;
+  document.getElementById("productTable").innerHTML = (capped.map(p=>`
     <tr><td title="${esc(f.url(p))}">${esc(short(f.name(p),46))}</td>
     <td><span class="pill ${SITE_PILL[f.site(p)]||"na"}">${SITE_LABEL[f.site(p)]||f.site(p)}</span></td>
     <td class="price">${fmt(f.price(p))}</td>
     <td><button class="btn danger" style="padding:6px 12px" onclick="removeProduct('${esc(String(f.id(p)))}')">Remove</button></td></tr>
-  `).join("") || `<tr><td colspan="4"><div class="empty"><div class="big"><svg viewBox="0 0 24 24" class="ic2"><rect class="body" x="3" y="3" width="18" height="18" rx="4"/><path class="det" d="M12 8v8M8 12h8"/></svg></div>Nothing tracked yet.</div></td></tr>`;
+  `).join("") + (more>0?`<tr><td colspan="4" style="color:var(--ink-soft);font-size:12px">Showing first 200 of ${state.products.length} tracked products.</td></tr>`:"")) || `<tr><td colspan="4"><div class="empty"><div class="big"><svg viewBox="0 0 24 24" class="ic2"><rect class="body" x="3" y="3" width="18" height="18" rx="4"/><path class="det" d="M12 8v8M8 12h8"/></svg></div>Nothing tracked yet.</div></td></tr>`;
 }
 
 let histState = { brand:"all", q:"", mode:"retailer", picks:[] };  // picks = array of model keys
@@ -3307,9 +3367,18 @@ async function removeProduct(id){
   catch(_){ alert("Could not remove — backend unreachable."); }
 }
 
-function doExport(kind){
+async function doExport(kind){
   if(state.demo){ alert("Demo data — connect the backend to export."); return; }
-  window.open(API+"/api/export/"+kind,"_blank");
+  try{
+    const r = await fetch(API+"/api/export/"+kind, {headers: apiKeyHeaders()});
+    if(!r.ok) throw new Error(r.status);
+    const blob = await r.blob();
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = kind==="excel" ? "pricedge_report.xlsx" : "price_history.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }catch(_){ alert("Export failed — check that the backend is reachable and the API key is set."); }
 }
 function exportMatches(){
   const matches=buildMatches(state.products);

@@ -56,6 +56,7 @@ class Product(Base):
     active = Column(Boolean, default=True)
     is_new = Column(Boolean, default=False)         # flagged by fast-run when first discovered
     first_seen = Column(DateTime, nullable=True)    # when this product first appeared
+    retailer_sku = Column(String, nullable=True, index=True)  # site's own SKU id (stable identity for matching)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -97,6 +98,9 @@ def init_db():
                 conn.execute(text("ALTER TABLE products ADD COLUMN is_new BOOLEAN DEFAULT 0"))
             if "first_seen" not in cols:
                 conn.execute(text("ALTER TABLE products ADD COLUMN first_seen DATETIME"))
+            if "retailer_sku" not in cols:
+                conn.execute(text("ALTER TABLE products ADD COLUMN retailer_sku VARCHAR"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_products_retailer_sku ON products (retailer_sku)"))
             # speed up latest-price lookups on existing databases
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_ph_pid_scraped ON price_history (product_id, scraped_at)"))
             conn.commit()

@@ -344,4 +344,35 @@ The confidence system (lines 1195–1231) mitigates this honestly — but it fla
 
 ---
 
-*Audit based on static review of the uploaded `index.html` and the API surface it calls. Backend internals (scraper code, database schema) were not available; recommendations touching them are framed as contracts to implement rather than diffs.*
+## Addendum (2026-07-07): backend review — corrections & new findings
+
+After the initial audit, the backend source was provided (`main.py`, `database.py`, `exports.py`, `local_runner.py`, `plp_scraper.py`). The following corrects and extends the findings above. Items marked **[fixed]** were implemented on this branch.
+
+### Corrections to the original audit
+
+- **§0 (auth), refined.** The ingest path (`POST /api/ingest/results`) *is* protected by an `X-Ingest-Token` check — good. Everything else (products read/write/delete, history, exports, scrape triggers) was open, with CORS `allow_origins=["*"]`. **[fixed]** — `main.py` now enforces an `X-API-Key` header on all non-ingest `/api/*` routes when the `API_KEY` env var is set (rollout-safe: unset = open with a startup warning); the dashboard prompts once for the key and stores it.
+- **§1.2 (manual collection), refined.** Collection is not purely manual: the backend has an APScheduler cron (09:00/17:00 Athens) that is a **no-op** under `SCRAPE_MODE=local`, and the runner has watchdog/`--due`/`--max-minutes` flags clearly built for a Windows scheduled task. The real gap is that the pipeline's single point of failure is one PC, with no failure notification — if the PC doesn't run, nothing alerts anyone. §1.1/§1.2 recommendations stand with that framing.
+- **§1.1 (freshness), easier than stated.** `GET /api/products` already returns `scraped_at` per product — only the UI was missing. **[fixed]** — the topbar now shows per-retailer freshness (green ≤24h / amber ≤48h / red), and a new `GET /api/status` endpoint exposes per-site last-scrape + product counts for external monitoring.
+- **§1.3 (ingestion validation), partially in place.** The runner already defends against the worst glitch sources at scrape time: financing-line prices (`best_visible_price`, `_walk_for_price` skips financing subtrees), European/US decimal ambiguity, and a >5× JSON-vs-visible sanity override. The remaining gap from §1.3 stands: no last-known-price comparison, no quarantine table, and exports still ship raw rows.
+- **§5.1 (threshold field).** The backend *does* implement threshold alerts (`check_and_alert`, `Alert` table, `email_sent` flag) — the field is wired; what's missing is the delivery (`alerts.py` was not provided; `email_sent` suggests SMTP is stubbed) and any UI for threshold breaches.
+
+### New findings from the backend code
+
+- **Secret in source.** `local_runner.py` had the production `INGEST_TOKEN` hard-coded. **[fixed]** — it now requires the env var; **rotate the token on Railway**, since the old value existed in local copies.
+- **Version skew: `/api/ingest/retire`.** The runner calls `POST /api/ingest/retire` after full sweeps, but the provided `main.py` has no such route — either `main.py` is not the latest version, or every full sweep's retire step 404s (logged as non-fatal) and delisted "zombie" products are never retired. **Action:** confirm which is true; commit the real latest `main.py`.
+- **Retailer SKU scraped, then thrown away.** The PLP fetchers capture each site's own SKU id (`sku`/`sku_id` — Public/Plaisio ItemList JSON, Kotsovolos `data-cnstrc-item-id`), but `_plp_row_to_result` dropped it and the DB had no column for it. This is the stable per-site identity that §2.1's matching upgrade needs, already available for free. **[fixed]** — the runner now passes `sku` through, `products.retailer_sku` column added (with migration + index), ingest stores/backfills it, and `/api/products` returns it. Next step (§2.1): use it as a match anchor and add EAN capture.
+- **N+1 query in `/api/products`.** `list_products` ran one `_latest_history` query per product (≈2,000 queries per request, refreshed every 2 minutes by each open dashboard). **[fixed]** — latest rows are now fetched in a single grouped join.
+- **Quadratic CSV export.** `export_price_history_csv` did a linear scan of all products *per history row* (~200M comparisons at 100k rows × 2k products). **[fixed]** — dict lookup, matching the Excel exporter.
+- **`/api/history` had no time filter.** Only a row-count `limit` (frontend asks for 20,000 newest rows), so growth silently truncates the oldest data (§1.6). **[fixed, partially]** — the endpoint now accepts `?days=N`; the daily-aggregation table from §1.6 is still the right long-term fix.
+- **`is_new`/`first_seen` never set by ingest.** The columns exist and the frontend could use them, but auto-registered products didn't populate them. **[fixed]** — set on creation.
+- **`plp_scraper.py` contained its entire source twice** (accidental duplication; second copy silently shadowed the first). **[fixed]** — deduplicated in the committed version.
+- **DB growth: `raw_data` snapshots.** Every scrape stores the full JSON snapshot per product in `price_history.raw_data`, and `/api/products` parses the latest snapshot per product on every request. Fine today on a Railway volume; worth revisiting alongside the daily-aggregation work (move specs to a `product_specs` table updated on change, keep `raw_data` for audit only).
+- **Unauthenticated scrape triggers.** `POST /api/scrape` and `/api/scrape/all` let anyone start Selenium scrape jobs on the server (resource burn). Now covered by the API-key middleware **[fixed]**, but consider removing them entirely while `SCRAPE_MODE=local` makes them unusable anyway.
+
+### Files still not in the repo
+
+`alerts.py`, `scrapers.py`, `public_plp.py`, `kotsovolos_plp.py`, `plaisio_plp.py`, `requirements.txt` — the audit of alert delivery (§3.3) and the PLP fetchers' parsing is provisional until these are committed.
+
+---
+
+*Audit based on static review of the uploaded `index.html` and backend/runner sources listed above. Recommendations touching files not provided are framed as contracts to implement rather than diffs.*
