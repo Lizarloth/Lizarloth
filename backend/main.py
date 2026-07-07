@@ -655,4 +655,8 @@ def export_csv_alerts(db: Session = Depends(get_db)):
 # ── Run ──────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    # Railway injects PORT; locally it falls back to 8000. Auto-reload only
+    # when developing locally (never under a PORT-managed deployment).
+    port = int(os.getenv("PORT", "8000"))
+    uvicorn.run("main:app", host="0.0.0.0", port=port,
+                reload="PORT" not in os.environ)

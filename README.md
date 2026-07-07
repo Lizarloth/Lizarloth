@@ -8,19 +8,41 @@ checks and threat alerts for the Whirlpool / Indesit / Beko brand team.
 
 | Path | What it is |
 |---|---|
-| `backend/` | FastAPI + SQLite API deployed on Railway (`main.py`, `database.py`, `exports.py`, `alerts.py` — SMTP threshold alerts) |
-| `scraper/` | Local runner (`local_runner.py`) plus the per-retailer catalogue fetchers it imports (`public_plp.py`, `kotsovolos_plp.py`, `plaisio_plp.py`); `plp_scraper.py` inspection build |
+| `backend/` | FastAPI + SQLite API deployed on Railway (`main.py`, `database.py`, `exports.py`, `alerts.py` — SMTP threshold alerts) with its own `requirements.txt` |
+| `scraper/` | Local runner (`local_runner.py`) plus the per-retailer catalogue fetchers it imports (`public_plp.py`, `kotsovolos_plp.py`, `plaisio_plp.py`); `plp_scraper.py` inspection build; PC-side `requirements.txt` |
 | `frontend/` | Single-file dashboard (`index.html`) served statically |
-| `requirements.txt` | Python dependencies (backend + runner combined) |
 | `AUDIT.md` | Full platform audit (five pillars) + backend addendum |
 
 **Kept local by design:** `scrapers.py` stays on the workstation and is
 gitignored — retailer sites flag datacenter IPs, so all scraping runs from a
 residential connection via `local_runner.py`. The backend boots without it:
 the cloud-scrape endpoints return 503 and `detect_site` has a built-in
-fallback. Note `requirements.txt` does not pin `requests` (used by the runner
-and Kotsovolos/Public fetchers) — it currently arrives only as a transitive
-dependency.
+fallback.
+
+## Railway settings
+
+| Setting | Value |
+|---|---|
+| **Root Directory** | `backend` (build then finds `backend/requirements.txt` automatically) |
+| **Start Command** | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
+| **Volume** | attach one mounted at `/data` — `database.py` stores SQLite at `/data/pricedge.db` so the DB survives redeploys (without the volume it falls back to an ephemeral local file) |
+
+If you can't set a Root Directory (e.g. deploying from the repo root), use
+`cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT` as the start
+command instead. `python main.py` also works now — it reads `PORT` from the
+environment (default 8000, with auto-reload only when `PORT` is unset).
+
+Environment variables to set on the service:
+
+| Variable | Required | Purpose |
+|---|---|---|
+| `INGEST_TOKEN` | yes | must match the runner PC's token |
+| `API_KEY` | recommended | locks all non-ingest `/api/*` routes |
+| `SMTP_USER` / `SMTP_PASS` | for email | alert + watchdog delivery (Gmail app password) |
+| `SMTP_HOST` / `SMTP_PORT` / `FROM_EMAIL` | optional | default `smtp.gmail.com:587` / `SMTP_USER` |
+| `ALERT_EMAIL` | optional | watchdog recipient (defaults to `SMTP_USER`) |
+| `STALE_ALERT_HOURS` | optional | staleness threshold, default `36` |
+| `SCRAPE_MODE` | optional | leave unset/`local` — scraping runs on the PC |
 
 ## Environment variables
 
