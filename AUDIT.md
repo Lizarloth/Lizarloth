@@ -354,7 +354,7 @@ After the initial audit, the backend source was provided (`main.py`, `database.p
 - **§1.2 (manual collection), refined.** Collection is not purely manual: the backend has an APScheduler cron (09:00/17:00 Athens) that is a **no-op** under `SCRAPE_MODE=local`, and the runner has watchdog/`--due`/`--max-minutes` flags clearly built for a Windows scheduled task. The real gap is that the pipeline's single point of failure is one PC, with no failure notification — if the PC doesn't run, nothing alerts anyone. §1.1/§1.2 recommendations stand with that framing.
 - **§1.1 (freshness), easier than stated.** `GET /api/products` already returns `scraped_at` per product — only the UI was missing. **[fixed]** — the topbar now shows per-retailer freshness (green ≤24h / amber ≤48h / red), and a new `GET /api/status` endpoint exposes per-site last-scrape + product counts for external monitoring.
 - **§1.3 (ingestion validation), partially in place.** The runner already defends against the worst glitch sources at scrape time: financing-line prices (`best_visible_price`, `_walk_for_price` skips financing subtrees), European/US decimal ambiguity, and a >5× JSON-vs-visible sanity override. The remaining gap from §1.3 stands: no last-known-price comparison, no quarantine table, and exports still ship raw rows.
-- **§5.1 (threshold field).** The backend *does* implement threshold alerts (`check_and_alert`, `Alert` table, `email_sent` flag) — the field is wired; what's missing is the delivery (`alerts.py` was not provided; `email_sent` suggests SMTP is stubbed) and any UI for threshold breaches.
+- **§5.1 (threshold field).** The backend *does* implement threshold alerts (`check_and_alert`, `Alert` table, `email_sent` flag) — the field is wired. `alerts.py` (provided later) confirms full SMTP delivery is implemented and env-var driven: **emails start sending as soon as `SMTP_USER`/`SMTP_PASS` are set on Railway** (Gmail app password works). Remaining gaps: no UI surfaces threshold breaches (the Alerts page only shows the client-side threat engine), and §3.3's competitive-threat digest still has no delivery path — but the SMTP plumbing to reuse for it now demonstrably exists.
 
 ### New findings from the backend code
 
@@ -369,9 +369,16 @@ After the initial audit, the backend source was provided (`main.py`, `database.p
 - **DB growth: `raw_data` snapshots.** Every scrape stores the full JSON snapshot per product in `price_history.raw_data`, and `/api/products` parses the latest snapshot per product on every request. Fine today on a Railway volume; worth revisiting alongside the daily-aggregation work (move specs to a `product_specs` table updated on change, keep `raw_data` for audit only).
 - **Unauthenticated scrape triggers.** `POST /api/scrape` and `/api/scrape/all` let anyone start Selenium scrape jobs on the server (resource burn). Now covered by the API-key middleware **[fixed]**, but consider removing them entirely while `SCRAPE_MODE=local` makes them unusable anyway.
 
-### Files still not in the repo
+### Second addendum: PLP fetchers, alerts.py, requirements.txt reviewed
 
-`alerts.py`, `scrapers.py`, `public_plp.py`, `kotsovolos_plp.py`, `plaisio_plp.py`, `requirements.txt` — the audit of alert delivery (§3.3) and the PLP fetchers' parsing is provisional until these are committed.
+All remaining files except `scrapers.py` were subsequently provided and committed. Findings:
+
+- **The PLP fetchers are the strongest part of the pipeline.** All three capture the retailer's stable `sku_id` on every row (Public/Plaisio JSON `sku`, Kotsovolos `partNumber`), clean canonical sale + list prices (Public's `salePrice` from `priceInfoDto`, Kotsovolos's `Offer`/`Display` usage split — both structurally immune to the financing-price trap), and structured specs where the site exposes them (Public `topSpecs`, Kotsovolos `attributes[]`). The multi-sort union pass in `public_plp.collect_all` (cycling sort orders until `totalCount` is reached) is a genuinely robust answer to keyset-cursor dead-ends.
+- **Spec asymmetry confirmed (§5.3.3).** Plaisio's listing has no structured specs — capacity/cooling/energy are text-mined from name/description (plus the landscape-layout card text for laundry). This is exactly where an LLM spec-extraction fallback pays off first.
+- **Laundry loader detection is a clever workaround** (crawling front/top filtered listings and tagging by `sku_id`) but doubles the washing-machine crawl; if Public's `sapHierarchy`/`virtualCategories` diagnostic (`dump_sap`) finds the load type inline, prefer that.
+- **`alerts.py` is clean**: SMTP creds from env vars only, threshold alerts fully implemented. Delivery activates the moment `SMTP_USER`/`SMTP_PASS` are configured.
+- **`requirements.txt` doesn't pin `requests`** (used directly by the runner and two fetchers; currently a transitive dependency) and leaves `apscheduler` unpinned. Add `requests==2.x` and pin `apscheduler` for reproducible installs.
+- **Still missing:** `scrapers.py` (imported by `backend/main.py` — `scrape_url`, `scrape_batch`, `detect_site`). The backend cannot start without it; commit it to complete the repo.
 
 ---
 

@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+last_run.json
+urls_*.txt
+*.db
+*.xlsx
