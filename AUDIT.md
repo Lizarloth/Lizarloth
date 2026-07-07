@@ -378,7 +378,7 @@ All remaining files except `scrapers.py` were subsequently provided and committe
 - **Laundry loader detection is a clever workaround** (crawling front/top filtered listings and tagging by `sku_id`) but doubles the washing-machine crawl; if Public's `sapHierarchy`/`virtualCategories` diagnostic (`dump_sap`) finds the load type inline, prefer that.
 - **`alerts.py` is clean**: SMTP creds from env vars only, threshold alerts fully implemented. Delivery activates the moment `SMTP_USER`/`SMTP_PASS` are configured.
 - **`requirements.txt` doesn't pin `requests`** (used directly by the runner and two fetchers; currently a transitive dependency) and leaves `apscheduler` unpinned. Add `requests==2.x` and pin `apscheduler` for reproducible installs.
-- **Still missing:** `scrapers.py` (imported by `backend/main.py` — `scrape_url`, `scrape_batch`, `detect_site`). The backend cannot start without it; commit it to complete the repo.
+- **`scrapers.py` stays local by design (owner confirmed):** retailer sites flag datacenter IPs, so all scraping must run from a residential connection. Consequences implemented: the module is gitignored, `backend/main.py` boots without it (built-in `detect_site` fallback; cloud-scrape endpoints return 503), and §1.2's scheduling recommendation moves to the PC (Windows Task Scheduler + the runner's existing `--due`/`--max-minutes` flags). Since the PC is now the acknowledged single point of failure, the backend's scheduler tick doubles as a **dead-man's switch**: it emails `ALERT_EMAIL` when any retailer's data exceeds `STALE_ALERT_HOURS` (default 36h), at most once per site per day.
 
 ### Implementation log
 

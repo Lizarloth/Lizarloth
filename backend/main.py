@@ -11,7 +11,29 @@ import json
 import os
 
 from database import init_db, get_db, Product, PriceHistory, Alert, Srp
-from scrapers import scrape_url, scrape_batch, detect_site
+# The scraper module stays on the local PC by design — retailer sites flag
+# datacenter IPs, so all scraping runs from a residential connection via
+# local_runner.py. The backend must still boot without it: fall back to a
+# local detect_site and disable the cloud-scrape endpoints.
+try:
+    from scrapers import scrape_url, scrape_batch, detect_site
+    CLOUD_SCRAPE_AVAILABLE = True
+except ImportError:
+    CLOUD_SCRAPE_AVAILABLE = False
+
+    def detect_site(url):
+        u = (url or "").lower()
+        if "kotsovolos" in u: return "kotsovolos"
+        if "plaisio" in u: return "plaisio"
+        if "public.gr" in u: return "public"
+        return None
+
+    def scrape_batch(urls):
+        print("⚠ scrape_batch called but scrapers.py is not deployed (local-runner architecture)")
+        return []
+
+    def scrape_url(url):
+        return {}
 from alerts import check_and_alert
 from exports import (
     export_price_history_csv,
@@ -155,11 +177,79 @@ def _latest_history(db: Session, product_id: int):
 _scheduler = None
 
 
+def _send_plain_email(subject: str, body: str) -> bool:
+    """Minimal plain-text mail via the same SMTP env config alerts.py uses."""
+    import smtplib
+    from email.mime.text import MIMEText
+    from alerts import SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, FROM_EMAIL
+    to = os.getenv("ALERT_EMAIL", SMTP_USER)
+    if not SMTP_USER or not SMTP_PASS or not to:
+        print("⚠ (alert not emailed — SMTP_USER/SMTP_PASS/ALERT_EMAIL not configured)")
+        return False
+    msg = MIMEText(body)
+    msg["Subject"], msg["From"], msg["To"] = subject, FROM_EMAIL, to
+    try:
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as srv:
+            srv.starttls()
+            srv.login(SMTP_USER, SMTP_PASS)
+            srv.sendmail(FROM_EMAIL, [to], msg.as_string())
+        print(f"✉ alert email sent to {to}: {subject}")
+        return True
+    except Exception as e:
+        print(f"❌ alert email failed: {e}")
+        return False
+
+
+_stale_notified: dict = {}   # site -> ISO date the last stale email went out
+
+
+def _check_staleness():
+    """Dead-man's switch for the local-runner architecture: all scraping runs
+    on a residential PC (datacenter IPs get flagged), so if that PC misses its
+    runs, nothing else would tell anyone. On each scheduler tick, compare each
+    site's newest scrape against STALE_ALERT_HOURS and email at most once per
+    site per day when data has gone stale."""
+    hours = float(os.getenv("STALE_ALERT_HOURS", "36"))
+    gen, db = _fresh_db()
+    try:
+        rows = (db.query(Product.site, func.max(PriceHistory.scraped_at))
+                .join(PriceHistory, PriceHistory.product_id == Product.id)
+                .filter(Product.active == True)
+                .group_by(Product.site).all())
+    finally:
+        _close_db(gen)
+    if not rows:
+        return
+    now = datetime.utcnow()
+    stale = [(s, mx) for s, mx in rows
+             if mx and (now - mx).total_seconds() > hours * 3600]
+    if not stale:
+        print("⏰ freshness check: all retailers scraped within "
+              f"{hours:.0f}h — local runner healthy")
+        return
+    detail = "; ".join(f"{s}: last scrape {mx:%Y-%m-%d %H:%M} UTC" for s, mx in stale)
+    print(f"⚠ STALE DATA — {detail}")
+    today = now.date().isoformat()
+    to_notify = [s for s, _ in stale if _stale_notified.get(s) != today]
+    if not to_notify:
+        return
+    if _send_plain_email(
+        subject=f"Pricedge: data stale for {', '.join(to_notify)}",
+        body=("The local runner appears to have missed its scheduled runs.\n\n"
+              f"{detail}\n\n"
+              "Check the PC and run:  py local_runner.py --plp --due --max-minutes 40"),
+    ):
+        for s in to_notify:
+            _stale_notified[s] = today
+
+
 def scheduled_scrape():
     mode = os.getenv("SCRAPE_MODE", "local").lower()
-    if mode != "cloud":
-        print("⏰ Sweep time — SCRAPE_MODE=local, cloud scraping skipped. "
-              "The local runner on your PC handles this sweep.")
+    if mode != "cloud" or not CLOUD_SCRAPE_AVAILABLE:
+        if mode == "cloud" and not CLOUD_SCRAPE_AVAILABLE:
+            print("⏰ SCRAPE_MODE=cloud but scrapers.py is not deployed — "
+                  "falling back to freshness watchdog only.")
+        _check_staleness()
         return
     gen, db = _fresh_db()
     try:
@@ -339,12 +429,16 @@ def ingest_results(payload: IngestPayload, request: Request, db: Session = Depen
 # ── Cloud scraper endpoints (kept for testing / future proxy mode) ──────
 @app.post("/api/scrape")
 def scrape_products(payload: ScrapeRequest, background_tasks: BackgroundTasks):
+    if not CLOUD_SCRAPE_AVAILABLE:
+        raise HTTPException(503, "Cloud scraping is disabled — scraping runs on the local PC (local_runner.py)")
     background_tasks.add_task(run_scrape_job, payload.urls)
     return {"status": "started", "urls": len(payload.urls)}
 
 
 @app.post("/api/scrape/all")
 def scrape_all(background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    if not CLOUD_SCRAPE_AVAILABLE:
+        raise HTTPException(503, "Cloud scraping is disabled — scraping runs on the local PC (local_runner.py)")
     products = db.query(Product).filter(Product.active == True).all()
     urls = [p.url for p in products]
     background_tasks.add_task(run_scrape_job, urls)

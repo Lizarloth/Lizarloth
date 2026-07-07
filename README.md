@@ -14,11 +14,13 @@ checks and threat alerts for the Whirlpool / Indesit / Beko brand team.
 | `requirements.txt` | Python dependencies (backend + runner combined) |
 | `AUDIT.md` | Full platform audit (five pillars) + backend addendum |
 
-**Not yet committed** (still only on the workstation): `scrapers.py`
-(imported by `backend/main.py` for the cloud-scrape endpoints). Please add it
-so the repo is the complete source of truth. Note `requirements.txt` does not
-pin `requests` (used by the runner and Kotsovolos/Public fetchers) — it
-currently arrives only as a transitive dependency.
+**Kept local by design:** `scrapers.py` stays on the workstation and is
+gitignored — retailer sites flag datacenter IPs, so all scraping runs from a
+residential connection via `local_runner.py`. The backend boots without it:
+the cloud-scrape endpoints return 503 and `detect_site` has a built-in
+fallback. Note `requirements.txt` does not pin `requests` (used by the runner
+and Kotsovolos/Public fetchers) — it currently arrives only as a transitive
+dependency.
 
 ## Environment variables
 
@@ -32,13 +34,28 @@ currently arrives only as a transitive dependency.
 
 ## Daily operation
 
+All scraping runs on the local PC (residential IP — cloud IPs get flagged):
+
 ```bash
-# on the runner PC (recommended daily path — fast catalogue APIs):
+# recommended daily path — fast catalogue APIs:
 python local_runner.py --plp --max-minutes 40
 
 # subcategory-aware scheduling (niche segments scraped less often):
 python local_runner.py --plp --due
 ```
+
+Schedule it with Windows Task Scheduler so weekends/holidays aren't missed:
+
+```bat
+schtasks /Create /TN "Pricedge daily scrape" /SC DAILY /ST 08:30 ^
+  /TR "py C:\pricedge\local_runner.py --plp --due --max-minutes 40"
+```
+
+**Dead-man's switch:** because the PC is the single point of failure, the
+Railway backend checks data freshness at each scheduler tick (09:00/17:00
+Athens). If any retailer's newest scrape is older than `STALE_ALERT_HOURS`
+(default 36), it emails `ALERT_EMAIL` (falls back to `SMTP_USER`) — at most
+once per site per day. Requires the SMTP env vars.
 
 The dashboard's topbar shows per-retailer data freshness (green ≤24 h,
 amber ≤48 h, red older) computed from `scraped_at`; `GET /api/status`
