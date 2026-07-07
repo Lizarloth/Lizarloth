@@ -74,6 +74,19 @@ class PriceHistory(Base):
     )
 
 
+class Srp(Base):
+    """Brand pricing policy: suggested retail price (SRP/RRP) and optional
+    minimum advertised price (MAP) per model. model_code is stored normalized
+    (uppercase A–Z0–9 only) so it matches the dashboard's extracted codes."""
+    __tablename__ = "srp"
+    id = Column(Integer, primary_key=True, index=True)
+    model_code = Column(String, unique=True, index=True, nullable=False)
+    brand = Column(String, nullable=True)
+    srp = Column(Float, nullable=False)
+    map_price = Column(Float, nullable=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class Alert(Base):
     __tablename__ = "alerts"
     id = Column(Integer, primary_key=True, index=True)

@@ -938,6 +938,23 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       <div class="card lift export-card" onclick="doExport('excel')"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M4 20V11M10 20V5M16 20v-8M22 20H2"/></svg></div><h4>Price history — Excel</h4><p>Styled .xlsx with one sheet per retailer.</p></div>
       <div class="card lift export-card" onclick="exportMatches()"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M9.5 14.5l5-5"/><path d="M11 6.2l1.6-1.6a4 4 0 0 1 5.7 5.7l-1.6 1.6"/><path d="M13 17.8l-1.6 1.6a4 4 0 0 1-5.7-5.7l1.6-1.6"/></svg></div><h4>Match matrix — CSV</h4><p>The Compare table: one model per row, RRP per retailer.</p></div>
     </div>
+
+    <div class="card" style="margin-top:22px">
+      <h3><span class="dot" style="background:var(--heat)"></span>SRP &amp; MAP — pricing policy import</h3>
+      <p style="font-size:13px;color:var(--ink-soft);margin:-4px 0 14px;line-height:1.5">
+        Import your suggested-retail-price list to activate the money layer: SRP index per retailer,
+        MAP-breach flags on <b>My Brands</b>, and policy-violation alerts.
+        CSV columns: <span class="mono" style="font-size:11.5px">model_code, srp, map_price (optional), brand (optional)</span> —
+        comma or semicolon separated, Greek number formats OK, header row optional.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <input type="file" id="srpFile" accept=".csv,text/csv,text/plain" style="width:auto;flex:1;min-width:220px">
+        <button class="btn" id="srpImportBtn" disabled>Import</button>
+      </div>
+      <label>…or paste CSV rows here</label>
+      <textarea id="srpPaste" rows="4" placeholder="WHK2543X53;699;649&#10;B5RCNA406HXB;679" style="width:100%;padding:11px 14px;border:1px solid var(--line);border-radius:12px;font:500 12.5px 'JetBrains Mono';color:var(--ink);background:var(--soft-bg);outline:none;resize:vertical"></textarea>
+      <div id="srpPreview" style="margin-top:12px;font-size:13px"></div>
+      <div id="srpStatus" style="margin-top:10px;font-size:12.5px;color:var(--ink-soft)"></div>
+    </div>
   </section>
 
   <!-- ABOUT -->
@@ -1002,7 +1019,35 @@ const MY_BRANDS = ["WHIRLPOOL","INDESIT","BEKO"];
 /* Retailer-cost assumption (editable later). The money layer activates once
    SRPs are supplied per model; until then the view is pure price observation. */
 const BRAND_SETTINGS = { marginPct: 30, vatPct: 24 };
-let brandSRP = {};   // modelCode -> SRP, supplied later by the user
+let brandSRP = {};   // NORMCODE -> {srp, map, brand} — loaded from /api/srp or the import card
+
+/* ---- SRP / MAP money layer ---- */
+function normCode(c){ return String(c||"").toUpperCase().replace(/[^A-Z0-9]/g,""); }
+function setSrp(rows){
+  const m={};
+  for(const r of (rows||[])){
+    const k=normCode(r.model_code); if(!k) continue;
+    m[k]={srp:r.srp, map:r.map_price||null, brand:r.brand||null};
+  }
+  state.srp=m; brandSRP=m;
+}
+/* SRP lookup for an extracted model code: exact normalized match first, then
+   containment (mirrors buildMatches' fuzzy merge) for minor code variants. */
+function srpOf(code){
+  const k=normCode(code); if(!k || k.length<4) return null;
+  if(state.srp[k]) return state.srp[k];
+  for(const key in state.srp){
+    if(key.length>=6 && k.length>=6 && (k.includes(key)||key.includes(k))) return state.srp[key];
+  }
+  return null;
+}
+/* Estimated retailer margin at the current price, assuming the retailer's
+   invoice cost preserves BRAND_SETTINGS.marginPct at SRP. */
+function estMargin(price, srp){
+  if(!price || !srp) return null;
+  const cost = srp*(1-BRAND_SETTINGS.marginPct/100);
+  return Math.round((price-cost)/price*100);
+}
 function isMyBrand(p){ const n=f.name(p).toUpperCase(); return MY_BRANDS.some(b=>n.includes(b)); }
 function brandOf(name){ const n=(name||"").toUpperCase(); return MY_BRANDS.find(b=>n.includes(b)) || null; }
 /* Clearance / display / last-piece / refurbished items get phased out and are
@@ -1055,7 +1100,7 @@ const SITE_LABEL = {kotsovolos:"Kotsovolos", public:"Public", plaisio:"Plaisio"}
 const SITE_PILL  = {kotsovolos:"site-k", public:"site-p", plaisio:"site-l"};
 const BRANDS = ["WHIRLPOOL","SAMSUNG","LG","BOSCH","SIEMENS","PITSOS","DELONGHI","DE LONGHI","AEG","BEKO","HISENSE","TOSHIBA","SHARP","CANDY","LIEBHERR","MIELE","INVENTOR","MORRIS","UNITED","CROWN","MIDEA","HAIER","TCL","DAVOLINE","ELECTROLUX","INDESIT","HOTPOINT","GORENJE","TEKA","FINLUX","PHILCO","FRANKE","NEFF","SMEG","BERTAZZONI","KENDRIX","OMNYS","PROFI COOK","PROFICOOK","LA SOMMELIERE","JURO PRO","JURO-PRO","ESKIMO","ROBIN","CARAD","TELEFUNKEN","NASCO","KARAMCO"];
 
-let state = {products:[], laundry:[], history:[], alerts:[], demo:false, dept:"cooling"};
+let state = {products:[], laundry:[], history:[], alerts:[], srp:{}, demo:false, dept:"cooling"};
 let charts = {};
 
 /* =========================================================
@@ -1335,6 +1380,12 @@ async function loadAll(){
         safeRender("history",renderHistory); safeRender("alerts",renderAlerts);
         safeRender("dealCount",updateDealCount);
       }).catch(()=>{});
+    // SRP/MAP policy layer (older backends without /api/srp: fail silently)
+    api("/api/srp").then(rows=>{
+      setSrp(rows);
+      safeRender("brands",renderBrands); safeRender("alerts",renderAlerts);
+      safeRender("srpStatus",renderSrpStatus);
+    }).catch(()=>{});
     return;
   }catch(e){
     state = {...state, ...structuredClone(DEMO), demo:true};
@@ -2162,12 +2213,20 @@ function renderBrands(){
   const avgSpread = spreads.length? spreads.reduce((a,b)=>a+b,0)/spreads.length : 0;
   const eroded = onMulti.filter(m=>{const v=Object.values(m.offers);const mx=Math.max(...v);return mx>0 && (mx-Math.min(...v))/mx>=0.10;}).length;
   const m1 = (label,val,foot,cls)=>`<div class="stat-card ${cls}"><div class="metric-value">${val}</div><div class="metric-label">${label}</div><div class="metric-foot">${foot}</div></div>`;
+  const srpLoaded = Object.keys(state.srp).length>0;
+  const srpCov = srpLoaded ? models.filter(m=>srpOf(m.code)).length : 0;
+  const mapBreaches = srpLoaded ? models.filter(m=>{
+    const s=srpOf(m.code); if(!s||!s.map) return false;
+    return Object.values(m.offers).some(x=>x!=null&&x<s.map-0.005);
+  }).length : 0;
   const mEl=document.getElementById("brandMetrics");
   if(mEl) mEl.innerHTML =
     m1("My models tracked", models.length, "across the 3 retailers","sc-blue")+
     m1("On 2+ retailers", onMulti.length, "comparable for parity","sc-aqua")+
     m1("Avg price spread", spreads.length?"€"+avgSpread.toFixed(0):"–", "lowest vs highest","sc-mint")+
-    m1("Parity breaks", eroded, "≥10% gap between retailers","sc-heat");
+    m1("Parity breaks", eroded, "≥10% gap between retailers","sc-heat")+
+    m1("SRP coverage", srpLoaded?srpCov+"/"+models.length:"–", srpLoaded?"models with an SRP loaded":"import SRPs on the Export page","sc-blue")+
+    m1("MAP breaches", srpLoaded?mapBreaches:"–", srpLoaded?"retailer advertising below MAP":"activates with SRP/MAP import","sc-heat");
 
   // parity table
   const head = `<div class="bp-row head"><div>Model</div><div style="text-align:center">Kotsovolos</div><div style="text-align:center">Public</div><div style="text-align:center">Plaisio</div><div style="text-align:right">Spread</div></div>`;
@@ -2177,14 +2236,24 @@ function renderBrands(){
     return sb-sa;
   }).map(m=>{
     const v=Object.values(m.offers); const lo=v.length?Math.min(...v):null, hi=v.length?Math.max(...v):null;
+    const sr=srpOf(m.code);
     const cell=s=>{const x=m.offers[s]; if(x==null)return `<div class="bp-cell na">—</div>`;
-      const c=x===lo&&v.length>1?"low":(x===hi&&v.length>1?"high":""); return `<div class="bp-cell ${c}">${fmt(x)}</div>`;};
+      const c=x===lo&&v.length>1?"low":(x===hi&&v.length>1?"high":"");
+      let sub="";
+      if(sr&&sr.srp){
+        const idx=x/sr.srp*100, breach=sr.map&&x<sr.map-0.005, mg=estMargin(x,sr.srp);
+        const col=breach?"var(--heat)":idx<90?"var(--warn)":"var(--ink-soft)";
+        sub=`<div style="font:600 10px 'JetBrains Mono';color:${col};margin-top:1px" title="SRP ${fmt(sr.srp)}${sr.map?' · MAP '+fmt(sr.map):''}${mg!=null?' · est. retailer margin now ≈ '+mg+'% (vs '+BRAND_SETTINGS.marginPct+'% at SRP)':''}">${idx.toFixed(0)}% SRP${breach?' ⚠':''}</div>`;
+      }
+      return `<div class="bp-cell ${c}">${fmt(x)}${sub}</div>`;};
+    const mapBreach = sr&&sr.map&&v.some(x=>x!=null&&x<sr.map-0.005);
     let flag="", spread="";
     if(v.length>1){ const sp=hi-lo, pct=hi>0?sp/hi:0; spread=`€${sp.toFixed(0)}`;
       flag = pct>=0.10 ? '<span class="bp-flag erosion">parity break</span>'
            : pct>=0.04 ? '<span class="bp-flag watch">watch</span>'
            : '<span class="bp-flag parity">in parity</span>';
     } else { spread="<span style='color:#CBD5E1;font-weight:400'>1 listing</span>"; }
+    if(mapBreach) flag = '<span class="bp-flag erosion">MAP breach</span> ' + flag;
     return `<div class="bp-row">
       <div class="bp-name"><b>${esc(cap(m.brand)||"")} ${esc(m.code.startsWith("U:")?short(m.name,26):m.code)}</b><span>${m.code.startsWith("U:")?"":esc(m.code)}</span></div>
       ${cell("kotsovolos")}${cell("public")}${cell("plaisio")}
@@ -2635,6 +2704,28 @@ function computeLaundryThreats(){
   }
   return threats.sort((a,b)=>b.score-a.score);
 }
+/* MAP/SRP policy violations for the brands you represent. A MAP breach is any
+   advertised price below the model's MAP; without a MAP, only deep erosion
+   (>10% under SRP, matching the parity-break threshold) is flagged so normal
+   street pricing under RRP doesn't spam the list. */
+function computeMapViolations(){
+  if(!Object.keys(state.srp).length) return [];
+  const out=[];
+  const pool=[...state.products, ...(state.laundry||[])]
+    .filter(p=>isMyBrand(p) && f.price(p)!=null && !isClearance(p));
+  for(const p of pool){
+    const {code}=extractModel(f.name(p));
+    const s=srpOf(code); if(!s||!s.srp) continue;
+    const price=f.price(p);
+    if(s.map && price < s.map-0.005){
+      out.push({p, price, ref:s.map, srp:s.srp, type:"MAP", depth:(1-price/s.map)*100});
+    } else if(!s.map && price < s.srp*0.90){
+      out.push({p, price, ref:s.srp, srp:s.srp, type:"SRP", depth:(1-price/s.srp)*100});
+    }
+  }
+  return out.sort((a,b)=>b.depth-a.depth);
+}
+
 function renderAlerts(){
   const lau = state.dept==="laundry";
   const showAll = (document.getElementById("alertShowAll")||{}).checked;
@@ -2698,12 +2789,29 @@ function renderAlerts(){
       </div>`};
   }).filter(Boolean).sort((a,b)=>(b.sevHi-a.sevHi)||(b.gap-a.gap));
 
+  // ---- MAP/SRP policy violations (shown first — they're contractual, not competitive) ----
+  const mapViol = computeMapViolations();
+  const mapHtml = mapViol.length ? `
+    <div class="alert-card hi" style="border-left:4px solid var(--heat)">
+      <div class="ab-head">
+        <div><b>MAP / SRP policy violations</b><div class="ab-meta">Retailers advertising your models below policy · sorted by depth</div></div>
+        <div class="ab-count"><span class="pill warn">⚠ ${mapViol.length} violation${mapViol.length>1?"s":""}</span></div>
+      </div>
+      <div class="ab-rivals">${mapViol.slice(0,25).map(v=>{
+        const mg=estMargin(v.price, v.srp);
+        return `<div class="ab-rival disrupt">
+          <div class="ab-rival-main"><b>${esc(short(f.name(v.p),44))}</b> <span class="ab-edges"><span class="ab-edge">${v.type==="MAP"?"MAP breach":"−"+v.depth.toFixed(0)+"% vs SRP"}</span></span></div>
+          <div class="ab-rival-sub">${SITE_LABEL[f.site(v.p)]||f.site(v.p)} · now <b style="color:var(--heat)">${fmt(v.price)}</b> vs ${v.type==="MAP"?"MAP":"SRP"} ${fmt(v.ref)} · ${v.depth.toFixed(1)}% below${mg!=null?` · est. retailer margin ≈ ${mg}% (vs ${BRAND_SETTINGS.marginPct}% at SRP)`:""}</div>
+        </div>`;
+      }).join("")}${mapViol.length>25?`<div class="ab-more" style="padding:6px 10px">+${mapViol.length-25} more</div>`:""}</div>
+    </div>` : "";
+
   const totalHi = cards.filter(c=>c.sevHi).length;
   const badge=document.getElementById("notifBadge");
-  if(badge){ const n=cards.length; badge.textContent=n>99?"99+":n; badge.style.display=n?"grid":"none"; }
+  if(badge){ const n=cards.length+mapViol.length; badge.textContent=n>99?"99+":n; badge.style.display=n?"grid":"none"; }
 
-  document.getElementById("alertGroups").innerHTML = cards.map(c=>c.html).join("")
-    || `<div class="empty" style="padding:40px"><div class="big"><svg class="ic2" viewBox="0 0 24 24"><path class="body" d="M6 9a6 6 0 0 1 12 0c0 6 2.4 8 2.4 8H3.6S6 15 6 9"/><path class="det" d="M10.2 20.4a2 2 0 0 0 3.6 0"/><circle class="acc" cx="17.6" cy="6" r="2.7"/></svg></div>No ${showAll?"":"disruption-level "}threats right now.<br><span style="font-size:12px;color:var(--ink-soft)">${showAll?"You'll be alerted when a same-segment rival is priced at or below one of your "+(lau?"laundry ":"")+"products.":"Tick 'show standard undercuts' to see lower-priority price gaps."}</span></div>`;
+  document.getElementById("alertGroups").innerHTML = mapHtml + (cards.map(c=>c.html).join("")
+    || (mapViol.length ? "" : `<div class="empty" style="padding:40px"><div class="big"><svg class="ic2" viewBox="0 0 24 24"><path class="body" d="M6 9a6 6 0 0 1 12 0c0 6 2.4 8 2.4 8H3.6S6 15 6 9"/><path class="det" d="M10.2 20.4a2 2 0 0 0 3.6 0"/><circle class="acc" cx="17.6" cy="6" r="2.7"/></svg></div>No ${showAll?"":"disruption-level "}threats right now.<br><span style="font-size:12px;color:var(--ink-soft)">${showAll?"You'll be alerted when a same-segment rival is priced at or below one of your "+(lau?"laundry ":"")+"products.":"Tick 'show standard undercuts' to see lower-priority price gaps."}</span></div>`));
 }
 
 /* =========================================================
@@ -3361,6 +3469,87 @@ on("addProduct","click",async ()=>{
   }catch(_){ alert("Could not add — backend unreachable."); }
 });
 
+/* ---- SRP/MAP import flow (Export page) ---- */
+let _srpParsed=[], _srpMsg="";
+function parseSrpCsv(text){
+  const lines=String(text||"").split(/\r?\n/).filter(l=>l.trim());
+  if(!lines.length) return [];
+  const delim=(lines[0].match(/;/g)||[]).length > (lines[0].match(/,/g)||[]).length ? ";" : ",";
+  const split=l=>l.split(delim).map(c=>c.replace(/^"|"$/g,"").trim());
+  const head=split(lines[0]).map(h=>h.toLowerCase());
+  const find=names=>head.findIndex(h=>names.some(n=>h.includes(n)));
+  let iCode=find(["code","model","κωδ"]), iSrp=find(["srp","rrp","προτειν","τιμ"]),
+      iMap=find(["map","ελαχ"]), iBrand=find(["brand","μαρκ","κατασκ"]), start=1;
+  if(iCode<0 || iSrp<0){ iCode=0; iSrp=1; iMap=2; iBrand=3; start=0; }  // headerless: code,srp[,map[,brand]]
+  const rows=[];
+  for(let i=start;i<lines.length;i++){
+    const c=split(lines[i]);
+    const code=(c[iCode]||"").trim(), srp=num(c[iSrp]);
+    if(!code || srp==null || srp<=0) continue;
+    const map=iMap>=0 ? num(c[iMap]) : null;
+    rows.push({model_code:code, srp, map_price:(map&&map>0)?map:null, brand:iBrand>=0?(c[iBrand]||null):null});
+  }
+  return rows;
+}
+function _catalogueCodes(){
+  const set=new Set();
+  for(const p of [...state.products, ...(state.laundry||[])]){
+    const c=normCode(extractModel(f.name(p)).code);
+    if(c && c.length>=4) set.add(c);
+  }
+  return set;
+}
+function renderSrpPreview(){
+  const el=document.getElementById("srpPreview"), btn=document.getElementById("srpImportBtn");
+  if(!el) return;
+  if(!_srpParsed.length){ el.innerHTML=""; if(btn) btn.disabled=true; return; }
+  const cat=_catalogueCodes();
+  const hit=c=>{ const k=normCode(c); if(cat.has(k)) return true;
+    if(k.length>=6){ for(const key of cat){ if(key.length>=6 && (k.includes(key)||key.includes(k))) return true; } } return false; };
+  const matched=_srpParsed.filter(r=>hit(r.model_code));
+  const unmatched=_srpParsed.filter(r=>!hit(r.model_code));
+  const withMap=_srpParsed.filter(r=>r.map_price).length;
+  el.innerHTML=`<b>${_srpParsed.length}</b> rows parsed · <span style="color:var(--mint);font-weight:600">${matched.length} match a tracked model</span>`
+    +` · ${withMap} carry a MAP`
+    +(unmatched.length?` · <span style="color:var(--warn);font-weight:600">${unmatched.length} unmatched</span>`
+      +`<div style="font:500 11px 'JetBrains Mono';color:var(--ink-soft);margin-top:6px">unmatched: ${unmatched.slice(0,8).map(r=>esc(r.model_code)).join(", ")}${unmatched.length>8?" …":""}</div>`
+      +`<div style="font-size:11.5px;color:var(--ink-soft);margin-top:4px">Unmatched codes are still saved — they attach automatically when the model appears in a scrape.</div>`:"");
+  if(btn) btn.disabled=false;
+}
+function renderSrpStatus(){
+  const el=document.getElementById("srpStatus"); if(!el) return;
+  const n=Object.keys(state.srp).length;
+  el.textContent=(n?`Currently active: ${n} SRP entr${n===1?"y":"ies"}.`:"No SRPs loaded yet — the money layer is dormant.")+(_srpMsg?" "+_srpMsg:"");
+}
+async function srpDoImport(){
+  if(!_srpParsed.length) return;
+  const btn=document.getElementById("srpImportBtn");
+  if(btn){ btn.disabled=true; btn.textContent="Importing…"; }
+  try{
+    if(state.demo){
+      setSrp(_srpParsed);
+      _srpMsg="(demo mode — loaded locally only, not saved)";
+    } else {
+      const res=await api("/api/srp/import",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({rows:_srpParsed})});
+      setSrp(await api("/api/srp"));
+      _srpMsg=`Imported: ${res.upserted} saved, ${res.skipped} skipped.`;
+    }
+    safeRender("brands",renderBrands); safeRender("alerts",renderAlerts);
+  }catch(_){
+    _srpMsg="Import failed — check that the backend has /api/srp deployed and the API key is set.";
+  }
+  if(btn){ btn.textContent="Import"; btn.disabled=false; }
+  renderSrpStatus();
+}
+on("srpFile","change",e=>{
+  const file=e.target.files && e.target.files[0]; if(!file) return;
+  const rd=new FileReader();
+  rd.onload=()=>{ _srpParsed=parseSrpCsv(rd.result); renderSrpPreview(); };
+  rd.readAsText(file);
+});
+on("srpPaste","input",e=>{ _srpParsed=parseSrpCsv(e.target.value); renderSrpPreview(); });
+on("srpImportBtn","click",srpDoImport);
+
 async function removeProduct(id){
   if(state.demo){ alert("Demo data — connect the backend to manage products."); return; }
   try{ await api("/api/products/"+encodeURIComponent(id),{method:"DELETE"}); loadAll(); }
@@ -3383,10 +3572,13 @@ async function doExport(kind){
 function exportMatches(){
   const matches=buildMatches(state.products);
   const sites=["kotsovolos","public","plaisio"];
-  let csv="Brand,Model,"+sites.map(s=>SITE_LABEL[s]+" RRP").join(",")+","+FEATURE_MAP.map(x=>x.label).join(",")+"\n";
+  let csv="Brand,Model,"+sites.map(s=>SITE_LABEL[s]+" RRP").join(",")+",SRP,MAP,Best vs SRP %,"+FEATURE_MAP.map(x=>x.label).join(",")+"\n";
   for(const m of matches){
     const chips={}; featureChips(m.specs).forEach(c=>{const [k,...v]=c.split(": ");chips[k]=v.join(": ");});
-    csv+=[cap(m.brand),m.code,...sites.map(s=>m.offers[s]??""),...FEATURE_MAP.map(x=>q(chips[x.label]||""))].join(",")+"\n";
+    const sr=srpOf(m.code);
+    const best=Math.min(...sites.map(s=>m.offers[s]).filter(x=>x!=null).concat([Infinity]));
+    const idx=(sr&&sr.srp&&best<Infinity)?(best/sr.srp*100).toFixed(1):"";
+    csv+=[cap(m.brand),m.code,...sites.map(s=>m.offers[s]??""),sr?sr.srp:"",sr&&sr.map?sr.map:"",idx,...FEATURE_MAP.map(x=>q(chips[x.label]||""))].join(",")+"\n";
   }
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download="pricedge_match_matrix.csv"; a.click();

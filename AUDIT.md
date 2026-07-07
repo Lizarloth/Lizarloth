@@ -380,6 +380,10 @@ All remaining files except `scrapers.py` were subsequently provided and committe
 - **`requirements.txt` doesn't pin `requests`** (used directly by the runner and two fetchers; currently a transitive dependency) and leaves `apscheduler` unpinned. Add `requests==2.x` and pin `apscheduler` for reproducible installs.
 - **Still missing:** `scrapers.py` (imported by `backend/main.py` — `scrape_url`, `scrape_batch`, `detect_site`). The backend cannot start without it; commit it to complete the repo.
 
+### Implementation log
+
+- **§3.1 SRP/MAP money layer — implemented (first cut).** `srp` table + `GET /api/srp` / `POST /api/srp/import` / `DELETE /api/srp/{code}`; CSV import card with matched/unmatched preview on the Export page; SRP-index sub-lines and MAP-breach flags plus SRP-coverage/MAP-breach metric cards on My Brands; MAP-breach / deep-SRP-erosion (>10%) violations block on Alerts, counted in the notification badge; the previously dormant `BRAND_SETTINGS` margin constant now powers an estimated-retailer-margin readout; SRP/MAP/best-vs-SRP columns added to the match-matrix export. Still open from §3.1: violation *duration* (needs server-side alert persistence, §3.3) and per-segment target positioning (§3.2.3).
+
 ---
 
 *Audit based on static review of the uploaded `index.html` and backend/runner sources listed above. Recommendations touching files not provided are framed as contracts to implement rather than diffs.*

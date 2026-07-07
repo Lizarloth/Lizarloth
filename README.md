@@ -43,3 +43,20 @@ python local_runner.py --plp --due
 The dashboard's topbar shows per-retailer data freshness (green ≤24 h,
 amber ≤48 h, red older) computed from `scraped_at`; `GET /api/status`
 exposes the same per-site freshness for external monitoring.
+
+## SRP / MAP money layer
+
+Import the brand team's price list on the dashboard's **Export** page
+(CSV: `model_code, srp, map_price?, brand?` — comma or semicolon separated,
+Greek number formats accepted, header row optional). Codes are normalized
+to uppercase A–Z0–9 and matched against the codes Pricedge extracts from
+product names. Once loaded:
+
+- **My Brands** shows an SRP index under every retailer price (with an
+  estimated retailer-margin tooltip) plus SRP-coverage / MAP-breach metrics
+- **Alerts** lists MAP breaches (any price below MAP) and deep SRP erosion
+  (>10 % under SRP when no MAP is set)
+- the **match-matrix CSV export** carries SRP / MAP / best-vs-SRP columns
+
+API: `GET /api/srp` · `POST /api/srp/import` (`{rows:[…], replace?:bool}`) ·
+`DELETE /api/srp/{code}` — all behind the `X-API-Key` header.

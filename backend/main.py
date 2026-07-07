@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import json
 import os
 
-from database import init_db, get_db, Product, PriceHistory, Alert
+from database import init_db, get_db, Product, PriceHistory, Alert, Srp
 from scrapers import scrape_url, scrape_batch, detect_site
 from alerts import check_and_alert
 from exports import (
@@ -76,6 +76,18 @@ class ScrapeRequest(BaseModel):
 
 class IngestPayload(BaseModel):
     results: list[dict]
+
+
+class SrpRow(BaseModel):
+    model_code: str
+    srp: float
+    map_price: Optional[float] = None
+    brand: Optional[str] = None
+
+
+class SrpImportPayload(BaseModel):
+    rows: list[SrpRow]
+    replace: bool = False           # true = wipe the table before importing
 
 
 # ── DB session for background jobs ───────────────────────────────────────
@@ -337,6 +349,61 @@ def scrape_all(background_tasks: BackgroundTasks, db: Session = Depends(get_db))
     urls = [p.url for p in products]
     background_tasks.add_task(run_scrape_job, urls)
     return {"status": "started", "products": len(urls)}
+
+
+# ── SRP / MAP pricing policy ─────────────────────────────────────────────
+def _norm_code(c: str) -> str:
+    import re
+    return re.sub(r"[^A-Z0-9]", "", str(c or "").upper())
+
+
+@app.get("/api/srp")
+def list_srp(db: Session = Depends(get_db)):
+    return [
+        {
+            "model_code": r.model_code, "brand": r.brand,
+            "srp": r.srp, "map_price": r.map_price,
+            "updated_at": r.updated_at.isoformat() if r.updated_at else None,
+        }
+        for r in db.query(Srp).all()
+    ]
+
+
+@app.post("/api/srp/import")
+def import_srp(payload: SrpImportPayload, db: Session = Depends(get_db)):
+    """Upsert SRP/MAP rows (keyed by normalized model code). The dashboard
+    parses the brand team's CSV client-side, previews the match against the
+    live catalogue, then posts the confirmed rows here."""
+    if payload.replace:
+        db.query(Srp).delete()
+    upserted = skipped = 0
+    for row in payload.rows:
+        code = _norm_code(row.model_code)
+        if not code or row.srp is None or row.srp <= 0:
+            skipped += 1
+            continue
+        rec = db.query(Srp).filter(Srp.model_code == code).first()
+        if rec:
+            rec.srp = row.srp
+            rec.map_price = row.map_price
+            rec.brand = row.brand or rec.brand
+            rec.updated_at = datetime.utcnow()
+        else:
+            db.add(Srp(model_code=code, brand=row.brand,
+                       srp=row.srp, map_price=row.map_price))
+        upserted += 1
+    db.commit()
+    return {"upserted": upserted, "skipped": skipped, "total": db.query(Srp).count()}
+
+
+@app.delete("/api/srp/{code}")
+def delete_srp(code: str, db: Session = Depends(get_db)):
+    rec = db.query(Srp).filter(Srp.model_code == _norm_code(code)).first()
+    if not rec:
+        raise HTTPException(404, "SRP entry not found")
+    db.delete(rec)
+    db.commit()
+    return {"deleted": rec.model_code}
 
 
 # ── Data freshness / scrape status ──────────────────────────────────────
