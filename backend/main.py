@@ -330,10 +330,12 @@ def list_products(db: Session = Depends(get_db)):
     out = []
     for p in products:
         latest = latest_by_pid.get(p.id)
-        specs = {}
+        specs, image = {}, None
         if latest and latest.raw_data:
             try:
-                specs = json.loads(latest.raw_data).get("specs", {}) or {}
+                raw = json.loads(latest.raw_data)
+                specs = raw.get("specs", {}) or {}
+                image = raw.get("image") or None   # scraped but previously never served
             except Exception:
                 specs = {}
         out.append({
@@ -346,6 +348,7 @@ def list_products(db: Session = Depends(get_db)):
             "old_price": latest.old_price if latest else None,
             "availability": latest.availability if latest else None,
             "specs": specs,
+            "image": image,
             "scraped_at": latest.scraped_at.isoformat() if latest and latest.scraped_at else None,
         })
     return out
