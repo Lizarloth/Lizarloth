@@ -424,15 +424,47 @@ def ingest_results(payload: IngestPayload, request: Request, db: Session = Depen
             db.commit()
             db.refresh(product)
             created += 1
-        elif r.get("sku") and not product.retailer_sku:
-            # backfill the retailer's own SKU id on already-known products —
-            # it's the stable per-site identity that model-code matching lacks
-            product.retailer_sku = str(r["sku"])
+        else:
+            if not product.active:
+                product.active = True   # relisted after retirement — bring it back
+            if r.get("sku") and not product.retailer_sku:
+                # backfill the retailer's own SKU id on already-known products —
+                # it's the stable per-site identity that model-code matching lacks
+                product.retailer_sku = str(r["sku"])
         save_scrape_result(r, db)
         saved += 1
 
     print(f"📥 Ingest: {saved} saved, {created} new products, {skipped} skipped")
     return {"saved": saved, "new_products": created, "skipped": skipped}
+
+
+@app.post("/api/ingest/retire")
+def ingest_retire(request: Request, db: Session = Depends(get_db)):
+    """Deactivate products the retailers have delisted. The runner calls this
+    only after a FULL sweep (all sites, all categories), so anything whose
+    newest price reading is older than RETIRE_HOURS wasn't found by that sweep
+    — it's gone from the shelf. Retired products keep their history and come
+    back automatically if a later scrape sees them again (ingest reactivates)."""
+    token = os.getenv("INGEST_TOKEN", "")
+    if not token or request.headers.get("X-Ingest-Token") != token:
+        raise HTTPException(401, "Invalid or missing X-Ingest-Token")
+    hours = float(os.getenv("RETIRE_HOURS", "48"))
+    cutoff = datetime.utcnow() - timedelta(hours=hours)
+    latest = (
+        db.query(PriceHistory.product_id, func.max(PriceHistory.scraped_at).label("mx"))
+        .group_by(PriceHistory.product_id)
+        .subquery()
+    )
+    stale_ids = [pid for (pid,) in
+                 db.query(latest.c.product_id).filter(latest.c.mx < cutoff).all()]
+    retired = 0
+    if stale_ids:
+        retired = (db.query(Product)
+                   .filter(Product.active == True, Product.id.in_(stale_ids))
+                   .update({Product.active: False}, synchronize_session=False))
+        db.commit()
+    print(f"🧹 Retire: {retired} product(s) not seen in {hours:.0f}h deactivated")
+    return {"retired": retired, "cutoff_hours": hours}
 
 
 # ── Cloud scraper endpoints (kept for testing / future proxy mode) ──────

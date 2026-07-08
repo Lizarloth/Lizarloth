@@ -108,7 +108,26 @@ def loader_map(debug=False):
     if _LOADER_CACHE is not None:
         return _LOADER_CACHE
     out = {}
+    probe = requests.Session()
+    probe.headers.update(HEADERS)
     for tag, path in LOADER_FILTERS.items():
+        # Probe the filter URL once before the multi-sort crawl: when Public
+        # renames the facet slug the old path 404s, and without this check
+        # every sort pass prints its own error line (7 per filter). One clear
+        # warning + skip instead; load-type tags simply stay empty until
+        # LOADER_FILTERS is updated with the new slug from public.gr.
+        try:
+            pr = probe.get(BASE, params={"s": path, "p": 1,
+                                         "getFilters": "false", "locale": "el"},
+                           timeout=20)
+            if pr.status_code == 404:
+                print(f"  ! loader filter '{tag}' 404s — Public changed the "
+                      f"load-type filter URL; update LOADER_FILTERS in "
+                      f"public_plp.py (skipping, loader tags stay empty)")
+                continue
+        except Exception as e:
+            print(f"  ! loader filter '{tag}' probe failed: {str(e)[:60]} — skipping")
+            continue
         try:
             rows, _ = collect_all(path, cat_name="wm_" + tag, debug=debug,
                                   spec_map=LAUNDRY_SPEC_MAP, dept="laundry")
