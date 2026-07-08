@@ -759,11 +759,14 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 
   <section class="page" id="page-l-brands">
     <h2 class="page-title">My Brands · Laundry</h2>
-    <p class="page-sub">Whirlpool, Indesit and Beko vs the market, by type.</p>
+    <p class="page-sub">Price parity and erosion for Whirlpool, Indesit and Beko in laundry — per model, across the three retailers, by type.</p>
     <div class="l-filters" id="lbType"></div>
     <div class="grid metrics" id="lbMetrics"></div>
     <div class="card" style="margin-top:18px">
-      <h3><span class="dot" style="background:var(--cobalt)"></span>Your models vs market <span id="lbScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <h3><span class="dot" style="background:var(--warn)"></span>Price spread by model <span id="lbScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin:-6px 0 14px">
+        Each row is one of your models. <span style="color:var(--mint);font-weight:600">Lowest</span> and
+        <span style="color:var(--heat);font-weight:600">highest</span> live prices are highlighted; a wide spread means a retailer is breaking price parity on your product.</p>
       <div id="lbTable"></div>
     </div>
   </section>
@@ -1150,6 +1153,13 @@ function laundryNorm(p){
     loader : s["__loader"] || (g("Τύπος φόρτωσης")==="Top-load"?"top":g("Τύπος φόρτωσης")==="Front-load"?"front":""),
   };
 }
+/* Laundry colour: use the Χρώμα spec only (the runner already derives it from
+   name cues when the spec table omits it). No blind name fallback — a washer
+   with no colour info stays untagged instead of polluting an "Other" bucket. */
+function lauColorOf(p){
+  const c = specVal(f.specs(p), ["Χρώμα","Color"]);
+  return c ? colorFamily(c) : null;
+}
 /* tidy a scraped product name for display: trim trailing quotes/whitespace */
 function cleanName(s){ return String(s||"").replace(/^["'\s]+|["'\s]+$/g,"").trim() || "—"; }
 function num(v){ if(v==null) return null; const n=parseFloat(String(v).replace(/[^\d.,]/g,"").replace(/\.(?=\d{3})/g,"").replace(",",".")); return isNaN(n)?null:n; }
@@ -1426,7 +1436,7 @@ async function _loadAll_old(){
 function safeRender(name, fn){ try{ fn(); }catch(err){ console.error("Render failed:", name, err); } }
 
 /* ===================== LAUNDRY DEPARTMENT ===================== */
-const laundryFilter = { type:"any", brands:new Set(), retailer:"any", energy:new Set(), kg:"any", rpm:"any", loader:"any", mine:false };
+const laundryFilter = { type:"any", brands:new Set(), retailer:"any", energy:new Set(), kg:"any", rpm:"any", loader:"any", colors:new Set(), mine:false };
 
 // tabs that have a laundry variant (page-l-<tab>); others (export/about) are shared
 const LAUNDRY_TAB_SET = new Set(["dashboard","brands","segments","compare","products"]);
@@ -1541,6 +1551,7 @@ function renderLaundry(){
     if(F.kg!=="any"){ const k=n.wash_kg||n.dry_kg; const [lo,hi]=_LKG[F.kg]; if(k==null||k<lo||k>hi) return false; }
     if(F.rpm!=="any"){ const [lo,hi]=_LRPM[F.rpm]; if(n.rpm==null||n.rpm<lo||n.rpm>hi) return false; }
     if(F.loader!=="any" && n.loader!==F.loader) return false;
+    if(F.colors.size){ const c=lauColorOf(p); if(!c || !F.colors.has(c)) return false; }
     return true;
   };
   const cset = typePool.filter(p=>lauFacet(p,laundryNorm(p)));
@@ -1557,7 +1568,9 @@ function renderLaundry(){
   const rpmOpts=_LRPML.map(([v,t])=>`<option value="${v}" ${F.rpm===v?'selected':''}>${t}</option>`).join("");
   const loaderOpts=[["any","Any loader"],["front","Front-load"],["top","Top-load"]].map(([v,t])=>`<option value="${v}" ${F.loader===v?'selected':''}>${t}</option>`).join("");
   const energyChips=["A","B","C","D","E","F","G"].map(en=>`<span class="fchip ${F.energy.has(en)?'on':''}" data-lau-energy="${en}">${en}</span>`).join("");
-  const lauActive = F.brands.size||F.retailer!=="any"||F.energy.size||F.kg!=="any"||F.rpm!=="any"||F.loader!=="any"||F.mine;
+  const lauColorsPresent=[...new Set(typePool.map(lauColorOf).filter(Boolean))].sort();
+  const lauColorChips=lauColorsPresent.map(c=>`<span class="fchip ${F.colors.has(c)?'on':''}" data-lau-color="${esc(c)}">${esc(c)}</span>`).join("");
+  const lauActive = F.brands.size||F.retailer!=="any"||F.energy.size||F.kg!=="any"||F.rpm!=="any"||F.loader!=="any"||F.colors.size||F.mine;
   setHTML("laundryFilters",`
     <div class="l-seg">
       ${seg("any","All")}
@@ -1576,6 +1589,9 @@ function renderLaundry(){
     </div>
     <div class="dash-filters" style="margin:8px 0 0">
       <span class="df-lbl">Brands</span><div class="df-chips">${brandChips||'<span class="df-lbl" style="text-transform:none">none in view</span>'}</div>
+    </div>
+    <div class="dash-filters" style="margin:8px 0 0">
+      <span class="df-lbl">Colour</span><div class="df-chips">${lauColorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div>
     </div>`);
   const csetPriced = cset.map(f.price).filter(x=>x>0);
   const cavg = csetPriced.length ? csetPriced.reduce((a,b)=>a+b,0)/csetPriced.length : 0;
@@ -1657,55 +1673,119 @@ function renderLaundry(){
     } else emptyChart("lAvailChart","No availability data yet");
   }
 }
-let lbFilter = { type:"any" };
+let lbFilter = { type:"any", brand:"ALL" };
 
+/* My Brands · Laundry — parity view, mirroring the cooling My Brands page:
+   one row per model with all three retailers side by side, low/high
+   highlighting, parity flags, SRP index and MAP breaches. Laundry keeps its
+   own aspects: the type segments and kg/rpm/energy shown under each model. */
 function renderLBrands(){
   const host = document.getElementById("lbTable"); if(!host) return;
   const all = (state.laundry||[]);
   const cnt = t => all.filter(p=>laundryNorm(p).type===t).length;
   const seg = (k,l)=>`<button class="${lbFilter.type===k?'on':''}" data-lb-type="${k}">${l}</button>`;
+
+  // group my-brand laundry into models across retailers (cheapest offer per store)
+  const pool = all.filter(p=> isMyBrand(p) && f.price(p)!=null && !isClearance(p)
+    && (lbFilter.type==="any" || laundryNorm(p).type===lbFilter.type));
+  const groups = {};
+  for(const p of pool){
+    const {code}=extractModel(f.name(p));
+    const key = code && code.length>=4 ? code : ("U:"+f.name(p).slice(0,24));
+    if(!groups[key]) groups[key]={code:key, brand:brandOf(f.name(p)), name:f.name(p), offers:{}, n:laundryNorm(p)};
+    const s=f.site(p), pr=f.price(p);
+    if(pr!=null && (groups[key].offers[s]==null || pr<groups[key].offers[s])) groups[key].offers[s]=pr;
+    if(!groups[key].brand) groups[key].brand=brandOf(f.name(p));
+  }
+  const allModels = Object.values(groups);
+  const counts = {ALL: allModels.length};
+  MY_BRANDS.forEach(b=> counts[b]=allModels.filter(m=>m.brand===b).length);
+  const models = lbFilter.brand==="ALL" ? allModels : allModels.filter(m=>m.brand===lbFilter.brand);
+
+  // type segments + brand tabs (laundry keeps its type dimension)
+  const tabs = [["ALL","All my brands"]].concat(MY_BRANDS.map(b=>[b,cap(b)]))
+    .filter(([k])=>k==="ALL"||counts[k])
+    .map(([k,label])=>`<button class="brand-tab ${lbFilter.brand===k?'on':''}" data-lb-brand="${k}">${label}<span class="b-cnt">${counts[k]||0}</span></button>`).join("");
   const tf = document.getElementById("lbType");
   if(tf) tf.innerHTML = `<div class="l-seg">${seg("any","All")}${seg("washing_machine","Washers · "+cnt("washing_machine"))}`
-    +`${seg("washer_dryer","Washer-dryers · "+cnt("washer_dryer"))}${seg("dryer","Dryers · "+cnt("dryer"))}</div>`;
-  const pool = all.filter(p=>(lbFilter.type==="any"||laundryNorm(p).type===lbFilter.type) && f.price(p)!=null);
-  const mkt = pool.map(f.price).sort((a,b)=>a-b);
-  const mktAvg = mkt.length ? mkt.reduce((a,b)=>a+b,0)/mkt.length : 0;
-  const median = mkt.length ? mkt[Math.floor(mkt.length/2)] : 0;
-  const mine = pool.filter(isMyBrand);
-  const myAvg = mine.length ? mine.map(f.price).reduce((a,b)=>a+b,0)/mine.length : 0;
-  const myMin = mine.length ? Math.min(...mine.map(f.price)) : 0;
-  const lbl = lbFilter.type==="any" ? "all types" : LAUNDRY_TYPE_LABEL[lbFilter.type];
-  const m = document.getElementById("lbMetrics");
-  if(m) m.innerHTML = `
-    <div class="stat-card sc-blue"><div class="sc-ico"><svg viewBox="0 0 24 24" class="ic2"><path class="body" d="M12 2.6l2.7 5.5 6 .9-4.3 4.2 1 6L12 18.4 6.6 21.2l1-6L3.3 11l6-.9z"/></svg></div><div class="metric-value">${mine.length}</div><div class="metric-label">your models</div><div class="metric-foot">${esc(lbl)}</div></div>
-    <div class="stat-card sc-aqua"><div class="sc-ico"><svg viewBox="0 0 24 24" class="ic2"><circle class="body" cx="12" cy="12" r="9"/><path class="det" d="M15.6 8.4a4.6 4.6 0 1 0 0 7.2M8 11h6M8 13.4h5"/></svg></div><div class="metric-value">${mine.length?fmt(myAvg):"–"}</div><div class="metric-label">your avg price</div><div class="metric-foot">market avg ${mkt.length?fmt(mktAvg):"–"}</div></div>
-    <div class="stat-card sc-mint"><div class="sc-ico"><svg viewBox="0 0 24 24" class="ic2"><path class="bodys" d="M12 3.5v10.5M7.6 9.8l4.4 4.4 4.4-4.4"/><rect class="acc" x="4" y="18" width="16" height="2.6" rx="1.3"/></svg></div><div class="metric-value">${mine.length?fmt(myMin):"–"}</div><div class="metric-label">your entry price</div><div class="metric-foot">cheapest of your models</div></div>
-    <div class="stat-card sc-blue"><div class="sc-ico">▦</div><div class="metric-value">${pool.length}</div><div class="metric-label">market models</div><div class="metric-foot">in this slice</div></div>`;
-  const sc = document.getElementById("lbScope"); if(sc) sc.textContent = "· "+lbl;
-  if(!mine.length){ host.innerHTML = `<div style="padding:22px 6px;color:var(--ink-soft)">None of your brands (Whirlpool · Indesit · Beko) appear in this slice yet.</div>`; return; }
-  host.innerHTML = mine.sort((a,b)=>f.price(a)-f.price(b)).map((p,i)=>{
-    const n = laundryNorm(p); const {brand,code} = extractModel(f.name(p)); const url = f.url(p);
-    const d = f.price(p)-median; const col = d<=0 ? "var(--mint)" : "var(--heat)";
-    const nm = `${esc(cap(brand))} ${esc(short(code||f.name(p),24))}`;
-    const nameHTML = url?`<a href="${esc(url)}" target="_blank" rel="noopener">${nm} <span class="rl-arrow">↗</span></a>`:nm;
-    const delta = `<span class="lau-spec" style="background:transparent;color:${col};font-weight:700">${d<=0?"▼":"▲"} ${fmt(Math.abs(d))} vs median</span>`;
-    return `<div class="lau-row mine">
-      <div class="lau-rank">${i+1}</div>
-      ${lauThumbCell(p)}
-      <div class="lau-body">
-        <div class="lau-nm">${nameHTML}<span class="lau-yours">YOURS</span></div>
-        <div class="lau-specs">${lauSpecs(n)}${delta}</div>
-        <div class="lau-retail">${SITE_LABEL[f.site(p)]||f.site(p)}</div>
-      </div>
-      <div class="lau-price">${lauPriceCell(p)}</div></div>`;
+    +`${seg("washer_dryer","Washer-dryers · "+cnt("washer_dryer"))}${seg("dryer","Dryers · "+cnt("dryer"))}</div>`
+    +`<div class="brand-tabs" style="margin:12px 0 0;width:100%">${tabs}</div>`;
+
+  // metrics — same cards as cooling, plus the SRP layer
+  const onMulti = models.filter(m=>Object.keys(m.offers).length>=2);
+  const spreads = onMulti.map(m=>{const v=Object.values(m.offers);return Math.max(...v)-Math.min(...v);});
+  const avgSpread = spreads.length? spreads.reduce((a,b)=>a+b,0)/spreads.length : 0;
+  const eroded = onMulti.filter(m=>{const v=Object.values(m.offers);const mx=Math.max(...v);return mx>0 && (mx-Math.min(...v))/mx>=0.10;}).length;
+  const srpLoaded = Object.keys(state.srp).length>0;
+  const srpCov = srpLoaded ? models.filter(m=>srpOf(m.code)).length : 0;
+  const mapBreaches = srpLoaded ? models.filter(m=>{
+    const s=srpOf(m.code); if(!s||!s.map) return false;
+    return Object.values(m.offers).some(x=>x!=null&&x<s.map-0.005);
+  }).length : 0;
+  const m1 = (label,val,foot,cls)=>`<div class="stat-card ${cls}"><div class="metric-value">${val}</div><div class="metric-label">${label}</div><div class="metric-foot">${foot}</div></div>`;
+  const mEl=document.getElementById("lbMetrics");
+  if(mEl) mEl.innerHTML =
+    m1("My models tracked", models.length, "across the 3 retailers","sc-blue")+
+    m1("On 2+ retailers", onMulti.length, "comparable for parity","sc-aqua")+
+    m1("Avg price spread", spreads.length?"€"+avgSpread.toFixed(0):"–", "lowest vs highest","sc-mint")+
+    m1("Parity breaks", eroded, "≥10% gap between retailers","sc-heat")+
+    m1("SRP coverage", srpLoaded?srpCov+"/"+models.length:"–", srpLoaded?"models with an SRP loaded":"import SRPs on the Export page","sc-blue")+
+    m1("MAP breaches", srpLoaded?mapBreaches:"–", srpLoaded?"retailer advertising below MAP":"activates with SRP/MAP import","sc-heat");
+  const sc = document.getElementById("lbScope");
+  if(sc) sc.textContent = "· " + (lbFilter.type==="any"?"all types":LAUNDRY_TYPE_LABEL[lbFilter.type].toLowerCase())
+    + (lbFilter.brand!=="ALL" ? " · "+cap(lbFilter.brand) : "");
+
+  if(!models.length){
+    host.innerHTML = `<div class="empty" style="padding:40px">No ${lbFilter.brand==="ALL"?"":cap(lbFilter.brand)+" "}laundry models in this slice yet.<br><span style="font-size:12px;color:var(--ink-soft)">They'll appear once tracking includes Whirlpool / Indesit / Beko laundry models.</span></div>`;
+    return;
+  }
+
+  // parity table — widest spread first, laundry specs under each model name
+  const head = `<div class="bp-row head"><div>Model</div><div style="text-align:center">Kotsovolos</div><div style="text-align:center">Public</div><div style="text-align:center">Plaisio</div><div style="text-align:right">Spread</div></div>`;
+  const rows = models.sort((a,b)=>{
+    const va=Object.values(a.offers), vb=Object.values(b.offers);
+    const sa=va.length>1?Math.max(...va)-Math.min(...va):-1, sb=vb.length>1?Math.max(...vb)-Math.min(...vb):-1;
+    return sb-sa;
+  }).map(m=>{
+    const v=Object.values(m.offers); const lo=v.length?Math.min(...v):null, hi=v.length?Math.max(...v):null;
+    const sr=srpOf(m.code);
+    const cell=s=>{const x=m.offers[s]; if(x==null)return `<div class="bp-cell na">—</div>`;
+      const c=x===lo&&v.length>1?"low":(x===hi&&v.length>1?"high":"");
+      let sub="";
+      if(sr&&sr.srp){
+        const idx=x/sr.srp*100, breach=sr.map&&x<sr.map-0.005, mg=estMargin(x,sr.srp);
+        const col=breach?"var(--heat)":idx<90?"var(--warn)":"var(--ink-soft)";
+        sub=`<div style="font:600 10px 'JetBrains Mono';color:${col};margin-top:1px" title="SRP ${fmt(sr.srp)}${sr.map?' · MAP '+fmt(sr.map):''}${mg!=null?' · est. retailer margin now ≈ '+mg+'% (vs '+BRAND_SETTINGS.marginPct+'% at SRP)':''}">${idx.toFixed(0)}% SRP${breach?' ⚠':''}</div>`;
+      }
+      return `<div class="bp-cell ${c}">${fmt(x)}${sub}</div>`;};
+    const mapBreach = sr&&sr.map&&v.some(x=>x!=null&&x<sr.map-0.005);
+    let flag="", spread="";
+    if(v.length>1){ const sp=hi-lo, pct=hi>0?sp/hi:0; spread=`€${sp.toFixed(0)}`;
+      flag = pct>=0.10 ? '<span class="bp-flag erosion">parity break</span>'
+           : pct>=0.04 ? '<span class="bp-flag watch">watch</span>'
+           : '<span class="bp-flag parity">in parity</span>';
+    } else { spread="<span style='color:#CBD5E1;font-weight:400'>1 listing</span>"; }
+    if(mapBreach) flag = '<span class="bp-flag erosion">MAP breach</span> ' + flag;
+    const n=m.n;
+    const kgTxt = n.type==="washer_dryer" && n.wash_kg && n.dry_kg ? n.wash_kg+"/"+n.dry_kg+" kg"
+                : (n.wash_kg||n.dry_kg) ? (n.wash_kg||n.dry_kg)+" kg" : null;
+    const specLine=[ (LAUNDRY_TYPE_LABEL[n.type]||"").split(" ")[0], kgTxt,
+      n.rpm?n.rpm+" rpm":null, n.energy||null ].filter(Boolean).join(" · ");
+    return `<div class="bp-row">
+      <div class="bp-name"><b>${esc(cap(m.brand)||"")} ${esc(m.code.startsWith("U:")?short(m.name,26):m.code)}</b><span>${esc(specLine)}</span></div>
+      ${cell("kotsovolos")}${cell("public")}${cell("plaisio")}
+      <div class="bp-spread">${spread}<br>${flag}</div>
+    </div>`;
   }).join("");
+  host.innerHTML = head+rows;
 }
 
 function renderLSegments(){
   const host = document.getElementById("lsBody"); if(!host) return;
   const all = (state.laundry||[]).filter(p=>f.price(p)!=null);
   if(!all.length){ host.innerHTML = `<div class="card" style="color:var(--ink-soft)">No laundry data yet. Run <code>py local_runner.py --plp</code>.</div>`; return; }
-  const tiers = [["≤7 kg",0,7.4],["8 kg",7.5,8.4],["9 kg",8.5,9.4],["10 kg +",9.5,99]];
+  const tiers = [["≤6 kg",0,6.4],["7 kg",6.5,7.4],["8 kg",7.5,8.4],["9 kg",8.5,9.4],
+                 ["10 kg",9.5,10.4],["11 kg",10.5,11.4],["12 kg",11.5,12.4],["13 kg",12.5,13.4],["14 kg +",13.5,99]];
   const types = [["washing_machine","Washing machines"],["washer_dryer","Washer-dryers"],["dryer","Dryers"]];
   let html = "";
   for(const [tk,tl] of types){
@@ -2362,9 +2442,11 @@ function renderCompare(){
 }
 
 /* ====== LAUNDRY EXPLORE & COMPARE (mirrors cooling explorer, laundry facets) ====== */
-let lexpFilters = { q:"", scope:"all", type:"any", energy:new Set(), kg:"any", rpm:"any", loader:"any", retailer:"any", trim:"off" };
-const _LKG  = {"any":[0,999],"le7":[0,7.4],"8":[7.5,8.4],"9":[8.5,9.4],"10p":[9.5,999]};
-const _LKGL = [["any","Any capacity"],["le7","≤ 7 kg"],["8","8 kg"],["9","9 kg"],["10p","10 kg +"]];
+let lexpFilters = { q:"", scope:"all", type:"any", energy:new Set(), kg:"any", rpm:"any", loader:"any", colors:new Set(), retailer:"any", trim:"off" };
+const _LKG  = {"any":[0,999],"le6":[0,6.4],"7":[6.5,7.4],"8":[7.5,8.4],"9":[8.5,9.4],
+               "10":[9.5,10.4],"11":[10.5,11.4],"12":[11.5,12.4],"13":[12.5,13.4],"14p":[13.5,999]};
+const _LKGL = [["any","Any capacity"],["le6","≤ 6 kg"],["7","7 kg"],["8","8 kg"],["9","9 kg"],
+               ["10","10 kg"],["11","11 kg"],["12","12 kg"],["13","13 kg"],["14p","14 kg +"]];
 const _LRPM = {"any":[0,9999],"le1000":[0,1000],"1200":[1001,1300],"1400":[1301,1500],"1600p":[1501,9999]};
 const _LRPML= [["any","Any spin"],["le1000","≤ 1000"],["1200","1200"],["1400","1400"],["1600p","1600 +"]];
 const _LENERGY_C = {A:"#16A34A",B:"#4ADE80",C:"#A3E635",D:"#FACC15",E:"#F59E0B",F:"#F97316",G:"#EF4444"};
@@ -2380,6 +2462,10 @@ function renderLCompareRail(){
   const retailer = sel("retailer",[["any","All retailers"],["kotsovolos",SITE_LABEL.kotsovolos],["public",SITE_LABEL.public],["plaisio",SITE_LABEL.plaisio]]);
   const trim  = sel("trim",[["off","Keep all prices"],["2.5","Trim extremes (±2.5%)"],["5","Trim outliers (±5%)"],["10","Trim hard (±10%)"]]);
   const energyChips = ["A","B","C","D","E","F","G"].map(e=>`<span class="fchip ${F.energy.has(e)?'on':''}" data-lechip="${e}">${e}</span>`).join("");
+  const lauColors=[...new Set((state.laundry||[]).map(lauColorOf).filter(Boolean))].sort();
+  const colorChips=lauColors.length
+    ? lauColors.map(c=>`<span class="fchip ${F.colors.has(c)?'on':''}" data-lecolor="${esc(c)}">${esc(c)}</span>`).join("")
+    : '<span style="font-size:11.5px;color:var(--ink-soft)">colour fills in after the next update</span>';
   document.getElementById("lexpRail").innerHTML = `
     <div class="exp-grp"><h4>Brand scope</h4>${scope}</div>
     <div class="exp-grp"><h4>Type</h4>${type}</div>
@@ -2387,6 +2473,7 @@ function renderLCompareRail(){
     <div class="exp-grp"><h4>Capacity</h4>${kg}</div>
     <div class="exp-grp"><h4>Spin speed</h4>${rpm}</div>
     <div class="exp-grp"><h4>Load type</h4>${loader}</div>
+    <div class="exp-grp"><h4>Colour / finish</h4><div class="chipset">${colorChips}</div></div>
     <div class="exp-grp"><h4>Retailer</h4>${retailer}</div>
     <div class="exp-grp"><h4>Price outliers</h4>${trim}</div>
     <button class="exp-reset" id="lexpReset">Reset all filters</button>`;
@@ -2401,6 +2488,7 @@ function lexpMatch(p){
   if(F.kg!=="any"){ const k=n.wash_kg||n.dry_kg; const [lo,hi]=_LKG[F.kg]; if(k==null||k<lo||k>hi) return false; }
   if(F.rpm!=="any"){ const [lo,hi]=_LRPM[F.rpm]; if(n.rpm==null||n.rpm<lo||n.rpm>hi) return false; }
   if(F.loader!=="any" && n.loader!==F.loader) return false;
+  if(F.colors.size){ const c=lauColorOf(p); if(!c || !F.colors.has(c)) return false; }
   if(F.retailer!=="any" && f.site(p)!==F.retailer) return false;
   return f.price(p)!=null;
 }
@@ -2662,7 +2750,8 @@ function rivalModelKey(name){
 function laundryKgTier(kg){
   if(kg==null) return "?";
   if(kg<=6.5) return "≤6"; if(kg<=7.5) return "7"; if(kg<=8.5) return "8";
-  if(kg<=9.5) return "9"; return "10+";
+  if(kg<=9.5) return "9"; if(kg<=10.5) return "10"; if(kg<=11.5) return "11";
+  if(kg<=12.5) return "12"; if(kg<=13.5) return "13"; return "14+";
 }
 function computeLaundryThreats(){
   const PW=0.25;
@@ -3237,7 +3326,10 @@ document.getElementById("nav").addEventListener("click",e=>{
   showTab(btn.dataset.page);   // department-aware: stays in current dept
 });
 on("deptToggle","click",e=>{ const b=e.target.closest(".dept-pill"); if(b) setDept(b.dataset.dept); });
-on("lbType","click",e=>{ const b=e.target.closest("[data-lb-type]"); if(b){ lbFilter.type=b.dataset.lbType; renderLBrands(); } });
+on("lbType","click",e=>{
+  const b=e.target.closest("[data-lb-type]"); if(b){ lbFilter.type=b.dataset.lbType; return renderLBrands(); }
+  const t=e.target.closest("[data-lb-brand]"); if(t){ lbFilter.brand=t.dataset.lbBrand; return renderLBrands(); }
+});
 on("lpSearch","input",()=>renderLProducts());
 (function(){
   const lf=document.getElementById("laundryFilters"); if(!lf) return;
@@ -3245,8 +3337,9 @@ on("lpSearch","input",()=>renderLProducts());
     const t=e.target.closest("[data-lau-type]"); if(t){ laundryFilter.type=t.dataset.lauType; return renderLaundry(); }
     const en=e.target.closest("[data-lau-energy]"); if(en){ const v=en.dataset.lauEnergy; laundryFilter.energy.has(v)?laundryFilter.energy.delete(v):laundryFilter.energy.add(v); return renderLaundry(); }
     const br=e.target.closest("[data-lau-brand]"); if(br){ const v=br.dataset.lauBrand; laundryFilter.brands.has(v)?laundryFilter.brands.delete(v):laundryFilter.brands.add(v); return renderLaundry(); }
+    const co=e.target.closest("[data-lau-color]"); if(co){ const v=co.dataset.lauColor; laundryFilter.colors.has(v)?laundryFilter.colors.delete(v):laundryFilter.colors.add(v); return renderLaundry(); }
     const m=e.target.closest("[data-lau-mine]"); if(m){ laundryFilter.mine=!laundryFilter.mine; return renderLaundry(); }
-    if(e.target.id==="lauReset"){ laundryFilter.type="any";laundryFilter.brands.clear();laundryFilter.retailer="any";laundryFilter.energy.clear();laundryFilter.kg="any";laundryFilter.rpm="any";laundryFilter.loader="any";laundryFilter.mine=false; return renderLaundry(); }
+    if(e.target.id==="lauReset"){ laundryFilter.type="any";laundryFilter.brands.clear();laundryFilter.retailer="any";laundryFilter.energy.clear();laundryFilter.kg="any";laundryFilter.rpm="any";laundryFilter.loader="any";laundryFilter.colors.clear();laundryFilter.mine=false; return renderLaundry(); }
   });
   lf.addEventListener("change", e=>{
     if(e.target.id==="lauRetailer"){ laundryFilter.retailer=e.target.value; return renderLaundry(); }
@@ -3317,7 +3410,9 @@ on("lexpRail","change",e=>{
 on("lexpRail","click",e=>{
   const ec=e.target.closest("[data-lechip]");
   if(ec){ const v=ec.dataset.lechip; lexpFilters.energy.has(v)?lexpFilters.energy.delete(v):lexpFilters.energy.add(v); renderLCompare(); return; }
-  if(e.target.id==="lexpReset"){ lexpFilters.scope="all";lexpFilters.type="any";lexpFilters.kg="any";lexpFilters.rpm="any";lexpFilters.loader="any";lexpFilters.retailer="any";lexpFilters.energy.clear();lexpFilters.trim="off"; renderLCompare(); }
+  const cc=e.target.closest("[data-lecolor]");
+  if(cc){ const v=cc.dataset.lecolor; lexpFilters.colors.has(v)?lexpFilters.colors.delete(v):lexpFilters.colors.add(v); renderLCompare(); return; }
+  if(e.target.id==="lexpReset"){ lexpFilters.scope="all";lexpFilters.type="any";lexpFilters.kg="any";lexpFilters.rpm="any";lexpFilters.loader="any";lexpFilters.retailer="any";lexpFilters.energy.clear();lexpFilters.colors.clear();lexpFilters.trim="off"; renderLCompare(); }
 });
 on("alertShowAll","change",renderAlerts);
 on("dashFilters","change",e=>{
