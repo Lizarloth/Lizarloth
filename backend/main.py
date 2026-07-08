@@ -101,6 +101,7 @@ class IngestPayload(BaseModel):
 
 
 class SrpRow(BaseModel):
+    model_config = {"protected_namespaces": ()}   # allow the model_code field name
     model_code: str
     srp: float
     map_price: Optional[float] = None
