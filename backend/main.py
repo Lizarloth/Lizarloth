@@ -79,7 +79,15 @@ async def _require_api_key(request: Request, call_next):
     ):
         supplied = request.headers.get("X-API-Key") or request.query_params.get("api_key")
         if supplied != DASHBOARD_API_KEY:
-            return JSONResponse({"detail": "Invalid or missing X-API-Key"}, status_code=401)
+            # This short-circuit bypasses CORSMiddleware (which sits INSIDE
+            # this middleware in the stack), so the CORS header must be added
+            # by hand: without it, browsers hide the 401 from cross-origin
+            # JavaScript and the dashboard can't show its API-key prompt —
+            # it reads as a network failure and falls back to demo data.
+            return JSONResponse({"detail": "Invalid or missing X-API-Key"},
+                                status_code=401,
+                                headers={"Access-Control-Allow-Origin": "*",
+                                         "Access-Control-Expose-Headers": "*"})
     return await call_next(request)
 
 
