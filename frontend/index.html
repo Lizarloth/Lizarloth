@@ -3920,11 +3920,20 @@ function renderMatches(){
       if(!p) return `<div class="mr-card"><div class="mr-nm" style="color:var(--ink-soft)">product #${id} — not in the current dataset (retired or other department)</div></div>`;
       const ids=[p.sku?"SKU "+p.sku:null, p.ean?"EAN "+p.ean:null, p.mpn?"MPN "+p.mpn:null].filter(Boolean).join(" · ");
       const url=f.url(p);
+      // stale listing = an old URL no scrape touches anymore (e.g. a pre-PLP
+      // duplicate). Flag it so nobody reviews a zombie; retire cleans it.
+      let staleLine="";
+      if(p.scraped_at){
+        const t=new Date(/Z$|[+-]\d\d:?\d\d$/.test(p.scraped_at)?p.scraped_at:p.scraped_at+"Z").getTime();
+        const ageH=(Date.now()-t)/36e5;
+        if(ageH>48) staleLine=`<div style="font:600 10.5px 'Hanken Grotesk';color:var(--warn)">⚠ stale — last seen ${Math.round(ageH/24)}d ago · auto-retires on the next cleanup</div>`;
+      }
       return `<div class="mr-card">
         ${p.image?`<img src="${esc(p.image)}" loading="lazy" alt="">`:""}
         <div class="mr-nm">${url?`<a class="rl" href="${esc(url)}" target="_blank" rel="noopener">${esc(short(f.name(p),64))} <span class="rl-arrow">↗</span></a>`:esc(short(f.name(p),64))}</div>
         <div class="mr-meta"><span class="pill ${SITE_PILL[f.site(p)]||"na"}">${SITE_LABEL[f.site(p)]||f.site(p)}</span> ${fmt(f.price(p))}</div>
         <div class="mr-ids">${esc(ids||"no identity fields yet")}</div>
+        ${staleLine}
       </div>`;
     }).join("");
     const confCls=g.status==="conflict"?"c-warn":g.status==="confirmed"?"c-ok":"c-neu";
