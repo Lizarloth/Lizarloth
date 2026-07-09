@@ -12,16 +12,20 @@ from openpyxl.utils import get_column_letter
 def export_price_history_csv(products, history_rows) -> bytes:
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Product", "Site", "URL", "Price (€)", "Old Price (€)", "Availability", "Scraped At"])
+    writer.writerow(["Product", "Site", "URL", "Price (€)", "Was Price (€)", "Discount %", "Availability", "Scraped At"])
     product_map = {p.id: p for p in products}   # O(1) lookups; the linear scan per row was quadratic
     for h in history_rows:
         p = product_map.get(h.product_id)
+        disc = ""
+        if h.price and h.old_price and h.old_price > h.price + 0.5:
+            disc = round((1 - h.price / h.old_price) * 100, 1)
         writer.writerow([
             p.name if p else "",
             p.site if p else "",
             p.url if p else "",
             h.price or "",
             h.old_price or "",
+            disc,
             h.availability or "",
             h.scraped_at.strftime("%Y-%m-%d %H:%M") if h.scraped_at else "",
         ])
@@ -87,7 +91,7 @@ def export_full_excel(products, history_rows, alert_rows) -> bytes:
     # ── Sheet 1: Price History ──
     ws1 = wb.active
     ws1.title = "Price History"
-    headers1 = ["Product", "Site", "Price (€)", "Old Price (€)", "Availability", "Scraped At"]
+    headers1 = ["Product", "Site", "Price (€)", "Was Price (€)", "Discount %", "Availability", "Scraped At"]
     ws1.append(headers1)
     _style_header_row(ws1, 1, len(headers1))
     ws1.row_dimensions[1].height = 20
@@ -95,11 +99,15 @@ def export_full_excel(products, history_rows, alert_rows) -> bytes:
     product_map = {p.id: p for p in products}
     for h in history_rows:
         p = product_map.get(h.product_id)
+        disc = ""
+        if h.price and h.old_price and h.old_price > h.price + 0.5:
+            disc = round((1 - h.price / h.old_price) * 100, 1)
         ws1.append([
             p.name if p else "",
             p.site if p else "",
             h.price,
             h.old_price,
+            disc,
             h.availability or "",
             h.scraped_at.strftime("%Y-%m-%d %H:%M") if h.scraped_at else "",
         ])

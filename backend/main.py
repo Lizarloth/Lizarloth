@@ -571,6 +571,82 @@ def data_status(db: Session = Depends(get_db)):
     }
 
 
+# ── Promo analytics ──────────────────────────────────────────────────────
+@app.get("/api/promo-stats")
+def promo_stats(days: int = 30, db: Session = Depends(get_db)):
+    """Promo activity over a window, computed from price history old_price
+    readings. Returns per-retailer aggregates plus one record per product
+    that had any promo activity (promo days, spell count, longest spell,
+    depths). Brand-level aggregation happens in the dashboard, which owns
+    the brand-extraction logic and the active filters."""
+    days = 90 if days >= 60 else 30
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    rows = (
+        db.query(PriceHistory.product_id, PriceHistory.price,
+                 PriceHistory.old_price, PriceHistory.scraped_at)
+        .join(Product, Product.id == PriceHistory.product_id)
+        .filter(Product.active == True, PriceHistory.scraped_at >= cutoff)
+        .all()
+    )
+    # collapse to one observation per product per day: on-promo + deepest cut
+    from collections import defaultdict
+    daily = defaultdict(dict)          # pid -> {date: depth% (0 = not on promo)}
+    for pid, price, old, ts in rows:
+        if ts is None:
+            continue
+        d = ts.date()
+        depth = 0.0
+        if price and old and old > price + 0.5:
+            depth = (1 - price / old) * 100
+        if depth > daily[pid].get(d, -1):
+            daily[pid][d] = depth
+    prod_site = dict(db.query(Product.id, Product.site)
+                     .filter(Product.active == True).all())
+    site_tot = defaultdict(lambda: {"skus": 0, "promoted": 0, "depths": []})
+    products_out = []
+    for pid, by_day in daily.items():
+        ds = sorted(by_day)
+        promo_days = [d for d in ds if by_day[d] > 0]
+        depths = [by_day[d] for d in promo_days]
+        st = site_tot[prod_site.get(pid, "?")]
+        st["skus"] += 1
+        if not promo_days:
+            continue
+        st["promoted"] += 1
+        st["depths"].extend(depths)
+        # promo spells: runs of promo days, tolerating <=3-day scrape gaps
+        spells, max_spell = 1, 0
+        start = prev = promo_days[0]
+        for d in promo_days[1:]:
+            if (d - prev).days <= 3:
+                prev = d
+            else:
+                max_spell = max(max_spell, (prev - start).days + 1)
+                spells += 1
+                start = prev = d
+        max_spell = max(max_spell, (prev - start).days + 1)
+        products_out.append({
+            "id": pid,
+            "days_observed": len(ds),
+            "promo_days": len(promo_days),
+            "spells": spells,
+            "max_spell_days": max_spell,
+            "avg_depth": round(sum(depths) / len(depths), 1),
+            "max_depth": round(max(depths), 1),
+            "current": bool(ds and by_day[ds[-1]] > 0),
+        })
+    sites = {
+        s: {
+            "skus_seen": v["skus"],
+            "skus_promoted": v["promoted"],
+            "promo_share": round(v["promoted"] / v["skus"] * 100, 1) if v["skus"] else 0,
+            "avg_depth": round(sum(v["depths"]) / len(v["depths"]), 1) if v["depths"] else 0,
+        }
+        for s, v in site_tot.items()
+    }
+    return {"days": days, "sites": sites, "products": products_out}
+
+
 # ── Price history ────────────────────────────────────────────────────────
 @app.get("/api/history")
 def get_history(product_id: Optional[int] = None, limit: int = 200,

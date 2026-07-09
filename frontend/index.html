@@ -717,6 +717,19 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       <div class="chart-box short"><canvas id="availChart"></canvas></div>
     </div>
 
+    <div class="card" style="margin-top:18px">
+      <h3><span class="dot" style="background:var(--heat)"></span>Promo pressure <span id="ppSummary" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span>
+        <select id="ppWindow" style="width:auto;margin-left:auto;padding:6px 10px"><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></h3>
+      <div class="grid two-col">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Brands discounting hardest — % of SKUs on promo (avg depth)</div><div class="chart-box"><canvas id="ppBrandChart"></canvas></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Discount depth distribution</div><div class="chart-box"><canvas id="ppDepthChart"></canvas></div></div>
+      </div>
+      <div class="grid two-col" style="margin-top:16px">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Promo intensity by retailer — % of SKUs on promo</div><div class="chart-box short"><canvas id="ppRetailerChart"></canvas></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Longest-running promos in the window</div><div id="ppLongest" class="mini-list"></div></div>
+      </div>
+    </div>
+
     <div class="grid two-col" style="margin-top:18px">
       <div class="card">
         <h3><span class="dot" style="background:var(--mint)"></span>Cheapest in catalogue</h3>
@@ -754,6 +767,19 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
         <div class="card"><h3>Energy class mix</h3><div class="chart-box"><canvas id="lEnergyChart"></canvas></div></div>
       </div>
       <div class="card" style="margin-top:16px"><h3>Availability by retailer</h3><div class="chart-box short"><canvas id="lAvailChart"></canvas></div></div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3><span class="dot" style="background:var(--heat)"></span>Promo pressure <span id="lppSummary" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span>
+        <select id="lppWindow" style="width:auto;margin-left:auto;padding:6px 10px"><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></h3>
+      <div class="grid two-col">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Brands discounting hardest — % of SKUs on promo (avg depth)</div><div class="chart-box"><canvas id="lppBrandChart"></canvas></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Discount depth distribution</div><div class="chart-box"><canvas id="lppDepthChart"></canvas></div></div>
+      </div>
+      <div class="grid two-col" style="margin-top:16px">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Promo intensity by retailer — % of SKUs on promo</div><div class="chart-box short"><canvas id="lppRetailerChart"></canvas></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Longest-running promos in the window</div><div id="lppLongest" class="mini-list"></div></div>
+      </div>
     </div>
   </section>
 
@@ -1106,6 +1132,27 @@ const BRANDS = ["WHIRLPOOL","SAMSUNG","LG","BOSCH","SIEMENS","PITSOS","DELONGHI"
 let state = {products:[], laundry:[], history:[], alerts:[], srp:{}, demo:false, dept:"cooling"};
 let charts = {};
 
+/* Promo-pressure state: window (days) + per-product history stats from
+   /api/promo-stats (spells, longest spell, depths). Current-snapshot promo
+   metrics are computed client-side from the filtered product set so they
+   always respect the active department/brand/retailer filters. */
+let promoWin = 30;
+let promoStats = { byId:{}, sites:{}, loaded:false };
+function loadPromoStats(){
+  api("/api/promo-stats?days="+promoWin).then(r=>{
+    promoStats.byId = {};
+    (r.products||[]).forEach(x=>{ promoStats.byId[String(x.id)] = x; });
+    promoStats.sites = r.sites||{};
+    promoStats.loaded = true;
+    renderAll();
+  }).catch(()=>{ promoStats.loaded = false; });
+}
+function promoNow(p){
+  const was = f.oldPrice(p), cur = f.price(p);
+  if(was && cur && was > cur+0.5) return {was, cur, depth:(1-cur/was)*100};
+  return null;
+}
+
 /* =========================================================
    TOLERANT FIELD READERS (backend field names may vary)
 ========================================================= */
@@ -1230,12 +1277,15 @@ function buildMatches(products){
     const {brand, code} = extractModel(f.name(p));
     if(!code || code.length<4) continue;
     const key = code;
-    if(!groups.has(key)) groups.set(key,{code, brand, offers:{}, specs:{}, specsBySite:{}, normBySite:{}, names:[]});
+    if(!groups.has(key)) groups.set(key,{code, brand, offers:{}, wasBySite:{}, specs:{}, specsBySite:{}, normBySite:{}, names:[]});
     const g = groups.get(key);
     if(brand && !g.brand) g.brand = brand;
     const site = f.site(p);
     const price = f.price(p);
-    if(!(site in g.offers) || (price!=null && (g.offers[site]==null || price<g.offers[site]))) g.offers[site]=price;
+    if(!(site in g.offers) || (price!=null && (g.offers[site]==null || price<g.offers[site]))){
+      g.offers[site]=price;
+      g.wasBySite[site]=f.oldPrice(p);   // was-price of the offer we kept
+    }
     Object.assign(g.specs, f.specs(p));
     g.specsBySite[site] = f.specs(p);
     g.normBySite[site] = normalize(p);
@@ -1246,7 +1296,7 @@ function buildMatches(products){
   for(const a of keys){ for(const b of keys){ if(a===b||!groups.has(a)||!groups.has(b)) continue;
     if(a.length>b.length && a.includes(b) && b.length>=6){
       const A=groups.get(a),B=groups.get(b);
-      for(const s in B.offers){ if(!(s in A.offers)||A.offers[s]==null) A.offers[s]=B.offers[s]; }
+      for(const s in B.offers){ if(!(s in A.offers)||A.offers[s]==null){ A.offers[s]=B.offers[s]; A.wasBySite[s]=B.wasBySite[s]; } }
       Object.assign(A.specs, B.specs);
       Object.assign(A.specsBySite, B.specsBySite);
       Object.assign(A.normBySite, B.normBySite);
@@ -1396,6 +1446,8 @@ async function loadAll(){
       safeRender("brands",renderBrands); safeRender("alerts",renderAlerts);
       safeRender("srpStatus",renderSrpStatus);
     }).catch(()=>{});
+    // promo-pressure history stats (older backends without the endpoint: skip)
+    loadPromoStats();
     return;
   }catch(e){
     state = {...state, ...structuredClone(DEMO), demo:true};
@@ -1672,6 +1724,9 @@ function renderLaundry(){
       makeChart("lAvailChart","bar",{labels:["Kotsovolos","Public","Plaisio"],datasets:bk.map((b,i)=>({label:b,data:["kotsovolos","public","plaisio"].map(s=>av[s][i]),backgroundColor:bc[i]}))},{plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true}}});
     } else emptyChart("lAvailChart","No availability data yet");
   }
+
+  // ── promo pressure (respects the active laundry filters) ─────────────
+  renderPromoSection("lpp", cset);
 }
 let lbFilter = { type:"any", brand:"ALL" };
 
@@ -1929,6 +1984,83 @@ function computeMovers(history){
   return movers.sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
 }
 
+/* ===== PROMO PRESSURE (shared by both departments) =====
+   `list` is the ALREADY-FILTERED product set from the calling dashboard, so
+   every chart respects the active department/brand/retailer/spec filters.
+   Current-snapshot metrics come from price+old_price on the products;
+   window metrics (spells, longest promos) join /api/promo-stats by id. */
+function renderPromoSection(prefix, list){
+  const sumEl = document.getElementById(prefix+"Summary");
+  if(!sumEl) return;
+  const priced = list.filter(p=>f.price(p)!=null && !isClearance(p));
+  const promos = priced.map(p=>({p, pr:promoNow(p)})).filter(x=>x.pr);
+  const share = priced.length ? promos.length/priced.length*100 : 0;
+  const avgD = promos.length ? promos.reduce((a,x)=>a+x.pr.depth,0)/promos.length : 0;
+  sumEl.textContent = priced.length
+    ? `· ${promos.length} of ${priced.length} SKUs on promo (${share.toFixed(0)}%) · avg depth −${avgD.toFixed(0)}%`
+    : "";
+  const wsel = document.getElementById(prefix+"Window");
+  if(wsel) wsel.value = String(promoWin);
+
+  // brands discounting hardest: % of the brand's SKUs on promo (min 3 SKUs in view)
+  const byBrand = {};
+  priced.forEach(p=>{
+    const b = cap(extractModel(f.name(p)).brand||""); if(!b) return;
+    const e = byBrand[b] = byBrand[b] || {n:0, promo:0, depth:0};
+    e.n++;
+    const pr = promoNow(p);
+    if(pr){ e.promo++; e.depth += pr.depth; }
+  });
+  const brandRows = Object.entries(byBrand)
+    .filter(([b,e])=>e.n>=3 && e.promo>0)
+    .map(([b,e])=>({b, share:e.promo/e.n*100, avg:e.depth/e.promo, promo:e.promo, n:e.n}))
+    .sort((a,b)=>b.share-a.share).slice(0,8);
+  if(brandRows.length){
+    makeChart(prefix+"BrandChart","bar",{labels:brandRows.map(r=>`${r.b} (−${r.avg.toFixed(0)}%)`),
+      datasets:[{data:brandRows.map(r=>+r.share.toFixed(1)),
+        backgroundColor:brandRows.map(r=>MY_BRANDS.some(m=>cap(m)===r.b)?"#0B6E6E":"#C9472F"),
+        borderRadius:6,maxBarThickness:26}]},
+      {indexAxis:"y",plugins:{legend:{display:false}}});
+  } else emptyChart(prefix+"BrandChart","No promos in the current view");
+
+  // discount depth distribution (current promos)
+  const buckets=[[0,10,"1–10%"],[10,20,"10–20%"],[20,30,"20–30%"],[30,40,"30–40%"],[40,101,"40%+"]];
+  const counts=buckets.map(([lo,hi])=>promos.filter(x=>x.pr.depth>=lo && x.pr.depth<hi).length);
+  if(promos.length){
+    makeChart(prefix+"DepthChart","bar",{labels:buckets.map(b=>b[2]),
+      datasets:[{data:counts,backgroundColor:"#C77D33",borderRadius:6,maxBarThickness:46}]},
+      {plugins:{legend:{display:false}}});
+  } else emptyChart(prefix+"DepthChart","No promos in the current view");
+
+  // promo intensity by retailer (% of SKUs on promo, within the filtered view)
+  const siteAgg={kotsovolos:{n:0,p:0},public:{n:0,p:0},plaisio:{n:0,p:0}};
+  priced.forEach(p=>{ const s=f.site(p); if(!(s in siteAgg)) return; siteAgg[s].n++; if(promoNow(p)) siteAgg[s].p++; });
+  if(priced.length){
+    makeChart(prefix+"RetailerChart","bar",{labels:["Kotsovolos","Public","Plaisio"],
+      datasets:[{data:["kotsovolos","public","plaisio"].map(s=>siteAgg[s].n?+(siteAgg[s].p/siteAgg[s].n*100).toFixed(1):0),
+        backgroundColor:["#FF6A3D","#0B6E6E","#C77D33"],borderRadius:8,maxBarThickness:60}]},
+      {plugins:{legend:{display:false}}});
+  } else emptyChart(prefix+"RetailerChart","No products in view");
+
+  // longest-running promos over the selected window
+  const longEl=document.getElementById(prefix+"Longest");
+  if(longEl){
+    if(!promoStats.loaded){
+      longEl.innerHTML='<div style="font-size:12.5px;color:var(--ink-soft);padding:10px 4px">Promo history is loading (or the backend needs its update deployed).</div>';
+    } else {
+      const joined = priced.map(p=>({p, st:promoStats.byId[String(f.id(p))]}))
+        .filter(x=>x.st && x.st.max_spell_days>=2)
+        .sort((a,b)=>b.st.max_spell_days-a.st.max_spell_days).slice(0,6);
+      longEl.innerHTML = joined.map(({p,st})=>`<div class="mini-row">
+        <span class="pill ${SITE_PILL[f.site(p)]||"na"}">${SITE_LABEL[f.site(p)]||f.site(p)}</span>
+        <span class="mini-name" title="${esc(f.name(p))}">${esc(short(f.name(p),34))}<br>
+          <span style="font-size:11px;color:var(--ink-soft)">${st.spells} spell${st.spells>1?"s":""} · avg −${st.avg_depth}%${st.current?' · <b style="color:var(--heat)">live now</b>':""}</span></span>
+        <span class="mini-price">${st.max_spell_days}d</span></div>`).join("")
+        || '<div style="font-size:12.5px;color:var(--ink-soft);padding:10px 4px">No multi-day promos in this window and view.</div>';
+    }
+  }
+}
+
 const dashFilter = { sub:"any", retailer:"any", energy:new Set(), width:"any", height:"any", color:new Set(), colorMode:"include", trim:"off", brands:new Set() };
 function renderDashFilters(){
   const el=document.getElementById("dashFilters"); if(!el) return;
@@ -2061,6 +2193,9 @@ function renderDashboard(){
   const sorted=prods.filter(p=>f.price(p)!=null).sort((a,b)=>f.price(a)-f.price(b));
   document.getElementById("cheapList").innerHTML = miniRows(sorted.slice(0,6)) || miniEmpty();
   document.getElementById("premiumList").innerHTML = miniRows(sorted.slice(-6).reverse()) || miniEmpty();
+
+  // ── promo pressure (respects the active dashboard filters) ───────────
+  renderPromoSection("pp", prods);
 }
 
 function miniRows(list){
@@ -3415,6 +3550,9 @@ on("lexpRail","click",e=>{
   if(e.target.id==="lexpReset"){ lexpFilters.scope="all";lexpFilters.type="any";lexpFilters.kg="any";lexpFilters.rpm="any";lexpFilters.loader="any";lexpFilters.retailer="any";lexpFilters.energy.clear();lexpFilters.colors.clear();lexpFilters.trim="off"; renderLCompare(); }
 });
 on("alertShowAll","change",renderAlerts);
+/* promo window selectors (both departments share the window) */
+on("ppWindow","change",e=>{ promoWin=+e.target.value||30; loadPromoStats(); });
+on("lppWindow","change",e=>{ promoWin=+e.target.value||30; loadPromoStats(); });
 on("dashFilters","change",e=>{
   const sel=e.target.closest("select[data-dash]"); if(!sel)return;
   dashFilter[sel.dataset.dash]=sel.value; renderDashboard();
@@ -3667,13 +3805,16 @@ async function doExport(kind){
 function exportMatches(){
   const matches=buildMatches(state.products);
   const sites=["kotsovolos","public","plaisio"];
-  let csv="Brand,Model,"+sites.map(s=>SITE_LABEL[s]+" RRP").join(",")+",SRP,MAP,Best vs SRP %,"+FEATURE_MAP.map(x=>x.label).join(",")+"\n";
+  let csv="Brand,Model,"+sites.map(s=>SITE_LABEL[s]+" RRP").join(",")+",SRP,MAP,Best vs SRP %,Was € (best offer),Discount %,"+FEATURE_MAP.map(x=>x.label).join(",")+"\n";
   for(const m of matches){
     const chips={}; featureChips(m.specs).forEach(c=>{const [k,...v]=c.split(": ");chips[k]=v.join(": ");});
     const sr=srpOf(m.code);
     const best=Math.min(...sites.map(s=>m.offers[s]).filter(x=>x!=null).concat([Infinity]));
     const idx=(sr&&sr.srp&&best<Infinity)?(best/sr.srp*100).toFixed(1):"";
-    csv+=[cap(m.brand),m.code,...sites.map(s=>m.offers[s]??""),sr?sr.srp:"",sr&&sr.map?sr.map:"",idx,...FEATURE_MAP.map(x=>q(chips[x.label]||""))].join(",")+"\n";
+    const bestSite=best<Infinity?sites.find(s=>m.offers[s]===best):null;
+    const was=bestSite&&m.wasBySite?m.wasBySite[bestSite]:null;
+    const disc=(was&&best<Infinity&&was>best+0.5)?((1-best/was)*100).toFixed(1):"";
+    csv+=[cap(m.brand),m.code,...sites.map(s=>m.offers[s]??""),sr?sr.srp:"",sr&&sr.map?sr.map:"",idx,(disc?was:""),disc,...FEATURE_MAP.map(x=>q(chips[x.label]||""))].join(",")+"\n";
   }
   const a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download="pricedge_match_matrix.csv"; a.click();
