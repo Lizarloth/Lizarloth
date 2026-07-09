@@ -386,7 +386,82 @@ def push_results(results, _tries=6):
     return {"saved": 0, "new_products": 0}
 
 def get_tracked_products():
-    r = requests.get(f"{API_URL}/api/products", timeout=30); r.raise_for_status(); return r.json()
+    # /api/products sits behind the dashboard API key once API_KEY is set on
+    # Railway — send it from the PRICEDGE_API_KEY env var.
+    headers = {}
+    if os.getenv("PRICEDGE_API_KEY"):
+        headers["X-API-Key"] = os.getenv("PRICEDGE_API_KEY")
+    r = requests.get(f"{API_URL}/api/products", headers=headers, timeout=30)
+    r.raise_for_status(); return r.json()
+
+
+# -- EAN/MPN enrichment (PDP JSON-LD pass) -----------------------------------
+def _ldjson_identity(html):
+    """Extract (ean, mpn) from schema.org Product JSON-LD in page HTML."""
+    from bs4 import BeautifulSoup
+    soup = BeautifulSoup(html, "html.parser")
+    for tag in soup.find_all("script", {"type": "application/ld+json"}):
+        try:
+            data = json.loads(tag.string or "")
+        except Exception:
+            continue
+        for item in (data if isinstance(data, list) else [data]):
+            if not (isinstance(item, dict) and item.get("@type") == "Product"):
+                continue
+            ean = ""
+            for k in ("gtin13", "gtin", "gtin14", "gtin12", "gtin8"):
+                if item.get(k):
+                    ean = re.sub(r"\D", "", str(item[k]))
+                    break
+            mpn = str(item.get("mpn", "") or "").strip()
+            if ean or mpn:
+                return ean, mpn
+    return "", ""
+
+
+def run_enrich_ids(site=None, limit=300):
+    """Fetch products missing an EAN from the backend, visit each PDP over
+    HTTP and read the JSON-LD Product identity (gtin/mpn — the cheapest
+    source), then push updates via /api/ingest/ids. Kotsovolos PDPs are
+    JS-rendered so httpx usually finds no JSON-LD there — its ids come from
+    the PLP attributes instead; misses are simply skipped."""
+    import httpx
+    params = {"limit": limit}
+    if site: params["site"] = site
+    r = requests.get(f"{API_URL}/api/ingest/missing-ids",
+                     headers={"X-Ingest-Token": INGEST_TOKEN}, params=params, timeout=60)
+    if r.status_code == 401:
+        log("X 401 — INGEST_TOKEN does not match Railway."); sys.exit(1)
+    r.raise_for_status()
+    items = r.json()
+    log(f"Enrich: {len(items)} products missing EAN (limit {limit}{', site '+site if site else ''})")
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+               "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+               "Accept-Language": "el-GR,el;q=0.9,en;q=0.8"}
+    out, hits = [], 0
+    with httpx.Client(headers=headers, timeout=30, follow_redirects=True) as c:
+        for i, it in enumerate(items, 1):
+            try:
+                html = c.get(it["url"]).text
+                ean, mpn = _ldjson_identity(html)
+            except Exception as e:
+                log(f"  [{i}/{len(items)}] !! {str(e)[:50]}"); continue
+            if ean or mpn:
+                hits += 1
+                out.append({"id": it["id"], "ean": ean, "mpn": mpn})
+                log(f"  [{i}/{len(items)}] OK {it['site']} ean={ean or '-'} mpn={mpn or '-'}")
+            time.sleep(0.6)
+            if len(out) >= 50:
+                rr = requests.post(f"{API_URL}/api/ingest/ids",
+                                   headers={"X-Ingest-Token": INGEST_TOKEN},
+                                   json={"items": out}, timeout=60)
+                log(f"  pushed {len(out)} -> {rr.json() if rr.ok else rr.status_code}"); out = []
+    if out:
+        rr = requests.post(f"{API_URL}/api/ingest/ids",
+                           headers={"X-Ingest-Token": INGEST_TOKEN},
+                           json={"items": out}, timeout=60)
+        log(f"  pushed {len(out)} -> {rr.json() if rr.ok else rr.status_code}")
+    log(f"Enrich DONE: {hits}/{len(items)} pages yielded an identity")
 
 # -- browser ----------------------------------------------------------------
 def make_chrome(headless=False):
@@ -932,6 +1007,8 @@ def _plp_row_to_result(row, canonical_subcat):
         if row.get("list_price"): res["old_price"] = row["list_price"]
         _sid = row.get("sku") or row.get("sku_id")
         if _sid: res["sku"] = str(_sid)     # retailer's own SKU id — stable identity for matching
+        if row.get("ean"): res["ean"] = str(row["ean"])
+        if row.get("mpn"): res["mpn"] = str(row["mpn"])
         return res
 
     specs = {}
@@ -957,6 +1034,8 @@ def _plp_row_to_result(row, canonical_subcat):
     if row.get("image"):        res["image"] = row["image"]
     _sid = row.get("sku") or row.get("sku_id")
     if _sid: res["sku"] = str(_sid)         # retailer's own SKU id — stable identity for matching
+    if row.get("ean"): res["ean"] = str(row["ean"])
+    if row.get("mpn"): res["mpn"] = str(row["mpn"])
     return res
 
 
@@ -1136,6 +1215,10 @@ def main():
     ap.add_argument("--plp", action="store_true",
                     help="FAST catalogue mode: pull each retailer's whole list (price + basic specs) "
                          "via the new APIs. Recommended daily price path; replaces crawl+PDP for prices.")
+    ap.add_argument("--enrich-ids", action="store_true", dest="enrich_ids",
+                    help="EAN/MPN enrichment pass: fetch PDPs of products missing an EAN and "
+                         "read JSON-LD Product identity (gtin/mpn). Run occasionally after --plp.")
+    ap.add_argument("--limit", type=int, default=300, help="max products for --enrich-ids (default 300)")
     ap.add_argument("--max-minutes", type=int, default=0, dest="max_minutes",
                     help="fail-safe for scheduled runs: force-exit after N minutes if the run hangs "
                          "(e.g. --max-minutes 40). 0 = off.")
@@ -1143,6 +1226,10 @@ def main():
     _start_watchdog(args.max_minutes)
     if not INGEST_TOKEN or INGEST_TOKEN.startswith("PASTE_"):
         log("X Set the INGEST_TOKEN environment variable first (must match Railway)."); sys.exit(1)
+
+    if args.enrich_ids:
+        run_enrich_ids(site=args.site, limit=args.limit)
+        return
 
     # Decide which subcategories are in scope for this run.
     if args.only:

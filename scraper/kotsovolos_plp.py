@@ -293,10 +293,24 @@ def parse_entry(entry, cat_name, dept="cooling"):
     if img and img.startswith("/"):
         img = SITE_BASE + img.lstrip("/")
 
+    # identity fields: mfPartNumber is WebSphere Commerce's manufacturer part
+    # number; EAN/barcode may sit in the attributes[] array under a Greek or
+    # English label — scan for it.
+    mpn = str(entry.get("mfPartNumber", "") or "").strip()
+    ean = ""
+    for k, v in _attr_map(entry).items():
+        if re.search(r"ean|barcode|gtin|γραμμωτ", str(k), re.I):
+            digits = re.sub(r"\D", "", str(v))
+            if len(digits) >= 8:
+                ean = digits
+                break
+
     base = {
         "site": "kotsovolos",
         "category": cat_name,
         "sku_id": str(entry.get("partNumber", "")),
+        "ean": ean,
+        "mpn": mpn,
         "brand": entry.get("manufacturer", "") or "",
         "name": name,
         "price": sale,

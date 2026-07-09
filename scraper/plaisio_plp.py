@@ -282,10 +282,20 @@ def parse_items(items, cat_name, dept="cooling", spec_map=None):
         if isinstance(img, dict):
             img = img.get("url", "") or img.get("contentUrl", "")
         sku = str(it.get("sku", ""))
+        # identity: schema.org Product carries gtin*/mpn directly
+        ean = ""
+        for k in ("gtin13", "gtin", "gtin14", "gtin12", "gtin8"):
+            v = it.get(k)
+            if v:
+                ean = re.sub(r"\D", "", str(v))
+                break
+        mpn = str(it.get("mpn", "") or "").strip()
         base = {
             "site": "plaisio",
             "category": cat_name,
             "sku_id": sku,
+            "ean": ean,
+            "mpn": mpn,
             "brand": brand,
             "name": name,
             "price": price_to_float(offers.get("price")),

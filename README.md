@@ -64,7 +64,15 @@ python local_runner.py --plp --max-minutes 40
 
 # subcategory-aware scheduling (niche segments scraped less often):
 python local_runner.py --plp --due
+
+# occasional EAN/MPN enrichment: fetch PDPs of products missing an EAN and
+# read schema.org JSON-LD identity (run after --plp; Plaisio/Public work over
+# HTTP, Kotsovolos ids come from the PLP attributes instead)
+python local_runner.py --enrich-ids --limit 300
 ```
+
+Set `PRICEDGE_API_KEY` on the runner PC (same value as Railway's `API_KEY`)
+so `--quick` mode can read `/api/products` through the auth layer.
 
 Schedule it with Windows Task Scheduler so weekends/holidays aren't missed:
 

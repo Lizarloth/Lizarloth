@@ -57,6 +57,8 @@ class Product(Base):
     is_new = Column(Boolean, default=False)         # flagged by fast-run when first discovered
     first_seen = Column(DateTime, nullable=True)    # when this product first appeared
     retailer_sku = Column(String, nullable=True, index=True)  # site's own SKU id (stable identity for matching)
+    ean = Column(String, nullable=True, index=True)           # EAN/GTIN barcode — strongest cross-retailer identity
+    mpn = Column(String, nullable=True, index=True)           # manufacturer part number
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -72,6 +74,30 @@ class PriceHistory(Base):
     __table_args__ = (
         Index("ix_ph_pid_scraped", "product_id", "scraped_at"),
     )
+
+
+class ProductMatch(Base):
+    """Server-computed match groups (one row per product per group). Rebuilt
+    after ingest sweeps; the review UI reads groups via /api/matches."""
+    __tablename__ = "product_matches"
+    id = Column(Integer, primary_key=True, index=True)
+    group_key = Column(String, index=True, nullable=False)
+    product_id = Column(Integer, index=True, nullable=False)
+    method = Column(String, nullable=False)    # ean | mpn | code | fuzzy | override
+    status = Column(String, index=True, nullable=False)  # confirmed | codeonly | conflict
+    human = Column(Boolean, default=False)
+    computed_at = Column(DateTime, default=datetime.utcnow)
+
+
+class MatchOverride(Base):
+    """Human review verdicts on product pairs. Always win over recomputation:
+    'same' force-merges the pair, 'different' force-splits it."""
+    __tablename__ = "match_overrides"
+    id = Column(Integer, primary_key=True, index=True)
+    product_a = Column(Integer, index=True, nullable=False)   # canonical: a < b
+    product_b = Column(Integer, index=True, nullable=False)
+    verdict = Column(String, nullable=False)                  # same | different
+    created_at = Column(DateTime, default=datetime.utcnow)
 
 
 class Srp(Base):
@@ -114,6 +140,12 @@ def init_db():
             if "retailer_sku" not in cols:
                 conn.execute(text("ALTER TABLE products ADD COLUMN retailer_sku VARCHAR"))
                 conn.execute(text("CREATE INDEX IF NOT EXISTS ix_products_retailer_sku ON products (retailer_sku)"))
+            if "ean" not in cols:
+                conn.execute(text("ALTER TABLE products ADD COLUMN ean VARCHAR"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_products_ean ON products (ean)"))
+            if "mpn" not in cols:
+                conn.execute(text("ALTER TABLE products ADD COLUMN mpn VARCHAR"))
+                conn.execute(text("CREATE INDEX IF NOT EXISTS ix_products_mpn ON products (mpn)"))
             # speed up latest-price lookups on existing databases
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_ph_pid_scraped ON price_history (product_id, scraped_at)"))
             conn.commit()

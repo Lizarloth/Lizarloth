@@ -210,11 +210,28 @@ def parse_products(data, spec_map=SPEC_MAP, dept="cooling"):
         if img and img.startswith("/"):
             img = "https://www.public.gr" + img
 
+        # identity fields: try the common shapes Public's sku JSON uses.
+        # EAN/GTIN is the strongest cross-retailer key; MPN second.
+        ean = ""
+        for k in ("barcode", "ean", "gtin", "gtin13", "eanCode"):
+            v = sku.get(k)
+            if v:
+                ean = "".join(ch for ch in str(v) if ch.isdigit())
+                break
+        mpn = ""
+        for k in ("mpn", "manufacturerCode", "manufacturerSku", "modelNumber", "model"):
+            v = sku.get(k)
+            if v and isinstance(v, str):
+                mpn = v.strip()
+                break
+
         row = {
             "site": "public",
             "category": "",
             "department": dept,
             "sku_id": sku.get("id") or entry.get("id", ""),
+            "ean": ean,
+            "mpn": mpn,
             "brand": brand,
             "name": sku.get("displayName", ""),
             "price": price,

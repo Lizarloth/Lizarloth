@@ -369,6 +369,14 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 .ab-edges{font-size:11px;color:var(--ink-soft)}
 .ab-edge{background:var(--warn);color:#fff;font-weight:700;font-size:10px;padding:1px 6px;border-radius:99px}
 
+/* Match review */
+.mr-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.mr-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--frost);display:flex;flex-direction:column;gap:7px}
+.mr-card img{width:60px;height:60px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:8px}
+.mr-nm{font:600 13px 'Hanken Grotesk';line-height:1.35}
+.mr-meta{display:flex;align-items:center;gap:8px;font:700 13.5px 'Bricolage Grotesque'}
+.mr-ids{font:500 10.5px 'JetBrains Mono';color:var(--ink-soft);word-break:break-all}
+
 /* Dashboard filter bar */
 .dash-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0 4px}
 .dash-filters select{width:auto;min-width:140px}
@@ -644,6 +652,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="history"><span class="ico" data-ico="history"></span> Price history</button>
     <button data-page="alerts"><span class="ico" data-ico="alerts"></span> Alerts</button>
     <div class="side-sec">Data</div>
+    <button data-page="matches"><span class="ico" data-ico="compare"></span> Match review<span class="dr-count" id="matchCount"></span></button>
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
@@ -957,6 +966,14 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       </div>
       <div id="alertGroups" style="margin-top:14px"></div>
     </div>
+  </section>
+
+  <!-- MATCH REVIEW -->
+  <section class="page" id="page-matches">
+    <h2 class="page-title">Match review</h2>
+    <p class="page-sub">Cross-retailer matches computed on the server (EAN → MPN → model code → fuzzy). Confirm merges the listings as one model everywhere; “Not the same” splits them. Your verdicts are permanent and always win over recomputation.</p>
+    <div class="catbar" id="matchChips"></div>
+    <div id="matchList"></div>
   </section>
 
   <!-- EXPORT -->
@@ -1451,6 +1468,8 @@ async function loadAll(){
     }).catch(()=>{});
     // promo-pressure history stats (older backends without the endpoint: skip)
     loadPromoStats();
+    // server-side match groups for the review page (fallback: on-device matching)
+    loadMatches();
     return;
   }catch(e){
     state = {...state, ...structuredClone(DEMO), demo:true};
@@ -1900,6 +1919,7 @@ function renderAll(){
     safeRender("history",renderHistory);
     safeRender("alerts",renderAlerts);
     safeRender("dealCount",updateDealCount);
+    safeRender("matches",renderMatches);
     return;
   }
   safeRender("dashboard",renderDashboard);
@@ -1912,6 +1932,7 @@ function renderAll(){
   safeRender("history",renderHistory);
   safeRender("alerts",renderAlerts);
   safeRender("dealCount",updateDealCount);
+  safeRender("matches",renderMatches);
 }
 
 /* Freshness badge: newest scraped_at per retailer, from data the API already
@@ -3864,6 +3885,76 @@ on("srpFile","change",e=>{
 });
 on("srpPaste","input",e=>{ _srpParsed=parseSrpCsv(e.target.value); renderSrpPreview(); });
 on("srpImportBtn","click",srpDoImport);
+
+/* ---- Match review (server-computed matches + human overrides) ---- */
+let matchData = null, matchFilter = "conflict", _matchBusy = false;
+const MATCH_METHOD_LABEL = {ean:"EAN match", mpn:"MPN match", code:"Model-code match",
+                            fuzzy:"Fuzzy code match", override:"Human verified"};
+function loadMatches(){
+  api("/api/matches").then(r=>{ matchData=r; safeRender("matches",renderMatches); })
+    .catch(()=>{ matchData=null; safeRender("matches",renderMatches); });
+}
+function renderMatches(){
+  const host=document.getElementById("matchList"); if(!host) return;
+  const chipsEl=document.getElementById("matchChips");
+  const badge=document.getElementById("matchCount");
+  if(!matchData){
+    if(chipsEl) chipsEl.innerHTML="";
+    if(badge) badge.classList.remove("show");
+    host.innerHTML=`<div class="empty" style="padding:40px">Server-side matching isn't available yet — deploy the backend update.<br><span style="font-size:12px;color:var(--ink-soft)">All views keep using on-device matching in the meantime.</span></div>`;
+    return;
+  }
+  const counts=matchData.counts||{};
+  const review=(counts.conflict||0)+(counts.codeonly||0);
+  if(badge){ badge.textContent=review>99?"99+":review; badge.classList.toggle("show", review>0); }
+  const CHIP_DEFS=[["conflict","Conflicts — check these"],["codeonly","Code-only — likely fine"],["confirmed","Confirmed"]];
+  if(chipsEl) chipsEl.innerHTML=CHIP_DEFS.map(([k,l])=>
+    `<button class="chip ${matchFilter===k?'on':''}" data-mchip="${k}">${l}<span class="cnt">${counts[k]||0}</span></button>`).join("");
+
+  const byId={};
+  [...state.products, ...(state.laundry||[])].forEach(p=>{ byId[String(f.id(p))]=p; });
+  const groups=(matchData.groups||[]).filter(g=>g.status===matchFilter);
+  host.innerHTML = groups.slice(0,60).map(g=>{
+    const cards=g.product_ids.map(id=>{
+      const p=byId[String(id)];
+      if(!p) return `<div class="mr-card"><div class="mr-nm" style="color:var(--ink-soft)">product #${id} — not in the current dataset (retired or other department)</div></div>`;
+      const ids=[p.sku?"SKU "+p.sku:null, p.ean?"EAN "+p.ean:null, p.mpn?"MPN "+p.mpn:null].filter(Boolean).join(" · ");
+      const url=f.url(p);
+      return `<div class="mr-card">
+        ${p.image?`<img src="${esc(p.image)}" loading="lazy" alt="">`:""}
+        <div class="mr-nm">${url?`<a class="rl" href="${esc(url)}" target="_blank" rel="noopener">${esc(short(f.name(p),64))} <span class="rl-arrow">↗</span></a>`:esc(short(f.name(p),64))}</div>
+        <div class="mr-meta"><span class="pill ${SITE_PILL[f.site(p)]||"na"}">${SITE_LABEL[f.site(p)]||f.site(p)}</span> ${fmt(f.price(p))}</div>
+        <div class="mr-ids">${esc(ids||"no identity fields yet")}</div>
+      </div>`;
+    }).join("");
+    const confCls=g.status==="conflict"?"c-warn":g.status==="confirmed"?"c-ok":"c-neu";
+    return `<div class="card" style="margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <span class="conf ${confCls}" style="margin:0">${MATCH_METHOD_LABEL[g.method]||g.method}</span>
+        <span style="font-size:12px;color:var(--ink-soft)">${g.product_ids.length} listings</span>
+        <span style="flex:1"></span>
+        ${g.human ? '<span class="pill ok">human-verified</span>' : `
+        <button class="btn ghost" style="padding:7px 14px" data-mr="same" data-ids="${g.product_ids.join(",")}">✓ Confirm match</button>
+        <button class="btn danger" style="padding:7px 14px" data-mr="different" data-ids="${g.product_ids.join(",")}">✕ Not the same</button>`}
+      </div>
+      <div class="mr-row">${cards}</div>
+    </div>`;
+  }).join("") + (groups.length>60?`<div style="text-align:center;padding:12px;font-size:12.5px;color:var(--ink-soft)">Showing 60 of ${groups.length} — review these first, the list refills.</div>`:"")
+    || `<div class="empty" style="padding:40px">Nothing in this bucket — all clear.</div>`;
+}
+on("page-matches","click",async e=>{
+  const chip=e.target.closest("[data-mchip]");
+  if(chip){ matchFilter=chip.dataset.mchip; renderMatches(); return; }
+  const b=e.target.closest("[data-mr]");
+  if(!b || _matchBusy) return;
+  _matchBusy=true; const prev=b.textContent; b.textContent="Saving…";
+  try{
+    await api("/api/matches/review",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({product_ids:b.dataset.ids.split(",").map(Number), verdict:b.dataset.mr})});
+    loadMatches();
+  }catch(_){ b.textContent=prev; alert("Could not save the review — check that the backend update is deployed."); }
+  _matchBusy=false;
+});
 
 async function removeProduct(id){
   if(state.demo){ alert("Demo data — connect the backend to manage products."); return; }

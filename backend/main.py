@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import json
 import os
 
-from database import init_db, get_db, Product, PriceHistory, Alert, Srp
+from database import init_db, get_db, Product, PriceHistory, Alert, Srp, ProductMatch, MatchOverride
 # The scraper module stays on the local PC by design — retailer sites flag
 # datacenter IPs, so all scraping runs from a residential connection via
 # local_runner.py. The backend must still boot without it: fall back to a
@@ -341,6 +341,7 @@ def list_products(db: Session = Depends(get_db)):
         out.append({
             "id": p.id, "name": p.name, "url": p.url, "site": p.site,
             "sku": getattr(p, "retailer_sku", None),
+            "ean": getattr(p, "ean", None), "mpn": getattr(p, "mpn", None),
             "category": p.category, "alert_threshold": p.alert_threshold,
             "alert_email": p.alert_email, "active": p.active,
             "created_at": p.created_at.isoformat() if p.created_at else None,
@@ -420,6 +421,8 @@ def ingest_results(payload: IngestPayload, request: Request, db: Session = Depen
                 site=site,
                 category=r.get("category", "general"),
                 retailer_sku=str(r["sku"]) if r.get("sku") else None,
+                ean=str(r["ean"]) if r.get("ean") else None,
+                mpn=str(r["mpn"]) if r.get("mpn") else None,
                 is_new=True,
                 first_seen=datetime.utcnow(),
             )
@@ -434,11 +437,69 @@ def ingest_results(payload: IngestPayload, request: Request, db: Session = Depen
                 # backfill the retailer's own SKU id on already-known products —
                 # it's the stable per-site identity that model-code matching lacks
                 product.retailer_sku = str(r["sku"])
+            if r.get("ean") and not product.ean:
+                product.ean = str(r["ean"])
+            if r.get("mpn") and not product.mpn:
+                product.mpn = str(r["mpn"])
         save_scrape_result(r, db)
         saved += 1
 
     print(f"📥 Ingest: {saved} saved, {created} new products, {skipped} skipped")
+    global _MATCHES_DIRTY
+    _MATCHES_DIRTY = True
     return {"saved": saved, "new_products": created, "skipped": skipped}
+
+
+@app.get("/api/ingest/missing-ids")
+def ingest_missing_ids(request: Request, site: Optional[str] = None,
+                       limit: int = 300, db: Session = Depends(get_db)):
+    """Products still lacking an EAN — the runner's --enrich-ids pass fetches
+    their PDPs (JSON-LD Product markup) and pushes ids back via /api/ingest/ids."""
+    token = os.getenv("INGEST_TOKEN", "")
+    if not token or request.headers.get("X-Ingest-Token") != token:
+        raise HTTPException(401, "Invalid or missing X-Ingest-Token")
+    q = (db.query(Product.id, Product.url, Product.site)
+         .filter(Product.active == True, (Product.ean == None) | (Product.ean == "")))
+    if site:
+        q = q.filter(Product.site == site)
+    return [{"id": pid, "url": url, "site": s} for pid, url, s in q.limit(max(1, min(limit, 2000))).all()]
+
+
+class IdsPayload(BaseModel):
+    items: list[dict]       # [{id | url, ean?, mpn?}]
+
+
+@app.post("/api/ingest/ids")
+def ingest_ids(payload: IdsPayload, request: Request, db: Session = Depends(get_db)):
+    """Identity-only updates from the enrichment pass: sets ean/mpn without
+    writing a price-history row."""
+    token = os.getenv("INGEST_TOKEN", "")
+    if not token or request.headers.get("X-Ingest-Token") != token:
+        raise HTTPException(401, "Invalid or missing X-Ingest-Token")
+    updated = 0
+    for it in payload.items:
+        product = None
+        if it.get("id"):
+            product = db.query(Product).filter(Product.id == int(it["id"])).first()
+        elif it.get("url"):
+            product = db.query(Product).filter(Product.url == it["url"]).first()
+        if not product:
+            continue
+        changed = False
+        if it.get("ean"):
+            product.ean = _re.sub(r"\D", "", str(it["ean"])) or product.ean
+            changed = True
+        if it.get("mpn"):
+            product.mpn = str(it["mpn"]).strip() or product.mpn
+            changed = True
+        if changed:
+            updated += 1
+    db.commit()
+    if updated:
+        global _MATCHES_DIRTY
+        _MATCHES_DIRTY = True
+    print(f"🆔 Ids enriched: {updated}")
+    return {"updated": updated}
 
 
 @app.post("/api/ingest/retire")
@@ -467,6 +528,9 @@ def ingest_retire(request: Request, db: Session = Depends(get_db)):
                    .update({Product.active: False}, synchronize_session=False))
         db.commit()
     print(f"🧹 Retire: {retired} product(s) not seen in {hours:.0f}h deactivated")
+    if retired:
+        global _MATCHES_DIRTY
+        _MATCHES_DIRTY = True
     return {"retired": retired, "cutoff_hours": hours}
 
 
@@ -569,6 +633,210 @@ def data_status(db: Session = Depends(get_db)):
         },
         "server_time": datetime.utcnow().isoformat(),
     }
+
+
+# ── Server-side product matching ─────────────────────────────────────────
+# Python port of the dashboard's model-code extractor, so the server can
+# match by normalized code when EAN/MPN are absent. Keep in sync with the
+# frontend extractModel() — same brand list, stop words, tokenizer rules.
+import re as _re
+
+_M_BRANDS = ["WHIRLPOOL","SAMSUNG","LG","BOSCH","SIEMENS","PITSOS","DELONGHI","DE LONGHI","AEG",
+    "BEKO","HISENSE","TOSHIBA","SHARP","CANDY","LIEBHERR","MIELE","INVENTOR","MORRIS","UNITED",
+    "CROWN","MIDEA","HAIER","TCL","DAVOLINE","ELECTROLUX","INDESIT","HOTPOINT","GORENJE","TEKA",
+    "FINLUX","PHILCO","FRANKE","NEFF","SMEG","BERTAZZONI","KENDRIX","OMNYS","PROFI COOK","PROFICOOK",
+    "LA SOMMELIERE","JURO PRO","JURO-PRO","ESKIMO","ROBIN","CARAD","TELEFUNKEN","NASCO","KARAMCO"]
+_M_LOOKALIKE = str.maketrans("ΑΒΕΖΗΙΚΜΝΟΡΤΥΧ", "ABEZHIKMNOPTYX")
+_M_STOP = {"LT","L","CM","ML","KG","DB","W","KWH","NO","FROST","TOTAL","LOW","FULL","EASY","STATIC",
+    "INOX","WHITE","BLACK","SILVER","INVERTER","CLASS","ENERGY","GALA","ED","EU","PEAK","BIOFRESH",
+    "GRANDCRU","SELECTION","VINIDOR","COLLECTION","FRESH","PRO","PLUS","SMART"}
+_M_UNITS = {"LT","L","CM","ML","KG","DB","W","KWH"}
+_M_GREEK = _re.compile("[\u0370-\u03ff\u1f00-\u1fff]")
+
+
+def extract_model(name: str):
+    """(brand, normalized code) from a scraped product name."""
+    if not name:
+        return "", ""
+    up = str(name).upper().translate(_M_LOOKALIKE)
+    brand = next((b for b in _M_BRANDS if b in up), "")
+    rest = up[up.index(brand) + len(brand):] if brand else up
+    tokens = [t for t in _re.sub(r"[^\w ]+", " ", rest, flags=_re.UNICODE)
+              .replace("_", " ").split() if t]
+    code_tokens = []
+    for i, t in enumerate(tokens):
+        nxt = tokens[i + 1] if i + 1 < len(tokens) else None
+        if _M_GREEK.search(t):
+            break
+        if t in _M_STOP:
+            break
+        if _re.fullmatch(r"\d{2,4}", t) and (nxt is None or nxt in _M_UNITS or (nxt and _M_GREEK.search(nxt))):
+            break
+        if (_re.search(r"\d", t)
+                or (len(t) <= 5 and t.isalpha() and nxt and _re.search(r"\d", nxt))
+                or (len(t) <= 4 and t.isalpha() and code_tokens)):
+            code_tokens.append(t)
+        else:
+            if code_tokens:
+                break
+        if len(code_tokens) >= 6:
+            break
+    code = _re.sub(r"[^A-Z0-9]", "", "".join(code_tokens))
+    return brand.replace(" ", ""), code
+
+
+_MATCHES_DIRTY = True   # set by ingest/retire/review; GET /api/matches rebuilds lazily
+
+
+def _rebuild_matches(db: Session):
+    """Recompute match groups: overrides('same') → EAN → MPN → code → fuzzy
+    containment, via union-find. 'different' overrides split at the end and
+    always win. One ProductMatch row per product per multi-member group."""
+    from collections import defaultdict
+    prods = (db.query(Product.id, Product.name, Product.site, Product.ean, Product.mpn)
+             .filter(Product.active == True).all())
+    id_set = {p.id for p in prods}
+    parent = {p.id: p.id for p in prods}
+
+    def find(x):
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[rb] = ra
+
+    edges = []
+
+    def link_by_key(key_of, method, minlen):
+        buckets = defaultdict(list)
+        for p in prods:
+            k = key_of(p)
+            if k and len(k) >= minlen:
+                buckets[k].append(p.id)
+        for ids in buckets.values():
+            for other in ids[1:]:
+                edges.append((ids[0], other, method))
+                union(ids[0], other)
+
+    # human 'same' verdicts merge first and mark the group human-verified
+    for o in db.query(MatchOverride).filter(MatchOverride.verdict == "same").all():
+        if o.product_a in id_set and o.product_b in id_set:
+            edges.append((o.product_a, o.product_b, "override"))
+            union(o.product_a, o.product_b)
+    link_by_key(lambda p: _re.sub(r"\D", "", p.ean or ""), "ean", 8)
+    link_by_key(lambda p: _re.sub(r"[^A-Z0-9]", "", (p.mpn or "").upper()), "mpn", 4)
+    codes = {p.id: extract_model(p.name or "") for p in prods}
+    link_by_key(lambda p: codes[p.id][1] if len(codes[p.id][1]) >= 4 else "", "code", 4)
+    # fuzzy: code containment (WHK2543X53 vs WHK2543X), keys >= 6 chars
+    keymap = defaultdict(list)
+    for p in prods:
+        c = codes[p.id][1]
+        if len(c) >= 6:
+            keymap[c].append(p.id)
+    keys = sorted(keymap)
+    for a in keys:
+        for b in keys:
+            if len(a) <= len(b):
+                continue
+            if b in a:
+                edges.append((keymap[a][0], keymap[b][0], "fuzzy"))
+                union(keymap[a][0], keymap[b][0])
+    # human 'different' verdicts split last — they always win
+    forced_out = set()
+    for o in db.query(MatchOverride).filter(MatchOverride.verdict == "different").all():
+        if o.product_a in id_set and o.product_b in id_set and find(o.product_a) == find(o.product_b):
+            forced_out.add(o.product_b)
+    members = defaultdict(list)
+    for p in prods:
+        if p.id in forced_out:
+            continue
+        members[find(p.id)].append(p.id)
+    gmeth = defaultdict(set)
+    for a, b, m in edges:
+        if a in forced_out or b in forced_out:
+            continue
+        if a in parent and b in parent and find(a) == find(b):
+            gmeth[find(a)].add(m)
+    db.query(ProductMatch).delete()
+    now = datetime.utcnow()
+    for root, ids in members.items():
+        if len(ids) < 2:
+            continue
+        ms = gmeth[root]
+        human = "override" in ms
+        brands = {codes[i][0] for i in ids if codes[i][0]}
+        if human:
+            status, method = "confirmed", "override"
+        elif len(brands) > 1:
+            status = "conflict"
+            method = "fuzzy" if "fuzzy" in ms else "code" if "code" in ms else "mpn" if "mpn" in ms else "ean"
+        elif "fuzzy" in ms:
+            status, method = "conflict", "fuzzy"
+        elif not (ms & {"ean", "mpn"}):
+            status, method = "codeonly", "code"
+        else:
+            status, method = "confirmed", ("ean" if "ean" in ms else "mpn")
+        for pid in ids:
+            db.add(ProductMatch(group_key=f"g{root}", product_id=pid,
+                                method=method, status=status, human=human, computed_at=now))
+    db.commit()
+
+
+class MatchReviewPayload(BaseModel):
+    model_config = {"protected_namespaces": ()}
+    product_ids: list[int]
+    verdict: str            # "same" | "different"
+
+
+@app.get("/api/matches")
+def get_matches(status: Optional[str] = None, db: Session = Depends(get_db)):
+    global _MATCHES_DIRTY
+    if _MATCHES_DIRTY or db.query(ProductMatch).first() is None:
+        _rebuild_matches(db)
+        _MATCHES_DIRTY = False
+    from collections import defaultdict
+    rows = db.query(ProductMatch).all()
+    groups = {}
+    for r in rows:
+        g = groups.setdefault(r.group_key, {"key": r.group_key, "method": r.method,
+                                            "status": r.status, "human": bool(r.human),
+                                            "product_ids": []})
+        g["product_ids"].append(r.product_id)
+    counts = defaultdict(int)
+    for g in groups.values():
+        counts[g["status"]] += 1
+    out = [g for g in groups.values() if not status or g["status"] == status]
+    out.sort(key=lambda g: -len(g["product_ids"]))
+    return {"computed_at": rows[0].computed_at.isoformat() if rows else None,
+            "counts": dict(counts), "groups": out}
+
+
+@app.post("/api/matches/review")
+def review_match(payload: MatchReviewPayload, db: Session = Depends(get_db)):
+    global _MATCHES_DIRTY
+    if payload.verdict not in ("same", "different"):
+        raise HTTPException(400, "verdict must be 'same' or 'different'")
+    ids = sorted(set(payload.product_ids))
+    if len(ids) < 2:
+        raise HTTPException(400, "need at least two product_ids")
+    for i in range(len(ids)):
+        for j in range(i + 1, len(ids)):
+            a, b = ids[i], ids[j]
+            rec = (db.query(MatchOverride)
+                   .filter(MatchOverride.product_a == a, MatchOverride.product_b == b).first())
+            if rec:
+                rec.verdict = payload.verdict
+            else:
+                db.add(MatchOverride(product_a=a, product_b=b, verdict=payload.verdict))
+    db.commit()
+    _MATCHES_DIRTY = True
+    _rebuild_matches(db)
+    _MATCHES_DIRTY = False
+    return {"saved": len(ids) * (len(ids) - 1) // 2, "verdict": payload.verdict}
 
 
 # ── Promo analytics ──────────────────────────────────────────────────────
