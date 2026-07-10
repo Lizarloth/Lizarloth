@@ -623,6 +623,23 @@ def data_status(db: Session = Depends(get_db)):
         .group_by(Product.site)
         .all()
     )
+    # identity coverage: how many active products carry EAN / MPN / retailer
+    # SKU per site — the health metric for the matching layer
+    idrows = (
+        db.query(Product.site,
+                 func.count(Product.id),
+                 func.count(Product.ean),
+                 func.count(Product.mpn),
+                 func.count(Product.retailer_sku))
+        .filter(Product.active == True)
+        .group_by(Product.site)
+        .all()
+    )
+    identity = {
+        s: {"products": n, "ean": e, "mpn": m, "sku": k,
+            "ean_pct": round(e / n * 100, 1) if n else 0}
+        for s, n, e, m, k in idrows
+    }
     return {
         "sites": {
             site: {
@@ -631,6 +648,7 @@ def data_status(db: Session = Depends(get_db)):
             }
             for site, mx, n in rows
         },
+        "identity": identity,
         "server_time": datetime.utcnow().isoformat(),
     }
 
