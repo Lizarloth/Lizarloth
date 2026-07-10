@@ -671,7 +671,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-07-10-B1</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-07-10-B2</span></div>
 </aside>
 
 <div class="shell">
@@ -788,6 +788,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       <p class="l-lede">Washers, washer-dryers and dryers · Public · Kotsovolos · Plaisio</p>
       <div class="l-statstrip" id="lauStatStrip"></div>
     </div>
+    <div class="l-filters" id="laundryFilters"></div>
     <div id="lauStand"></div>
     <div class="l-pulse">
       <h2>Market pulse</h2>
@@ -1657,21 +1658,25 @@ function renderLaundry(){
   const setHTML=(id,html)=>{const el=document.getElementById(id); if(el) el.innerHTML=html;};
 
   if(all.length===0){
-    ["lauStatStrip","lMoversDown","lMoversUp"].forEach(id=>setHTML(id,""));
+    ["lauStatStrip","laundryFilters","lMoversDown","lMoversUp"].forEach(id=>setHTML(id,""));
     setHTML("lauStand", `<div class="l-stand"><div class="badge">–</div><div class="txt"><div class="lbl">No data</div><div class="line">No laundry data yet. Run <code>py local_runner.py --plp</code> to pull the catalogue, then refresh.</div></div></div>`);
     return;
   }
 
-  // KPI-only dashboard: whole-department scope. The filter bar, ranked
-  // ladder and facet logic moved to the Benchmark page (renderBenchmark).
-  const cset = all;
+  // Dynamic KPI dashboard: the attribute bar (state shared with Benchmark)
+  // drives every stat, chart, the stand band and the promo section. The
+  // ranked product list itself lives on the Benchmark page.
+  const F = laundryFilter;
+  const typePool = F.type==="any" ? all : all.filter(p=>laundryNorm(p).type===F.type);
+  const cset = typePool.filter(p=>lauFacetMatch(p, laundryNorm(p)));
+  setHTML("laundryFilters", lauFilterBarHTML(all, typePool));
   const csetPriced = cset.map(f.price).filter(x=>x>0);
   const cavg = csetPriced.length ? csetPriced.reduce((a,b)=>a+b,0)/csetPriced.length : 0;
   const myCset = cset.filter(isMyBrand).length;
 
   const lpi = computePriceIndex(cset);
   setHTML("lauStatStrip",`
-    <div class="l-stat"><div class="v">${cset.length}</div><div class="k">models tracked</div></div>
+    <div class="l-stat"><div class="v">${cset.length}</div><div class="k">${F.type==="any"?"models tracked":LAUNDRY_TYPE_LABEL[F.type]}</div></div>
     <div class="l-stat"><div class="v mine">${myCset}</div><div class="k">yours</div></div>
     <div class="l-stat"><div class="v">${csetPriced.length?fmt(cavg):"–"}</div><div class="k">market average</div></div>
     <div class="l-stat"><div class="v mine">${lpi?lpi.idx.toFixed(1):"–"}</div><div class="k">${lpi?`price index · ${lpi.nMine} yours vs ${lpi.nRivals} rivals · 100 = parity`:"price index — needs yours + rivals in view"}</div><canvas id="lpiSpark" style="width:100%;height:28px;display:block;margin-top:6px"></canvas></div>`);
@@ -1679,7 +1684,8 @@ function renderLaundry(){
 
   // ---- where you stand (deduped, rank consistent with Benchmark) ----
   const brows = benchDedupe(cset).sort((a,b)=>f.price(a.p)-f.price(b.p));
-  setHTML("lauStand", benchStandHTML(brows, "models", true));
+  setHTML("lauStand", benchStandHTML(brows,
+    F.type==="any" ? "models" : LAUNDRY_TYPE_LABEL[F.type].toLowerCase(), true));
 
   // ---- top movers (department-aware) ----
   const mv = computeMovers(state.history);
@@ -2272,6 +2278,38 @@ function benchRowHTML(row, i, dept){
   </div><div class="bench-det" hidden>${benchDetailHTML(row, dept)}</div></div>`;
 }
 
+/* Laundry attribute bar — ONE builder shared by the dashboard and the
+   Benchmark page, both driven by the same laundryFilter state, so a
+   selection made on either page is already applied on the other. */
+function lauFilterBarHTML(all, typePool){
+  const F=laundryFilter;
+  const cnt=t=>all.filter(p=>laundryNorm(p).type===t).length;
+  const seg=(k,lbl)=>`<button class="${F.type===k?'on':''}" data-lau-type="${k}">${lbl}</button>`;
+  const brandsPresent=[...new Set(typePool.map(p=>cap(extractModel(f.name(p)).brand||"")).filter(Boolean))].sort();
+  const brandChips=brandsPresent.map(b=>`<span class="fchip ${F.brands.has(b)?'on':''}" data-lau-brand="${esc(b)}">${esc(b)}</span>`).join("");
+  const retailerSel=`<select id="lauRetailer"><option value="any">All retailers (best price)</option>`+["kotsovolos","public","plaisio"].map(s=>`<option value="${s}" ${F.retailer===s?'selected':''}>${SITE_LABEL[s]}</option>`).join("")+`</select>`;
+  const kgOpts=_LKGL.map(([v,t])=>`<option value="${v}" ${F.kg===v?'selected':''}>${t}</option>`).join("");
+  const rpmOpts=_LRPML.map(([v,t])=>`<option value="${v}" ${F.rpm===v?'selected':''}>${t}</option>`).join("");
+  const loaderOpts=[["any","Any loader"],["front","Front-load"],["top","Top-load"]].map(([v,t])=>`<option value="${v}" ${F.loader===v?'selected':''}>${t}</option>`).join("");
+  const energyChips=["A","B","C","D","E","F","G"].map(en=>`<span class="fchip ${F.energy.has(en)?'on':''}" data-lau-energy="${en}">${en}</span>`).join("");
+  const colorsPresent=[...new Set(typePool.map(lauColorOf).filter(Boolean))].sort();
+  const colorChips=colorsPresent.map(c=>`<span class="fchip ${F.colors.has(c)?'on':''}" data-lau-color="${esc(c)}">${esc(c)}</span>`).join("");
+  const active=F.brands.size||F.retailer!=="any"||F.energy.size||F.kg!=="any"||F.rpm!=="any"||F.loader!=="any"||F.colors.size||F.mine;
+  return `
+    <div class="l-seg">${seg("any","All")}${seg("washing_machine","Washers · "+cnt("washing_machine"))}${seg("washer_dryer","Washer-dryers · "+cnt("washer_dryer"))}${seg("dryer","Dryers · "+cnt("dryer"))}</div>
+    <div class="dash-filters" style="margin:12px 0 0">
+      <span class="df-lbl">Retailer</span>${retailerSel}
+      <select id="lauKg">${kgOpts}</select>
+      <select id="lauRpm">${rpmOpts}</select>
+      <select id="lauLoader">${loaderOpts}</select>
+      <span class="df-lbl">Energy</span><div class="df-chips">${energyChips}</div>
+      <span class="fchip ${F.mine?'on':''}" data-lau-mine="1">★ My brands</span>
+      ${active?`<button class="df-reset" id="lauReset">Clear</button>`:``}
+    </div>
+    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips||'<span class="df-lbl" style="text-transform:none">none in view</span>'}</div></div>
+    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`;
+}
+
 function renderBenchmark(){
   const host=document.getElementById("benchBody"); if(!host) return;
   const setHTML=(id,html)=>{const el=document.getElementById(id); if(el) el.innerHTML=html;};
@@ -2288,35 +2326,9 @@ function renderBenchmark(){
       return;
     }
     const F=laundryFilter;
-    const cnt=t=>all.filter(p=>laundryNorm(p).type===t).length;
     const typePool=F.type==="any"?all:all.filter(p=>laundryNorm(p).type===F.type);
     const cset=typePool.filter(p=>lauFacetMatch(p, laundryNorm(p)));
-    // filter bar — moved verbatim from the old laundry dashboard, plus the
-    // best-price wording on the retailer control
-    const seg=(k,lbl)=>`<button class="${F.type===k?'on':''}" data-lau-type="${k}">${lbl}</button>`;
-    const brandsPresent=[...new Set(typePool.map(p=>cap(extractModel(f.name(p)).brand||"")).filter(Boolean))].sort();
-    const brandChips=brandsPresent.map(b=>`<span class="fchip ${F.brands.has(b)?'on':''}" data-lau-brand="${esc(b)}">${esc(b)}</span>`).join("");
-    const retailerSel=`<select id="lauRetailer"><option value="any">All retailers (best price)</option>`+["kotsovolos","public","plaisio"].map(s=>`<option value="${s}" ${F.retailer===s?'selected':''}>${SITE_LABEL[s]}</option>`).join("")+`</select>`;
-    const kgOpts=_LKGL.map(([v,t])=>`<option value="${v}" ${F.kg===v?'selected':''}>${t}</option>`).join("");
-    const rpmOpts=_LRPML.map(([v,t])=>`<option value="${v}" ${F.rpm===v?'selected':''}>${t}</option>`).join("");
-    const loaderOpts=[["any","Any loader"],["front","Front-load"],["top","Top-load"]].map(([v,t])=>`<option value="${v}" ${F.loader===v?'selected':''}>${t}</option>`).join("");
-    const energyChips=["A","B","C","D","E","F","G"].map(en=>`<span class="fchip ${F.energy.has(en)?'on':''}" data-lau-energy="${en}">${en}</span>`).join("");
-    const colorsPresent=[...new Set(typePool.map(lauColorOf).filter(Boolean))].sort();
-    const colorChips=colorsPresent.map(c=>`<span class="fchip ${F.colors.has(c)?'on':''}" data-lau-color="${esc(c)}">${esc(c)}</span>`).join("");
-    const active=F.brands.size||F.retailer!=="any"||F.energy.size||F.kg!=="any"||F.rpm!=="any"||F.loader!=="any"||F.colors.size||F.mine;
-    barHTML=`
-    <div class="l-seg">${seg("any","All")}${seg("washing_machine","Washers · "+cnt("washing_machine"))}${seg("washer_dryer","Washer-dryers · "+cnt("washer_dryer"))}${seg("dryer","Dryers · "+cnt("dryer"))}</div>
-    <div class="dash-filters" style="margin:12px 0 0">
-      <span class="df-lbl">Retailer</span>${retailerSel}
-      <select id="lauKg">${kgOpts}</select>
-      <select id="lauRpm">${rpmOpts}</select>
-      <select id="lauLoader">${loaderOpts}</select>
-      <span class="df-lbl">Energy</span><div class="df-chips">${energyChips}</div>
-      <span class="fchip ${F.mine?'on':''}" data-lau-mine="1">★ My brands</span>
-      ${active?`<button class="df-reset" id="lauReset">Clear</button>`:``}
-    </div>
-    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips||'<span class="df-lbl" style="text-transform:none">none in view</span>'}</div></div>
-    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`;
+    barHTML = lauFilterBarHTML(all, typePool);
     dedup = F.retailer==="any";
     rows = dedup ? benchDedupe(cset)
                  : cset.filter(p=>f.price(p)!=null).map(p=>({p, others:[], groupSize:1}));
@@ -3793,38 +3805,44 @@ on("lbType","click",e=>{
   const t=e.target.closest("[data-lb-brand]"); if(t){ lbFilter.brand=t.dataset.lbBrand; return renderLBrands(); }
 });
 on("lpSearch","input",()=>renderLProducts());
-/* Benchmark filter bar — the laundry handlers moved here unchanged (state
-   still lives in laundryFilter); cooling controls mutate the shared
-   dashFilter so dashboard and benchmark stay in sync by construction. */
-(function(){
-  const bf=document.getElementById("benchFilters"); if(!bf) return;
-  bf.addEventListener("click", e=>{
-    // laundry controls
-    const t=e.target.closest("[data-lau-type]"); if(t){ laundryFilter.type=t.dataset.lauType; return renderBenchmark(); }
-    const en=e.target.closest("[data-lau-energy]"); if(en){ const v=en.dataset.lauEnergy; laundryFilter.energy.has(v)?laundryFilter.energy.delete(v):laundryFilter.energy.add(v); return renderBenchmark(); }
-    const br=e.target.closest("[data-lau-brand]"); if(br){ const v=br.dataset.lauBrand; laundryFilter.brands.has(v)?laundryFilter.brands.delete(v):laundryFilter.brands.add(v); return renderBenchmark(); }
-    const co=e.target.closest("[data-lau-color]"); if(co){ const v=co.dataset.lauColor; laundryFilter.colors.has(v)?laundryFilter.colors.delete(v):laundryFilter.colors.add(v); return renderBenchmark(); }
-    const m=e.target.closest("[data-lau-mine]"); if(m){ laundryFilter.mine=!laundryFilter.mine; return renderBenchmark(); }
-    if(e.target.id==="lauReset"){ laundryFilter.type="any";laundryFilter.brands.clear();laundryFilter.retailer="any";laundryFilter.energy.clear();laundryFilter.kg="any";laundryFilter.rpm="any";laundryFilter.loader="any";laundryFilter.colors.clear();laundryFilter.mine=false; return renderBenchmark(); }
-    // cooling controls (shared dashFilter)
-    const ec=e.target.closest("[data-bchip]"); if(ec){ const v=ec.dataset.bchip; dashFilter.energy.has(v)?dashFilter.energy.delete(v):dashFilter.energy.add(v); return renderBenchmark(); }
-    const bb=e.target.closest("[data-bbrand]");
-    if(bb){
-      const v=bb.dataset.bbrand;
-      if(v==="__mine"){ const mine=MY_BRANDS.map(b=>cap(b)); const allOn=mine.every(b=>dashFilter.brands.has(b)); mine.forEach(b=>allOn?dashFilter.brands.delete(b):dashFilter.brands.add(b)); }
-      else { dashFilter.brands.has(v)?dashFilter.brands.delete(v):dashFilter.brands.add(v); }
-      return renderBenchmark();
-    }
-    if(e.target.id==="benchReset"){ dashFilter.sub="any";dashFilter.retailer="any";dashFilter.cap="any";dashFilter.width="any";dashFilter.height="any";dashFilter.energy.clear();dashFilter.brands.clear(); return renderBenchmark(); }
-  });
-  bf.addEventListener("change", e=>{
-    if(e.target.id==="lauRetailer"){ laundryFilter.retailer=e.target.value; return renderBenchmark(); }
-    if(e.target.id==="lauKg"){ laundryFilter.kg=e.target.value; return renderBenchmark(); }
-    if(e.target.id==="lauRpm"){ laundryFilter.rpm=e.target.value; return renderBenchmark(); }
-    if(e.target.id==="lauLoader"){ laundryFilter.loader=e.target.value; return renderBenchmark(); }
-    const sel=e.target.closest("select[data-bd]"); if(sel){ dashFilter[sel.dataset.bd]=sel.value; return renderBenchmark(); }
-  });
-})();
+/* Attribute-bar handlers — ONE set, bound to both the Benchmark bar and the
+   laundry dashboard bar. Laundry controls mutate laundryFilter and refresh
+   the laundry dashboard + benchmark; cooling controls mutate the shared
+   dashFilter and refresh the cooling dashboard + benchmark — so a selection
+   made anywhere is applied everywhere that shows the same state. */
+function _lauRefresh(){ safeRender("l-dashboard",renderLaundry); safeRender("benchmark",renderBenchmark); }
+function _coolRefresh(){ safeRender("dashboard",renderDashboard); safeRender("benchmark",renderBenchmark); }
+function _attrBarClick(e){
+  // laundry controls
+  const t=e.target.closest("[data-lau-type]"); if(t){ laundryFilter.type=t.dataset.lauType; return _lauRefresh(); }
+  const en=e.target.closest("[data-lau-energy]"); if(en){ const v=en.dataset.lauEnergy; laundryFilter.energy.has(v)?laundryFilter.energy.delete(v):laundryFilter.energy.add(v); return _lauRefresh(); }
+  const br=e.target.closest("[data-lau-brand]"); if(br){ const v=br.dataset.lauBrand; laundryFilter.brands.has(v)?laundryFilter.brands.delete(v):laundryFilter.brands.add(v); return _lauRefresh(); }
+  const co=e.target.closest("[data-lau-color]"); if(co){ const v=co.dataset.lauColor; laundryFilter.colors.has(v)?laundryFilter.colors.delete(v):laundryFilter.colors.add(v); return _lauRefresh(); }
+  const m=e.target.closest("[data-lau-mine]"); if(m){ laundryFilter.mine=!laundryFilter.mine; return _lauRefresh(); }
+  if(e.target.id==="lauReset"){ laundryFilter.type="any";laundryFilter.brands.clear();laundryFilter.retailer="any";laundryFilter.energy.clear();laundryFilter.kg="any";laundryFilter.rpm="any";laundryFilter.loader="any";laundryFilter.colors.clear();laundryFilter.mine=false; return _lauRefresh(); }
+  // cooling controls (shared dashFilter)
+  const ec=e.target.closest("[data-bchip]"); if(ec){ const v=ec.dataset.bchip; dashFilter.energy.has(v)?dashFilter.energy.delete(v):dashFilter.energy.add(v); return _coolRefresh(); }
+  const bb=e.target.closest("[data-bbrand]");
+  if(bb){
+    const v=bb.dataset.bbrand;
+    if(v==="__mine"){ const mine=MY_BRANDS.map(b=>cap(b)); const allOn=mine.every(b=>dashFilter.brands.has(b)); mine.forEach(b=>allOn?dashFilter.brands.delete(b):dashFilter.brands.add(b)); }
+    else { dashFilter.brands.has(v)?dashFilter.brands.delete(v):dashFilter.brands.add(v); }
+    return _coolRefresh();
+  }
+  if(e.target.id==="benchReset"){ dashFilter.sub="any";dashFilter.retailer="any";dashFilter.cap="any";dashFilter.width="any";dashFilter.height="any";dashFilter.energy.clear();dashFilter.brands.clear(); return _coolRefresh(); }
+}
+function _attrBarChange(e){
+  if(e.target.id==="lauRetailer"){ laundryFilter.retailer=e.target.value; return _lauRefresh(); }
+  if(e.target.id==="lauKg"){ laundryFilter.kg=e.target.value; return _lauRefresh(); }
+  if(e.target.id==="lauRpm"){ laundryFilter.rpm=e.target.value; return _lauRefresh(); }
+  if(e.target.id==="lauLoader"){ laundryFilter.loader=e.target.value; return _lauRefresh(); }
+  const sel=e.target.closest("select[data-bd]"); if(sel){ dashFilter[sel.dataset.bd]=sel.value; return _coolRefresh(); }
+}
+["benchFilters","laundryFilters"].forEach(id=>{
+  const el=document.getElementById(id); if(!el) return;
+  el.addEventListener("click", _attrBarClick);
+  el.addEventListener("change", _attrBarChange);
+});
 /* benchmark row expansion (chevron/click reveals every scraped spec) */
 on("benchBody","click",e=>{
   if(e.target.closest("a")) return;
