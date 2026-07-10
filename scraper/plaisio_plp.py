@@ -153,6 +153,9 @@ _COOLING = [
 ]
 
 
+_DIMS3 = re.compile(r"(\d{2,3}(?:[.,]\d{1,2})?)\s*[xX×]\s*(\d{2,3}(?:[.,]\d{1,2})?)\s*[xX×]\s*(\d{2,3}(?:[.,]\d{1,2})?)")
+
+
 def mine_specs(name, desc):
     text = f"{name} {desc}"
     cap = ""
@@ -164,7 +167,12 @@ def mine_specs(name, desc):
         if needle.lower() in text.lower():
             cooling = label
             break
-    return cap, cooling
+    # dimensions often appear in the description as ΥxΠxΒ; keep the raw triple
+    dims = ""
+    dm = _DIMS3.search(text)
+    if dm:
+        dims = dm.group(0).replace(",", ".")
+    return cap, cooling, dims
 
 
 # ---- laundry spec mining (text-based) ----
@@ -310,8 +318,8 @@ def parse_items(items, cat_name, dept="cooling", spec_map=None):
             for k in ("wash_kg", "dry_kg", "rpm", "energy", "programs", "heat_pump", "condenser"):
                 base[k] = la.get(k) or tla.get(k, "")
         else:
-            cap, cooling = mine_specs(name, desc)
-            base.update({"capacity": cap, "cooling": cooling})
+            cap, cooling, dims = mine_specs(name, desc)
+            base.update({"capacity": cap, "cooling": cooling, "dimensions": dims})
         out.append(base)
     return out
 

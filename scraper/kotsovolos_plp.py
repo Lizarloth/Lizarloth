@@ -297,13 +297,24 @@ def parse_entry(entry, cat_name, dept="cooling"):
     # number; EAN/barcode may sit in the attributes[] array under a Greek or
     # English label — scan for it.
     mpn = str(entry.get("mfPartNumber", "") or "").strip()
+    attrs_all = _attr_map(entry)
     ean = ""
-    for k, v in _attr_map(entry).items():
+    for k, v in attrs_all.items():
         if re.search(r"ean|barcode|gtin|γραμμωτ", str(k), re.I):
             digits = re.sub(r"\D", "", str(v))
             if len(digits) >= 8:
                 ean = digits
                 break
+
+    def _g(*names):
+        for nm in names:
+            if attrs_all.get(nm):
+                return attrs_all[nm]
+        return ""
+
+    # availability: 'buyable' is WebSphere's purchasable flag for the listing
+    buyable = str(entry.get("buyable", "")).lower()
+    avail = "InStock" if buyable == "true" else ("OutOfStock" if buyable == "false" else "")
 
     base = {
         "site": "kotsovolos",
@@ -315,13 +326,14 @@ def parse_entry(entry, cat_name, dept="cooling"):
         "name": name,
         "price": sale,
         "list_price": listp,
+        "availability": avail,
         "image": img,
         "url": url,
     }
 
     if dept == "laundry":
         base["department"] = "laundry"
-        la = laundry_from_attrs(_attr_map(entry))          # structured, authoritative
+        la = laundry_from_attrs(attrs_all)                  # structured, authoritative
         tla = mine_laundry(f"{name} {desc}", cat_name)      # text fallback
         for k in ("wash_kg", "dry_kg", "energy", "dry_energy", "rpm",
                   "programs", "steam", "heat_pump", "condenser", "dimensions"):
@@ -329,8 +341,19 @@ def parse_entry(entry, cat_name, dept="cooling"):
         base["loader"] = la.get("loader") or ("front" if cat_name == "washer_dryer" else "")
         return base
 
+    # cooling: structured attributes first (same source the laundry path
+    # already trusts — this is where dimensions/colour/noise live, which the
+    # old text miner never captured), then the text miner as fallback.
     cap, cooling, energy = mine_specs(f"{name} {desc}")
-    base.update({"energy": energy, "capacity": cap, "cooling": cooling})
+    base.update({
+        "energy":   (_g("Ενεργειακή Κλάση", "Ενεργειακή κλάση") or energy).strip()[:4],
+        "capacity": _g("Καθαρή Συνολική Χωρητικότητα (lt)", "Συνολική Χωρητικότητα (lt)",
+                       "Συνολική χωρητικότητα", "Καθαρή χωρητικότητα") or cap,
+        "cooling":  _g("Τύπος Ψύξης", "Τύπος ψύξης") or cooling,
+        "dimensions": _g("Διάσταση ΥxΠxΒ (cm)", "Διαστάσεις (ΥxΠxΒ)", "Διαστάσεις"),
+        "color":    _g("Χρώμα"),
+        "noise":    _g("Επίπεδο Θορύβου (dB)", "Επίπεδα θορύβου"),
+    })
     return base
 
 

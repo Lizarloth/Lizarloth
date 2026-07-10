@@ -1016,6 +1016,8 @@ def _plp_row_to_result(row, canonical_subcat):
     if row.get("capacity"):   specs["Χωρητικότητα"] = row["capacity"]
     if row.get("cooling"):    specs["Τύπος Ψύξης"] = row["cooling"]
     if row.get("dimensions"): specs["Διαστάσεις"] = row["dimensions"]
+    if row.get("color"):      specs["Χρώμα"] = row["color"]
+    if row.get("noise"):      specs["Επίπεδο Θορύβου (dB)"] = row["noise"]
     if row.get("weight"):     specs["Βάρος"] = row["weight"]
     if row.get("warranty"):   specs["Εγγύηση"] = row["warranty"]
     if row.get("fridge_lt"):  specs["Καθαρή χωρητικότητα συντήρησης"] = row["fridge_lt"]

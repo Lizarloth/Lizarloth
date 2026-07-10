@@ -61,6 +61,7 @@ SPEC_MAP = {
     "εγγυηση": "warranty",
     "καθαρη χωρητικοτητα συντηρησης": "fridge_lt",
     "καθαρη χωρητικοτητα καταψυξης": "freezer_lt",
+    "χρωμα": "color",
 }
 
 # ---- LAUNDRY (separate department; kept out of the fridge CATEGORIES so the
@@ -225,6 +226,27 @@ def parse_products(data, spec_map=SPEC_MAP, dept="cooling"):
                 mpn = v.strip()
                 break
 
+        # availability: explicit field if the API exposes one; otherwise derive
+        # it — a priced row on the purchase listing is buyable, and the
+        # "Αγορά μόνο από κατάστημα" ribbon downgrades it to in-store-only.
+        avail = ""
+        for k in ("stockLevelStatus", "availability", "stockStatus",
+                  "inventoryStatus", "availabilityStatus"):
+            v = sku.get(k)
+            if isinstance(v, dict):
+                v = v.get("status") or v.get("value") or v.get("code")
+            if v:
+                avail = str(v)
+                break
+        if not avail:
+            rb = sku.get("ribbons")
+            txts = " ".join(str((x.get("text") or x.get("name") or x) if isinstance(x, dict) else x)
+                            for x in rb) if isinstance(rb, list) else ""
+            if "ΚΑΤΑΣΤΗΜΑ" in _strip(txts).upper():
+                avail = "InStoreOnly"
+            elif price is not None:
+                avail = "InStock"
+
         row = {
             "site": "public",
             "category": "",
@@ -232,6 +254,7 @@ def parse_products(data, spec_map=SPEC_MAP, dept="cooling"):
             "sku_id": sku.get("id") or entry.get("id", ""),
             "ean": ean,
             "mpn": mpn,
+            "availability": avail,
             "brand": brand,
             "name": sku.get("displayName", ""),
             "price": price,
