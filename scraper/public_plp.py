@@ -574,21 +574,49 @@ def dump_sap(key):
         if rbs: print(f"   ribbons: {rbs}")
 
 
-def dump_price(key):
-    """Diagnostic: print the raw priceInfoDto for the first products so we can
-    see exactly which field holds the final customer price vs the was-price."""
+def dump_price(key, needle=None):
+    """Diagnostic: print the raw priceInfoDto so we can see which field holds
+    the final customer price. With a `needle` (name/code substring) it pages
+    through the whole category to find that exact product — use it to check a
+    'super offer' / 'Άπαιχτη Τιμή' product where an extra discount layer may
+    sit outside salePrice. Also prints the offer flags."""
     import requests
     src = LAUNDRY if key in LAUNDRY else CATEGORIES
     if key not in src:
         print(f"Unknown category '{key}'."); return
     sess = requests.Session(); sess.headers.update(HEADERS)
-    r = sess.get(BASE, params={"s": src[key], "p": 1, "getFilters": "false",
-                               "locale": "el"}, timeout=30)
-    prods = r.json().get("products", [])
-    for p in prods[:8]:
-        sku = p.get("sku", {})
-        print(f"\n{sku.get('displayName','')[:64]}")
-        print("  priceInfoDto:", json.dumps(sku.get("priceInfoDto", {}), ensure_ascii=False))
+    needle_n = _strip(needle) if needle else None
+    shown = 0
+    cursor = None
+    for page in range(1, 40):
+        params = {"s": src[key], "p": page, "getFilters": "false", "locale": "el"}
+        if cursor:
+            params.update(cursor)
+        data = sess.get(BASE, params=params, timeout=30).json()
+        prods = data.get("products", [])
+        if not prods:
+            break
+        for p in prods:
+            sku = p.get("sku", {})
+            name = sku.get("displayName", "")
+            if needle_n and needle_n not in _strip(name):
+                continue
+            pi = sku.get("priceInfoDto", {}) or {}
+            print(f"\n{name[:72]}")
+            print("  priceInfoDto:", json.dumps(pi, ensure_ascii=False))
+            print(f"  flags: superOffer={sku.get('superOfferFlag')} "
+                  f"webOffer={sku.get('webOfferFlag')} ribbons="
+                  f"{[ (r.get('text') or r.get('name')) if isinstance(r,dict) else r for r in (sku.get('ribbons') or []) ]}")
+            shown += 1
+            if not needle_n and shown >= 8:
+                return
+        if not needle_n and shown >= 8:
+            return
+        cursor = next_cursor(data)
+        if not cursor:
+            break
+    if needle_n and shown == 0:
+        print(f"No product matching '{needle}' found in {key}.")
 
 
 def dump_keys(key):
@@ -635,7 +663,8 @@ def main():
         return
 
     if args and args[0] == "dumpprice":
-        dump_price(args[1] if len(args) > 1 else "fridge_freezer")
+        dump_price(args[1] if len(args) > 1 else "fridge_freezer",
+                   args[2] if len(args) > 2 else None)
         return
 
     if args == ["laundry"]:
