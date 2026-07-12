@@ -180,24 +180,21 @@ def parse_products(data, spec_map=SPEC_MAP, dept="cooling"):
         sku = entry.get("sku", {}) or {}
         price_info = sku.get("priceInfoDto", {}) or {}
 
-        # CLEAN price: the FINAL customer price wins. salePrice is often the
-        # struck-through previous price (e.g. 598 shown crossed out) while the
-        # real price the customer pays sits in finalPrice (549). Use the same
-        # priority the PDP price-walker uses; listPrice is the last resort.
-        price = None
-        for _pk in ("finalPrice", "sellingPrice", "salePrice", "currentPrice",
-                    "priceWithVat", "price"):
-            if price_info.get(_pk) is not None:
-                price = price_to_float(price_info.get(_pk))
-                if price is not None:
-                    break
+        # Public's real price fields (confirmed via `dumpprice`): salePrice is
+        # the current price the customer pays; listPrice is the pre-markdown
+        # price ONLY when hasSalePrice is set (otherwise listPrice==salePrice);
+        # rrpPrice is the manufacturer's suggested retail (informational,
+        # sometimes 0). Financing/warranty/recycle live in sku["services"].
+        price = price_to_float(price_info.get("salePrice"))
         if price is None:
             price = price_to_float(price_info.get("listPrice"))
-        # was-price for promo analytics = the higher struck-through figure
-        _cands = [price_to_float(price_info.get(k))
-                  for k in ("listPrice", "salePrice", "strikePrice", "initialPrice")]
-        _cands = [v for v in _cands if v is not None and price is not None and v > price + 0.5]
-        list_price_final = max(_cands) if _cands else price_to_float(price_info.get("listPrice"))
+        lp = price_to_float(price_info.get("listPrice"))
+        on_sale = bool(price_info.get("hasSalePrice"))
+        # was-price for promo analytics: the struck listPrice, but only on a
+        # genuine markdown — never treat the higher manufacturer RRP as a promo.
+        list_price_final = lp if (on_sale and lp is not None and price is not None
+                                  and lp > price + 0.5) else None
+        rrp_price = price_to_float(price_info.get("rrpPrice"))
 
         brand = (sku.get("brand", {}) or {}).get("displayName", "")
         url = sku.get("url", "")
@@ -272,6 +269,7 @@ def parse_products(data, spec_map=SPEC_MAP, dept="cooling"):
             "name": sku.get("displayName", ""),
             "price": price,
             "list_price": list_price_final,
+            "rrp": rrp_price if (rrp_price and rrp_price > 0) else None,
             "energy": "",
             "capacity": "",
             "cooling": "",
