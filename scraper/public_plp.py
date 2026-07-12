@@ -180,11 +180,24 @@ def parse_products(data, spec_map=SPEC_MAP, dept="cooling"):
         sku = entry.get("sku", {}) or {}
         price_info = sku.get("priceInfoDto", {}) or {}
 
-        # CLEAN price: salePrice is canonical; listPrice as fallback.
-        # Financing / warranty / recycle all live in sku["services"], never here.
-        price = price_to_float(price_info.get("salePrice"))
+        # CLEAN price: the FINAL customer price wins. salePrice is often the
+        # struck-through previous price (e.g. 598 shown crossed out) while the
+        # real price the customer pays sits in finalPrice (549). Use the same
+        # priority the PDP price-walker uses; listPrice is the last resort.
+        price = None
+        for _pk in ("finalPrice", "sellingPrice", "salePrice", "currentPrice",
+                    "priceWithVat", "price"):
+            if price_info.get(_pk) is not None:
+                price = price_to_float(price_info.get(_pk))
+                if price is not None:
+                    break
         if price is None:
             price = price_to_float(price_info.get("listPrice"))
+        # was-price for promo analytics = the higher struck-through figure
+        _cands = [price_to_float(price_info.get(k))
+                  for k in ("listPrice", "salePrice", "strikePrice", "initialPrice")]
+        _cands = [v for v in _cands if v is not None and price is not None and v > price + 0.5]
+        list_price_final = max(_cands) if _cands else price_to_float(price_info.get("listPrice"))
 
         brand = (sku.get("brand", {}) or {}).get("displayName", "")
         url = sku.get("url", "")
@@ -258,7 +271,7 @@ def parse_products(data, spec_map=SPEC_MAP, dept="cooling"):
             "brand": brand,
             "name": sku.get("displayName", ""),
             "price": price,
-            "list_price": price_to_float(price_info.get("listPrice")),
+            "list_price": list_price_final,
             "energy": "",
             "capacity": "",
             "cooling": "",
@@ -563,6 +576,23 @@ def dump_sap(key):
         if rbs: print(f"   ribbons: {rbs}")
 
 
+def dump_price(key):
+    """Diagnostic: print the raw priceInfoDto for the first products so we can
+    see exactly which field holds the final customer price vs the was-price."""
+    import requests
+    src = LAUNDRY if key in LAUNDRY else CATEGORIES
+    if key not in src:
+        print(f"Unknown category '{key}'."); return
+    sess = requests.Session(); sess.headers.update(HEADERS)
+    r = sess.get(BASE, params={"s": src[key], "p": 1, "getFilters": "false",
+                               "locale": "el"}, timeout=30)
+    prods = r.json().get("products", [])
+    for p in prods[:8]:
+        sku = p.get("sku", {})
+        print(f"\n{sku.get('displayName','')[:64]}")
+        print("  priceInfoDto:", json.dumps(sku.get("priceInfoDto", {}), ensure_ascii=False))
+
+
 def dump_keys(key):
     """Diagnostic: print the first product's available fields + every topSpec
     label, so we can pin spec-label keys exactly instead of guessing."""
@@ -604,6 +634,10 @@ def main():
 
     if args and args[0] == "dumpsap":
         dump_sap(args[1] if len(args) > 1 else "washing_machine")
+        return
+
+    if args and args[0] == "dumpprice":
+        dump_price(args[1] if len(args) > 1 else "fridge_freezer")
         return
 
     if args == ["laundry"]:
