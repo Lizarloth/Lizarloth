@@ -43,6 +43,8 @@ Environment variables to set on the service:
 | `ALERT_EMAIL` | optional | watchdog recipient (defaults to `SMTP_USER`) |
 | `STALE_ALERT_HOURS` | optional | staleness threshold, default `36` |
 | `SCRAPE_MODE` | optional | leave unset/`local` — scraping runs on the PC |
+| `ANTHROPIC_API_KEY` | for AI review | enables the Match-review “AI-review the queue” adjudicator (uses the Anthropic Messages API from the backend; no extra Python dependency) |
+| `ADJUDICATE_MODEL` | optional | model id for AI review, default `claude-haiku-4-5-20251001` |
 
 ## Environment variables
 

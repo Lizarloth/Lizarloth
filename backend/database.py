@@ -89,6 +89,19 @@ class ProductMatch(Base):
     computed_at = Column(DateTime, default=datetime.utcnow)
 
 
+class MatchSuggestion(Base):
+    """LLM adjudication verdicts for match groups — advisory only. Keyed by the
+    group's sorted product-id signature. Never affects matching until a human
+    confirms it in the review UI (which then writes a MatchOverride)."""
+    __tablename__ = "match_suggestions"
+    id = Column(Integer, primary_key=True, index=True)
+    sig = Column(String, unique=True, index=True, nullable=False)
+    verdict = Column(String, nullable=False)     # same | different | uncertain
+    reason = Column(String, nullable=True)
+    model = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class MatchOverride(Base):
     """Human review verdicts on product pairs. Always win over recomputation:
     'same' force-merges the pair, 'different' force-splits it."""

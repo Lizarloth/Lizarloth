@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import json
 import os
 
-from database import init_db, get_db, Product, PriceHistory, Alert, Srp, ProductMatch, MatchOverride
+from database import init_db, get_db, Product, PriceHistory, Alert, Srp, ProductMatch, MatchOverride, MatchSuggestion
 # The scraper module stays on the local PC by design — retailer sites flag
 # datacenter IPs, so all scraping runs from a residential connection via
 # local_runner.py. The backend must still boot without it: fall back to a
@@ -862,10 +862,135 @@ def get_matches(status: Optional[str] = None, db: Session = Depends(get_db)):
     counts = defaultdict(int)
     for g in groups.values():
         counts[g["status"]] += 1
+    # attach LLM suggestions by the group's sorted product-id signature
+    sugg = {s.sig: s for s in db.query(MatchSuggestion).all()}
+    for g in groups.values():
+        s = sugg.get(",".join(str(i) for i in sorted(g["product_ids"])))
+        if s:
+            g["suggestion"] = {"verdict": s.verdict, "reason": s.reason}
     out = [g for g in groups.values() if not status or g["status"] == status]
     out.sort(key=lambda g: -len(g["product_ids"]))
     return {"computed_at": rows[0].computed_at.isoformat() if rows else None,
             "counts": dict(counts), "groups": out}
+
+
+# ── LLM match adjudication (advisory; humans confirm) ────────────────────
+_ADJ_PROMPT = (
+    "You adjudicate product matches for a Greek major-appliance price-comparison tool. "
+    "Each group below holds listings from different Greek retailers (Kotsovolos, Public, Plaisio) "
+    "that our matcher grouped as POSSIBLY the same commercial model. For each group decide whether "
+    "ALL listings are the same manufacturer model. Treat as the SAME model: retailer naming "
+    "differences, Greek vs Latin text, added marketing words (e.g. 'Total No Frost', litres, colour "
+    "words), and colour/finish suffixes that denote the same model. Treat as DIFFERENT if any listing "
+    "is a distinct model (different model code, capacity class, or product type). "
+    "Respond with ONLY a JSON array, one object per group: "
+    '{"i": <index>, "verdict": "same"|"different"|"uncertain", "reason": "<max 12 words>"}. '
+    "Use 'same' only when confident every listing is the same model; 'different' when at least one "
+    "differs; 'uncertain' when the data is insufficient.\n\nGroups:\n"
+)
+
+
+def _call_claude(prompt: str, model: str, max_tokens: int = 1500):
+    """Anthropic Messages API via stdlib (no extra backend dependency)."""
+    import urllib.request
+    key = os.getenv("ANTHROPIC_API_KEY", "")
+    if not key:
+        return None
+    body = json.dumps({"model": model, "max_tokens": max_tokens,
+                       "messages": [{"role": "user", "content": prompt}]}).encode()
+    req = urllib.request.Request(
+        "https://api.anthropic.com/v1/messages", data=body,
+        headers={"x-api-key": key, "anthropic-version": "2023-06-01",
+                 "content-type": "application/json"})
+    with urllib.request.urlopen(req, timeout=90) as r:
+        data = json.loads(r.read())
+    return "".join(b.get("text", "") for b in data.get("content", []) if isinstance(b, dict))
+
+
+def _parse_adj(txt: str):
+    if not txt:
+        return {}
+    m = _re.search(r"\[.*\]", txt, _re.S)
+    if not m:
+        return {}
+    try:
+        arr = json.loads(m.group(0))
+    except Exception:
+        return {}
+    out = {}
+    for o in arr:
+        if isinstance(o, dict) and "i" in o and o.get("verdict") in ("same", "different", "uncertain"):
+            out[int(o["i"])] = {"verdict": o["verdict"], "reason": str(o.get("reason", ""))[:160]}
+    return out
+
+
+@app.post("/api/matches/adjudicate")
+def adjudicate_matches(limit: int = 40, db: Session = Depends(get_db)):
+    """Send conflict/code-only groups lacking a suggestion to the LLM and store
+    its advisory verdicts. Idempotent + progressive: already-suggested groups
+    are skipped, so repeated calls chew through the backlog cheaply."""
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        raise HTTPException(503, "ANTHROPIC_API_KEY is not set on the server — add it on Railway to enable AI review.")
+    global _MATCHES_DIRTY
+    if _MATCHES_DIRTY or db.query(ProductMatch).first() is None:
+        _rebuild_matches(db)
+        _MATCHES_DIRTY = False
+    from collections import defaultdict
+    gm = defaultdict(list)
+    for r in db.query(ProductMatch).filter(ProductMatch.status.in_(["conflict", "codeonly"])).all():
+        gm[r.group_key].append(r.product_id)
+    have = {s.sig for s in db.query(MatchSuggestion).all()}
+    todo = []
+    for ids in gm.values():
+        sig = ",".join(str(i) for i in sorted(ids))
+        if sig in have:
+            continue
+        todo.append((sig, sorted(ids)))
+        if len(todo) >= max(1, min(limit, 80)):
+            break
+    total_pending = len([1 for ids in gm.values()
+                         if ",".join(str(i) for i in sorted(ids)) not in have])
+    if not todo:
+        return {"adjudicated": 0, "pending": 0}
+    allids = [i for _, ids in todo for i in ids]
+    prod = {p.id: p for p in db.query(Product).filter(Product.id.in_(allids)).all()}
+    latest, seen = {}, {}
+    for pid, price, ts in (db.query(PriceHistory.product_id, PriceHistory.price, PriceHistory.scraped_at)
+                           .filter(PriceHistory.product_id.in_(allids)).all()):
+        if pid not in seen or (ts and ts > seen[pid]):
+            seen[pid] = ts
+            latest[pid] = price
+    groups = []
+    for gi, (sig, ids) in enumerate(todo):
+        listings = []
+        for i in ids:
+            p = prod.get(i)
+            if not p:
+                continue
+            listings.append({"site": p.site, "name": p.name,
+                             "mpn": p.mpn or "", "price": latest.get(i)})
+        groups.append({"i": gi, "listings": listings})
+    try:
+        txt = _call_claude(_ADJ_PROMPT + json.dumps(groups, ensure_ascii=False),
+                           os.getenv("ADJUDICATE_MODEL", "claude-haiku-4-5-20251001"))
+    except Exception as e:
+        raise HTTPException(502, f"LLM call failed: {str(e)[:120]}")
+    verdicts = _parse_adj(txt)
+    model = os.getenv("ADJUDICATE_MODEL", "claude-haiku-4-5-20251001")
+    saved = 0
+    for gi, (sig, ids) in enumerate(todo):
+        v = verdicts.get(gi)
+        if not v:
+            continue
+        rec = db.query(MatchSuggestion).filter(MatchSuggestion.sig == sig).first()
+        if rec:
+            rec.verdict, rec.reason, rec.model = v["verdict"], v["reason"], model
+            rec.created_at = datetime.utcnow()
+        else:
+            db.add(MatchSuggestion(sig=sig, verdict=v["verdict"], reason=v["reason"], model=model))
+        saved += 1
+    db.commit()
+    return {"adjudicated": saved, "pending": max(0, total_pending - saved)}
 
 
 @app.post("/api/matches/review")
@@ -885,6 +1010,9 @@ def review_match(payload: MatchReviewPayload, db: Session = Depends(get_db)):
                 rec.verdict = payload.verdict
             else:
                 db.add(MatchOverride(product_a=a, product_b=b, verdict=payload.verdict))
+    # the human verdict supersedes any AI suggestion for this exact group
+    db.query(MatchSuggestion).filter(
+        MatchSuggestion.sig == ",".join(str(i) for i in ids)).delete()
     db.commit()
     _MATCHES_DIRTY = True
     _rebuild_matches(db)
