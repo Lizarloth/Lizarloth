@@ -575,72 +575,87 @@ def dump_sap(key):
 
 
 def dump_price(key, needle=None):
-    """Diagnostic: print the raw priceInfoDto + offer flags. Modes:
-      needle=None       -> first 8 products
-      needle="offers"   -> products with a super/web offer (the case we must test)
-      needle=<text>     -> that product; name/code matched ignoring spaces/dashes,
-                           cycling sorts so any product in the category is reachable
-                           (a single sort dead-ends on Public's keyset cursor)."""
+    """Diagnostic: print the raw priceInfoDto + offer flags for Public products.
+    `key` may be a category name or 'all' (every cooling category). `needle`:
+      None        -> first 8 products in the category
+      'offers'    -> products flagged as a super/web offer
+      <digits>    -> the product with that exact SKU id (the robust path — we
+                     already store the retailer SKU per product; on the Public
+                     PDP it's shown as 'ΚΩΔΙΚΟΣ')
+      <text>      -> name/code substring, matched ignoring spaces/accents
+    Sorts are cycled so any product in a category is reachable (a single sort
+    dead-ends on Public's keyset cursor)."""
     import re as _re2
     import requests
-    src = LAUNDRY if key in LAUNDRY else CATEGORIES
-    if key not in src:
-        print(f"Unknown category '{key}'."); return
     sess = requests.Session(); sess.headers.update(HEADERS)
-    want_offers = (str(needle).lower() == "offers") if needle else False
-    nd = _re2.sub(r"[^a-z0-9]", "", _strip(needle)) if (needle and not want_offers) else None
+    want_offers = str(needle).lower() == "offers" if needle else False
+    by_id = str(needle).isdigit() if needle else False
+    nd = None if (by_id or want_offers or not needle) else _re2.sub(r"[^a-z0-9]", "", _strip(needle))
 
-    def show(sku):
+    def show(sku, cat):
         pi = sku.get("priceInfoDto", {}) or {}
-        print(f"\n{sku.get('displayName','')[:72]}")
+        print(f"\n[{cat}] id={sku.get('id')}  {sku.get('displayName','')[:60]}")
         print("  priceInfoDto:", json.dumps(pi, ensure_ascii=False))
+        print("  url:", sku.get("url", ""))
         print(f"  flags: superOffer={sku.get('superOfferFlag')} "
-              f"webOffer={sku.get('webOfferFlag')} ribbons="
+              f"webOffer={sku.get('webOfferFlag')} mirakl={sku.get('mirakl')} "
+              f"offerCount={sku.get('offerCount')} ribbons="
               f"{[ (r.get('text') or r.get('name')) if isinstance(r,dict) else r for r in (sku.get('ribbons') or []) ]}")
 
+    if key == "all":
+        cats = list(CATEGORIES.items())
+    elif key in CATEGORIES or key in LAUNDRY:
+        cats = [(key, (LAUNDRY if key in LAUNDRY else CATEGORIES)[key])]
+    else:
+        print(f"Unknown category '{key}'. Use one of {list(CATEGORIES)}, a laundry key, or 'all'."); return
+
     seen, shown = set(), 0
-    for ob in (None, "disc", "priceAsc", "priceDesc", "new", "pop"):
-        cursor = None
-        for page in range(1, 40):
-            params = {"s": src[key], "p": page, "getFilters": "false", "locale": "el"}
-            if ob:
-                params["ob"] = ob
-            if cursor:
-                params.update(cursor)
-            try:
-                data = sess.get(BASE, params=params, timeout=30).json()
-            except Exception as e:
-                print(f"  ! {e}"); break
-            prods = data.get("products", [])
-            if not prods:
-                break
-            for p in prods:
-                sku = p.get("sku", {})
-                sid = sku.get("id")
-                if sid in seen:
-                    continue
-                seen.add(sid)
-                name = sku.get("displayName", "")
-                if want_offers:
-                    if sku.get("superOfferFlag") or sku.get("webOfferFlag"):
-                        show(sku); shown += 1
+    for catname, catpath in cats:
+        for ob in (None, "disc", "priceAsc", "priceDesc", "new", "pop"):
+            cursor = None
+            for page in range(1, 40):
+                params = {"s": catpath, "p": page, "getFilters": "false", "locale": "el"}
+                if ob:
+                    params["ob"] = ob
+                if cursor:
+                    params.update(cursor)
+                try:
+                    data = sess.get(BASE, params=params, timeout=30).json()
+                except Exception as e:
+                    print(f"  ! {e}"); break
+                prods = data.get("products", [])
+                if not prods:
+                    break
+                for p in prods:
+                    sku = p.get("sku", {})
+                    sid = sku.get("id")
+                    if sid in seen:
+                        continue
+                    seen.add(sid)
+                    if by_id:
+                        if str(sid) == str(needle):
+                            show(sku, catname); return
+                    elif want_offers:
+                        if sku.get("superOfferFlag") or sku.get("webOfferFlag"):
+                            show(sku, catname); shown += 1
+                            if shown >= 8:
+                                return
+                    elif nd is not None:
+                        if nd in _re2.sub(r"[^a-z0-9]", "", _strip(sku.get("displayName", ""))):
+                            show(sku, catname); return
+                    else:
+                        show(sku, catname); shown += 1
                         if shown >= 8:
                             return
-                elif nd is not None:
-                    if nd in _re2.sub(r"[^a-z0-9]", "", _strip(name)):
-                        show(sku); shown += 1
-                        return
-                else:
-                    show(sku); shown += 1
-                    if shown >= 8:
-                        return
-            cursor = next_cursor(data)
-            if not cursor:
-                break
-        if nd is not None and shown:
-            return
+                cursor = next_cursor(data)
+                if not cursor:
+                    break
     if shown == 0:
-        print(f"No {'super/web-offer product' if want_offers else 'product matching '+repr(needle)} found in {key}.")
+        what = ("SKU id " + str(needle)) if by_id else \
+               ("super/web-offer product" if want_offers else "product matching " + repr(needle))
+        print(f"No {what} found in {key}. If it's on the site, the fast category API "
+              f"likely doesn't return it (marketplace/Mirakl or delisted) — that's why "
+              f"its price would go stale under --plp.")
 
 
 def dump_keys(key):
