@@ -658,6 +658,69 @@ def dump_price(key, needle=None):
               f"its price would go stale under --plp.")
 
 
+def dump_pdp(ident):
+    """Fetch a product PDP and show every price it exposes — to find where the
+    'Άπαιχτη Τιμή' price (lower than the category API) actually lives. `ident`
+    is a SKU id (looked up to its URL via the category API) or a URL/path."""
+    import re as _re2
+    import requests
+    sess = requests.Session(); sess.headers.update(HEADERS)
+    url = ident
+    if not (ident.startswith("http") or ident.startswith("/product")):
+        found = None
+        for _, catpath in CATEGORIES.items():
+            for ob in (None, "disc"):
+                cursor = None
+                for page in range(1, 40):
+                    params = {"s": catpath, "p": page, "getFilters": "false", "locale": "el"}
+                    if ob:
+                        params["ob"] = ob
+                    if cursor:
+                        params.update(cursor)
+                    data = sess.get(BASE, params=params, timeout=30).json()
+                    prods = data.get("products", [])
+                    if not prods:
+                        break
+                    for p in prods:
+                        sku = p.get("sku", {})
+                        if str(sku.get("id")) == str(ident):
+                            found = sku.get("url")
+                            break
+                    if found:
+                        break
+                    cursor = next_cursor(data)
+                    if not cursor:
+                        break
+                if found:
+                    break
+            if found:
+                break
+        if not found:
+            print(f"SKU {ident} not found in the category API."); return
+        url = found
+    if url.startswith("/"):
+        url = "https://www.public.gr" + url
+    print("PDP:", url)
+    html = sess.get(url, timeout=40).text
+    for m in _re2.finditer(r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>', html, _re2.S):
+        try:
+            data = json.loads(m.group(1))
+        except Exception:
+            continue
+        for item in (data if isinstance(data, list) else [data]):
+            if isinstance(item, dict) and item.get("@type") == "Product":
+                print("  ld+json offers:", json.dumps(item.get("offers"), ensure_ascii=False)[:300])
+    hits = {}
+    for m in _re2.finditer(r'"([a-zA-Z]*[Pp]rice[a-zA-Z]*)"\s*:\s*"?(\d{2,5}(?:\.\d{1,2})?)"?', html):
+        v = float(m.group(2))
+        if 50 <= v <= 6000:
+            hits.setdefault(m.group(1), set()).add(v)
+    print("  price-like JSON keys in the PDP:")
+    for k, vs in sorted(hits.items()):
+        print(f"    {k}: {sorted(vs)}")
+    print("  raw '549' present in HTML:", "549" in html)
+
+
 def dump_keys(key):
     """Diagnostic: print the first product's available fields + every topSpec
     label, so we can pin spec-label keys exactly instead of guessing."""
@@ -704,6 +767,10 @@ def main():
     if args and args[0] == "dumpprice":
         dump_price(args[1] if len(args) > 1 else "fridge_freezer",
                    args[2] if len(args) > 2 else None)
+        return
+
+    if args and args[0] == "dumppdp":
+        dump_pdp(args[1] if len(args) > 1 else "2052937")
         return
 
     if args == ["laundry"]:
