@@ -671,7 +671,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-07-10-B3</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-07-11-B4</span></div>
 </aside>
 
 <div class="shell">
@@ -2161,8 +2161,16 @@ function benchDedupe(list){
   }
   const rows=[];
   for(const members of groups.values()){
-    members.sort((a,b)=>f.price(a)-f.price(b));
-    rows.push({p:members[0], others:members.slice(1), groupSize:members.length});
+    // collapse same-site duplicates (same retailer_sku, or same site if no sku)
+    // so a stale URL-change twin never counts as a second retailer offer
+    const perSite=new Map();
+    for(const p of members){
+      const sk = (p.sku!=null && p.sku!=="") ? f.site(p)+":"+p.sku : f.site(p)+":"+f.id(p);
+      const cur=perSite.get(sk);
+      if(!cur || f.price(p)<f.price(cur)) perSite.set(sk,p);
+    }
+    const uniq=[...perSite.values()].sort((a,b)=>f.price(a)-f.price(b));
+    rows.push({p:uniq[0], others:uniq.slice(1), groupSize:uniq.length});
   }
   return rows;
 }
@@ -4188,7 +4196,24 @@ function renderMatches(){
   [...state.products, ...(state.laundry||[])].forEach(p=>{ byId[String(f.id(p))]=p; });
   const groups=(matchData.groups||[]).filter(g=>g.status===matchFilter);
   host.innerHTML = groups.slice(0,60).map(g=>{
-    const cards=g.product_ids.map(id=>{
+    // collapse same-site-SKU twins in the display (a URL-change duplicate is
+    // one listing; the retire cleanup deactivates the stale row server-side)
+    const seenSite=new Map();
+    const dispIds=[];
+    for(const id of g.product_ids){
+      const p=byId[String(id)];
+      const sk = p ? ((p.sku!=null&&p.sku!=="")?f.site(p)+":"+p.sku:"pid:"+id) : "pid:"+id;
+      if(seenSite.has(sk)){
+        // keep the one with a price (freshest live row)
+        const prev=seenSite.get(sk);
+        if(p && f.price(p)!=null && byId[String(prev)] && f.price(byId[String(prev)])==null){
+          const ix=dispIds.indexOf(prev); if(ix>=0) dispIds[ix]=id; seenSite.set(sk,id);
+        }
+        continue;
+      }
+      seenSite.set(sk,id); dispIds.push(id);
+    }
+    const cards=dispIds.map(id=>{
       const p=byId[String(id)];
       if(!p) return `<div class="mr-card"><div class="mr-nm" style="color:var(--ink-soft)">product #${id} — not in the current dataset (retired or other department)</div></div>`;
       const ids=[p.sku?"SKU "+p.sku:null, p.ean?"EAN "+p.ean:null, p.mpn?"MPN "+p.mpn:null].filter(Boolean).join(" · ");
@@ -4213,7 +4238,7 @@ function renderMatches(){
     return `<div class="card" style="margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
         <span class="conf ${confCls}" style="margin:0">${MATCH_METHOD_LABEL[g.method]||g.method}</span>
-        <span style="font-size:12px;color:var(--ink-soft)">${g.product_ids.length} listings</span>
+        <span style="font-size:12px;color:var(--ink-soft)">${dispIds.length} listing${dispIds.length>1?"s":""}</span>
         <span style="flex:1"></span>
         ${g.human ? '<span class="pill ok">human-verified</span>' : `
         <button class="btn ghost" style="padding:7px 14px" data-mr="same" data-ids="${g.product_ids.join(",")}">✓ Confirm match</button>

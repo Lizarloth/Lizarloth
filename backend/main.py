@@ -430,6 +430,16 @@ def ingest_results(payload: IngestPayload, request: Request, db: Session = Depen
             db.commit()
             db.refresh(product)
             created += 1
+            # if this SKU already exists at this site under an older URL,
+            # retire that stale row now so the URL change never leaves a dupe
+            if product.retailer_sku:
+                db.query(Product).filter(
+                    Product.site == product.site,
+                    Product.retailer_sku == product.retailer_sku,
+                    Product.id != product.id,
+                    Product.active == True,
+                ).update({Product.active: False}, synchronize_session=False)
+                db.commit()
         else:
             if not product.active:
                 product.active = True   # relisted after retirement — bring it back
@@ -519,19 +529,44 @@ def ingest_retire(request: Request, db: Session = Depends(get_db)):
         .group_by(PriceHistory.product_id)
         .subquery()
     )
-    stale_ids = [pid for (pid,) in
-                 db.query(latest.c.product_id).filter(latest.c.mx < cutoff).all()]
+    last_seen = dict(db.query(latest.c.product_id, latest.c.mx).all())
+    stale_ids = [pid for pid, mx in last_seen.items() if mx and mx < cutoff]
     retired = 0
     if stale_ids:
         retired = (db.query(Product)
                    .filter(Product.active == True, Product.id.in_(stale_ids))
                    .update({Product.active: False}, synchronize_session=False))
         db.commit()
-    print(f"🧹 Retire: {retired} product(s) not seen in {hours:.0f}h deactivated")
-    if retired:
+
+    # Same-site duplicates: two active rows sharing (site, retailer_sku) are the
+    # same physical listing under two URLs (a retailer changed the URL, so a new
+    # product row registered). Keep the freshest, deactivate the rest — this is
+    # what age-based retire can't catch when both rows keep getting scraped.
+    from collections import defaultdict
+    bykey = defaultdict(list)
+    for pid, site, sku in (db.query(Product.id, Product.site, Product.retailer_sku)
+                           .filter(Product.active == True,
+                                   Product.retailer_sku != None,
+                                   Product.retailer_sku != "").all()):
+        bykey[(site, sku)].append(pid)
+    dupe_ids = []
+    for ids in bykey.values():
+        if len(ids) < 2:
+            continue
+        ids.sort(key=lambda i: (last_seen.get(i) or datetime.min, i), reverse=True)
+        dupe_ids.extend(ids[1:])          # keep ids[0] (freshest), drop the rest
+    deduped = 0
+    if dupe_ids:
+        deduped = (db.query(Product)
+                   .filter(Product.active == True, Product.id.in_(dupe_ids))
+                   .update({Product.active: False}, synchronize_session=False))
+        db.commit()
+
+    print(f"🧹 Retire: {retired} stale + {deduped} same-SKU duplicate(s) deactivated")
+    if retired or deduped:
         global _MATCHES_DIRTY
         _MATCHES_DIRTY = True
-    return {"retired": retired, "cutoff_hours": hours}
+    return {"retired": retired, "deduped": deduped, "cutoff_hours": hours}
 
 
 # ── Cloud scraper endpoints (kept for testing / future proxy mode) ──────
