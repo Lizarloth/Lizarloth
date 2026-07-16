@@ -236,6 +236,13 @@ def parse_products(data, spec_map=SPEC_MAP, dept="cooling"):
                 mpn = v.strip()
                 break
 
+        # 'Άπαιχτη Τιμή' (unbeatable price) ribbon: the category API's salePrice
+        # is the pre-discount price for these; the real (lower) price shows only
+        # on the PDP. Flag it so the runner re-prices it from the product page.
+        ribbon_texts = [(rb.get("text") or rb.get("name")) if isinstance(rb, dict) else rb
+                        for rb in (sku.get("ribbons") or [])]
+        unbeatable = any("απαιχτη" in _strip(str(t)) for t in ribbon_texts)
+
         # availability: explicit field if the API exposes one; otherwise derive
         # it — a priced row on the purchase listing is buyable, and the
         # "Αγορά μόνο από κατάστημα" ribbon downgrades it to in-store-only.
@@ -265,6 +272,7 @@ def parse_products(data, spec_map=SPEC_MAP, dept="cooling"):
             "ean": ean,
             "mpn": mpn,
             "availability": avail,
+            "unbeatable": unbeatable,
             "brand": brand,
             "name": sku.get("displayName", ""),
             "price": price,

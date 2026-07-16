@@ -61,8 +61,8 @@ Environment variables to set on the service:
 All scraping runs on the local PC (residential IP — cloud IPs get flagged):
 
 ```bash
-# recommended daily path — fast catalogue APIs:
-python local_runner.py --plp --max-minutes 40
+# recommended daily path — fast catalogue APIs + Public unbeatable-price fix:
+python local_runner.py --plp --enrich-prices --max-minutes 40
 
 # subcategory-aware scheduling (niche segments scraped less often):
 python local_runner.py --plp --due

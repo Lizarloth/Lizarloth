@@ -460,6 +460,53 @@ def ingest_results(payload: IngestPayload, request: Request, db: Session = Depen
     return {"saved": saved, "new_products": created, "skipped": skipped}
 
 
+class RepricePayload(BaseModel):
+    items: list[dict]       # [{id | url, price, old_price?}]
+
+
+@app.post("/api/ingest/reprice")
+def ingest_reprice(payload: RepricePayload, request: Request, db: Session = Depends(get_db)):
+    """Correct a product's price from a PDP re-scrape (e.g. Public's hidden
+    'Άπαιχτη Τιμή' price the category API doesn't carry). Updates today's
+    latest price-history row IN PLACE so it doesn't create a spurious same-day
+    price move; inserts a fresh row only if the latest reading is older."""
+    token = os.getenv("INGEST_TOKEN", "")
+    if not token or request.headers.get("X-Ingest-Token") != token:
+        raise HTTPException(401, "Invalid or missing X-Ingest-Token")
+
+    def _f(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return None
+
+    today = datetime.utcnow().date()
+    updated = 0
+    for it in payload.items:
+        price = _f(it.get("price"))
+        if price is None:
+            continue
+        product = None
+        if it.get("id"):
+            product = db.query(Product).filter(Product.id == int(it["id"])).first()
+        elif it.get("url"):
+            product = db.query(Product).filter(Product.url == it["url"]).first()
+        if not product:
+            continue
+        old_price = _f(it.get("old_price"))
+        latest = _latest_history(db, product.id)
+        if latest and latest.scraped_at and latest.scraped_at.date() == today:
+            latest.price = price
+            if old_price is not None:
+                latest.old_price = old_price
+        else:
+            db.add(PriceHistory(product_id=product.id, price=price, old_price=old_price))
+        updated += 1
+    db.commit()
+    print(f"💶 Reprice: {updated} corrected from PDP")
+    return {"repriced": updated}
+
+
 @app.get("/api/ingest/missing-ids")
 def ingest_missing_ids(request: Request, site: Optional[str] = None,
                        limit: int = 300, db: Session = Depends(get_db)):

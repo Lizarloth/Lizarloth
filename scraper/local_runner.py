@@ -1038,10 +1038,63 @@ def _plp_row_to_result(row, canonical_subcat):
     if _sid: res["sku"] = str(_sid)         # retailer's own SKU id — stable identity for matching
     if row.get("ean"): res["ean"] = str(row["ean"])
     if row.get("mpn"): res["mpn"] = str(row["mpn"])
+    if row.get("unbeatable"): res["unbeatable"] = True
     return res
 
 
-def run_plp(sites, scope_subs, headless=True):
+def reprice_unbeatable(targets, headless=True):
+    """Public's 'Άπαιχτη Τιμή' price shows only on the client-rendered PDP, in
+    <span data-testid="text-pbc-sale-price">. Browser-render each flagged PDP,
+    read that element, and push the corrected price (with the category price as
+    the was-price) via /api/ingest/reprice. `targets`: [(url, category_price)]."""
+    if not targets:
+        return
+    log(f"[reprice] {len(targets)} 'Άπαιχτη Τιμή' products — reading the PDP price…")
+    driver = make_chrome(headless=headless)
+    fixed, buf = 0, []
+    SEL = '[data-testid="text-pbc-sale-price"]'
+    try:
+        for i, (url, cat_price) in enumerate(targets, 1):
+            try:
+                driver.get(url)
+                el = WebDriverWait(driver, 15).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, SEL)))
+                real = price_to_float(el.text)
+            except Exception as e:
+                log(f"  [{i}/{len(targets)}] !! {str(e)[:40]}"); continue
+            # only accept a genuine, lower unbeatable price (sanity: 35..cat)
+            if real and cat_price and 35 <= real < cat_price - 0.5:
+                buf.append({"url": url, "price": real, "old_price": cat_price})
+                fixed += 1
+                log(f"  [{i}/{len(targets)}] {cat_price} -> {real}  {url.split('/')[-1]}")
+            time.sleep(0.5)
+            if len(buf) >= 25:
+                _push_reprice(buf); buf = []
+        if buf:
+            _push_reprice(buf)
+    finally:
+        driver.quit()
+    log(f"[reprice] DONE: corrected {fixed}/{len(targets)}")
+
+
+def _push_reprice(items, _tries=4):
+    delay = 4
+    for attempt in range(1, _tries + 1):
+        try:
+            r = requests.post(f"{API_URL}/api/ingest/reprice",
+                              headers={"X-Ingest-Token": INGEST_TOKEN, "Content-Type": "application/json"},
+                              json={"items": items}, timeout=120)
+            if r.status_code == 401:
+                log("X 401 — INGEST_TOKEN mismatch on reprice."); return
+            r.raise_for_status()
+            log(f"    repriced -> {r.json()}"); return
+        except requests.exceptions.RequestException as e:
+            if attempt == _tries:
+                log(f"    reprice push failed ({str(e)[:40]})"); return
+            time.sleep(delay); delay = min(delay * 2, 30)
+
+
+def run_plp(sites, scope_subs, headless=True, enrich_prices=False):
     """FAST catalogue path. For each site, pull the whole category list (price +
     basic specs) via the standalone API fetchers, map to result rows, enrich,
     and push in batches. Replaces both the crawl and the per-PDP price scrape
@@ -1053,6 +1106,7 @@ def run_plp(sites, scope_subs, headless=True):
 
     grand = {"saved": 0, "new_products": 0}
     buf = []
+    reprice_targets = []   # [(url, category_price)] for Public 'Άπαιχτη Τιμή' rows
 
     def flush():
         if not buf:
@@ -1060,6 +1114,8 @@ def run_plp(sites, scope_subs, headless=True):
         for r in buf:
             _ensure_color(r)
             _derive_pillars(r)
+            if enrich_prices and r.get("unbeatable") and r.get("url") and r.get("price"):
+                reprice_targets.append((r["url"], r["price"]))
         resp = push_results(buf)
         grand["saved"] += resp.get("saved", 0)
         grand["new_products"] += resp.get("new_products", 0)
@@ -1200,6 +1256,8 @@ def run_plp(sites, scope_subs, headless=True):
             flush()
 
     flush()
+    if enrich_prices and reprice_targets:
+        reprice_unbeatable(reprice_targets, headless=headless)
     return grand
 
 
@@ -1221,6 +1279,10 @@ def main():
                     help="EAN/MPN enrichment pass: fetch PDPs of products missing an EAN and "
                          "read JSON-LD Product identity (gtin/mpn). Run occasionally after --plp.")
     ap.add_argument("--limit", type=int, default=300, help="max products for --enrich-ids (default 300)")
+    ap.add_argument("--enrich-prices", action="store_true", dest="enrich_prices",
+                    help="with --plp: after the catalogue push, browser-render the PDPs of Public "
+                         "'Άπαιχτη Τιμή' products (whose real price the category API omits) and "
+                         "correct them. Recommended for the daily run.")
     ap.add_argument("--max-minutes", type=int, default=0, dest="max_minutes",
                     help="fail-safe for scheduled runs: force-exit after N minutes if the run hangs "
                          "(e.g. --max-minutes 40). 0 = off.")
@@ -1258,7 +1320,7 @@ def main():
     if args.plp:
         sites = [args.site] if args.site else ["public", "kotsovolos", "plaisio"]
         log(f"=== PLP catalogue mode (fast price path) — sites: {sites} ===")
-        grand = run_plp(sites, scope_subs, headless=True)
+        grand = run_plp(sites, scope_subs, headless=True, enrich_prices=args.enrich_prices)
         log(f"DONE (PLP) -> {grand}")
         # Retire delisted/zombie products — only after a FULL sweep (all sites,
         # all categories), so partial runs (--site / --only) never wrongly retire
