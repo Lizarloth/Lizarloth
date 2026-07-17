@@ -383,6 +383,10 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 .l-stand a[data-gobench]{color:#5EEAD4;font-weight:700;text-decoration:none;white-space:nowrap;margin-left:8px}
 .l-stand a[data-gobench]:hover{text-decoration:underline}
 
+/* technology chips (derived per SKU) */
+.tech-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.tech-chip{font:600 10.5px 'Hanken Grotesk';color:var(--cobalt);background:var(--cobalt-soft);border:1px solid var(--line);border-radius:6px;padding:2px 7px;white-space:nowrap}
+
 /* Match review */
 .mr-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
 .mr-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--frost);display:flex;flex-direction:column;gap:7px}
@@ -671,7 +675,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-07-11-B5</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-07-13-B6</span></div>
 </aside>
 
 <div class="shell">
@@ -2180,6 +2184,60 @@ function benchDedupe(list){
   return rows;
 }
 
+/* ---- Technologies per SKU (derived client-side from name + specs, so it
+   works retroactively on existing data). Conservative keyword rules — a tag
+   only appears on positive evidence; absence never implies the feature is
+   missing. Greek is accent-stripped + uppercased before matching. ---- */
+const TECH_RULES_COOLING = [
+  ["Inverter", /INVERTER|ΙΝΒΕΡΤΕΡ/],
+  ["WiFi", /WI-?FI\b|WIFI/],
+  ["AI", /\bAI\b|ARTIFICIAL INTELL|ΤΕΧΝΗΤΗ ΝΟΗΜ/],
+  ["Smart", /SMART|HOMEWHIZ|THINQ|SMARTTHINGS|HOME ?CONNECT|ΕΞΥΠΝ/],
+  ["Water dispenser", /WATER DISPENSER|ΔΙΑΝΟΜΕΑΣ ΝΕΡΟΥ|ΠΑΡΟΧΗ ΝΕΡΟΥ|DISPENSER ΝΕΡΟΥ/],
+  ["Ice maker", /ICE ?MAKER|ICE ?DISPENSER|ΠΑΓΟΜΗΧΑΝ|ΠΑΓΑΚ/],
+  ["Quick freeze", /QUICK ?FREEZE|SUPER ?FREEZE|SUPERFREEZE|FAST ?FREEZE|ΓΡΗΓΟΡΗ ΚΑΤΑΨ/],
+  ["Quick cool", /QUICK ?COOL|SUPER ?COOL|SUPERCOOL/],
+  ["Holiday mode", /HOLIDAY|VACATION|ΔΙΑΚΟΠ/],
+  ["Anti-fingerprint", /ANTI ?FINGER|ANTIFINGER/],
+  ["Multi airflow", /MULTI ?AIR ?FLOW|MULTIFLOW|MULTIAIRFLOW/],
+  ["Anti-bacterial", /ANTIBACTER|ANTI ?BACTER|ΑΝΤΙΒΑΚΤΗΡ/],
+  ["Fresh zone", /BIOFRESH|VITAFRESH|FRESH ?ZONE|FRESH ?BALANCE/],
+  ["Touch control", /TOUCH ?CONTROL|ΑΦΗΣ ?ΧΕΙΡΙΣΜ/],
+  ["Convertible", /CONVERTIBLE|CONVERT ?ZONE|FLEX ?ZONE/],
+];
+const TECH_RULES_LAUNDRY = [
+  ["Inverter", /INVERTER|ΙΝΒΕΡΤΕΡ/],
+  ["Steam", /STEAM|ΑΤΜΟΥ|ΑΤΜΟΣ/],
+  ["Heat pump", /HEAT ?PUMP|ΑΝΤΛΙΑ ΘΕΡΜ/],
+  ["WiFi", /WI-?FI\b|WIFI/],
+  ["AI", /\bAI\b|ΤΕΧΝΗΤΗ ΝΟΗΜ/],
+  ["Smart", /SMART|HOMEWHIZ|THINQ|SMARTTHINGS|HOME ?CONNECT|ΕΞΥΠΝ/],
+  ["Auto-dose", /AUTO ?DOSE|AUTODOS|I-?DOS|AUTODOSING|ΑΥΤΟΜΑΤΗ ΔΟΣ/],
+  ["Add garment", /ADD ?GARMENT|ADD ?WASH|ADD ?ITEM|ΠΡΟΣΘΗΚ.* ΡΟΥΧ/],
+  ["Allergy care", /ALLERG|HYGIEN|ANTI ?ALLERG|ΥΓΙΕΙΝ|ΑΛΛΕΡΓ/],
+  ["Quick wash", /QUICK ?WASH|RAPID ?WASH|ΓΡΗΓΟΡΟ ?ΠΛΥΣ/],
+  ["Anti-stain", /ANTI ?STAIN|STAIN ?REMOV|ΛΕΚΕΔ/],
+  ["Half load", /HALF ?LOAD|ΜΙΣΟ ?ΦΟΡΤ/],
+  ["Silent", /SILENT|ΑΘΟΡΥΒ|ΣΙΩΠ/],
+];
+function techHay(p){
+  const specs = f.specs(p) || {};
+  const blob = f.name(p) + " " + Object.entries(specs).map(([k,v])=>k+" "+v).join(" ");
+  return blob.toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+}
+function deriveTech(p, dept){
+  const H = techHay(p);
+  const rules = dept==="laundry" ? TECH_RULES_LAUNDRY : TECH_RULES_COOLING;
+  const out = [];
+  for(const [label,re] of rules){ if(re.test(H)) out.push(label); }
+  // honour the runner's explicit pillar fields where present
+  const s = f.specs(p) || {};
+  if(s.pillar_water_supply && !out.includes("Water dispenser")) out.push(s.pillar_water_supply);
+  if(s.pillar_dispenser==="Water + Ice"){ if(!out.includes("Water dispenser")) out.push("Water dispenser"); if(!out.includes("Ice maker")) out.push("Ice maker"); }
+  return [...new Set(out)];
+}
+function techChipsHTML(list){ return list.map(t=>`<span class="tech-chip">${esc(t)}</span>`).join(""); }
+
 function coolSpecChips(n){
   const out=[];
   if(n.energy) out.push(`<span class="lau-spec energy" style="background:${ENERGY_COLORS[n.energy]||'#94A3B8'}">${esc(n.energy)}</span>`);
@@ -2222,6 +2280,10 @@ function benchStandHTML(rows, typeWord, withLink){
 function benchDetailHTML(row, dept){
   const p=row.p, specs=f.specs(p)||{};
   const secs=[];
+  const tech=deriveTech(p, dept);
+  if(tech.length){
+    secs.push(`<div class="bd-sec"><div class="bd-k">Technologies</div><div class="tech-row">${techChipsHTML(tech)}</div></div>`);
+  }
   if(row.others && row.others.length){
     const offers=[row.p, ...row.others].map(x=>({s:SITE_LABEL[f.site(x)]||f.site(x), v:f.price(x)})).sort((a,b)=>a.v-b.v);
     const spread=offers[offers.length-1].v-offers[0].v;
@@ -2276,6 +2338,7 @@ function benchDetailHTML(row, dept){
 function benchRowHTML(row, i, dept){
   const p=row.p, mine=isMyBrand(p), {brand,code}=extractModel(f.name(p)), url=f.url(p);
   const chips = dept==="laundry" ? lauSpecs(laundryNorm(p)) : coolSpecChips(p.__norm||(p.__norm=normalize(p)));
+  const tech = deriveTech(p, dept);
   const nm=`${esc(cap(brand)||"")} ${esc(short(code||f.name(p),26))}`;
   const nameHTML=url?`<a href="${esc(url)}" target="_blank" rel="noopener" title="Open on ${SITE_LABEL[f.site(p)]||f.site(p)}">${nm} <span class="rl-arrow">↗</span></a>`:nm;
   const retail = row.groupSize>1
@@ -2287,6 +2350,7 @@ function benchRowHTML(row, i, dept){
     <div class="lau-body">
       <div class="lau-nm">${nameHTML}${mine?'<span class="lau-yours">YOURS</span>':''}</div>
       <div class="lau-specs">${chips}</div>
+      ${tech.length?`<div class="tech-row">${techChipsHTML(tech)}</div>`:""}
       <div class="lau-retail">${esc(retail)} · <span class="bx-hint">details ▾</span></div>
     </div>
     <div class="lau-price">${lauPriceCell(p)}</div>
