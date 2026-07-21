@@ -72,8 +72,16 @@ SUBCAT_INTERVAL_DAYS = {
     "one_door":       3,
     "mini_bar":      14,   # niche — fortnightly
     "wine_cooler":   30,   # niche — monthly
+    # laundry department — mainstream, prices move; keep it on a daily cadence
+    "washing_machine": 1,
+    "washer_dryer":    1,
+    "dryer":           1,
 }
 DEFAULT_INTERVAL_DAYS = 3
+# Laundry canonical subcategories — the PLP fetchers' LAUNDRY dicts key on these;
+# they live outside the cooling CATEGORIES map, so --due must be told about them
+# explicitly or it never schedules laundry.
+LAUNDRY_SUBCATS = {"washing_machine", "washer_dryer", "dryer"}
 LAST_RUN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "last_run.json")
 
 # Each category URL is tagged with a canonical subcategory so every product
@@ -172,7 +180,9 @@ def _save_last_run(data):
         log(f"⚠ could not write last_run log: {e}")
 
 def _all_subcats():
-    return set(sum([[c[1] for c in v] for v in CATEGORIES.values()], []))
+    # cooling subcats (from the crawl CATEGORIES) + the laundry department,
+    # so --due schedules laundry too (its keys aren't in CATEGORIES)
+    return set(sum([[c[1] for c in v] for v in CATEGORIES.values()], [])) | LAUNDRY_SUBCATS
 
 def _due_subcats(now=None):
     """Subcategories due for a scrape, based on each one's interval and when it
