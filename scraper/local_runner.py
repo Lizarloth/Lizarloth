@@ -402,6 +402,11 @@ def get_tracked_products():
     if os.getenv("PRICEDGE_API_KEY"):
         headers["X-API-Key"] = os.getenv("PRICEDGE_API_KEY")
     r = requests.get(f"{API_URL}/api/products", headers=headers, timeout=30)
+    if r.status_code == 401:
+        log("X 401 reading /api/products — the backend requires the dashboard API key. "
+            "Set it with:  setx PRICEDGE_API_KEY \"<same value as Railway API_KEY>\"  "
+            "then open a NEW terminal. (Not needed for --plp; only for --quick.)")
+        sys.exit(1)
     r.raise_for_status(); return r.json()
 
 
