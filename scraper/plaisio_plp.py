@@ -28,6 +28,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 import cooking
+import dishwashing
 
 BASE = "https://www.plaisio.gr"
 
@@ -56,6 +57,9 @@ COOKING = {
     "hood":      "/list/megales-oikiakes-siskeves/mageirema/aporrofitires",
     "microwave": "/list/megales-oikiakes-siskeves/mageirema/fournoi-mikrokimaton",
 }
+# Dishwashing: one list page for every dishwasher; the type (freestanding /
+# built-in, 45 / 60, compact) is derived per product from the name + card.
+DISH = {"dw_all": "/list/megales-oikiakes-siskeves/plisi-piaton/plintiria-piaton"}
 LAUNDRY_COLS = ["site", "category", "department", "sku_id", "brand", "name",
                 "price", "availability", "energy", "wash_kg", "dry_kg", "rpm",
                 "programs", "heat_pump", "condenser", "loader", "image", "url"]
@@ -89,7 +93,7 @@ document.querySelectorAll('a[href*="/product/"]').forEach(a => {
   let el = a;
   for (let i = 0; i < 8 && el; i++) {
     const t = el.innerText || "";
-    if (/Ενεργειακ[ήη]\s+κλάση|Χωρητικότητα\s*:|Είδος Εστιών\s*:|Τύπος Συσκευής\s*:/i.test(t)) { specMap[sku] = t; break; }
+    if (/Ενεργειακ[ήη]\s+κλάση|Χωρητικότητα\s*:|Είδος Εστιών\s*:|Τύπος Συσκευής\s*:|Σερβίτσιων\s*:/i.test(t)) { specMap[sku] = t; break; }
     el = el.parentElement;
   }
 });
@@ -313,6 +317,16 @@ def mine_cooking_card(text, name, desc, cat_name):
         width=g("Πλάτος"), install_text=typ)
 
 
+def mine_dish_card(text, name):
+    pairs = {}
+    for m in _LS_PAIR.finditer(text or ""):
+        pairs.setdefault(cooking.fold(m.group(1)).strip(), m.group(2).strip())
+    g = lambda lb: pairs.get(cooking.fold(lb), "")
+    return dishwashing.dish_fields(
+        name, settings=g("Αριθμός Σερβίτσιων"), energy_text=g("Ενεργειακή κλάση"),
+        programs=g("Αριθμός προγραμμάτων"), noise=g("Επίπεδο θορύβου"))
+
+
 def parse_items(items, cat_name, dept="cooling", spec_map=None):
     spec_map = spec_map or {}
     out = []
@@ -354,6 +368,8 @@ def parse_items(items, cat_name, dept="cooling", spec_map=None):
         }
         if dept == "cooking":
             base.update(mine_cooking_card(spec_map.get(sku, ""), name, desc, cat_name))
+        elif dept == "dishwashing":
+            base.update(mine_dish_card(spec_map.get(sku, ""), name))
         elif dept == "laundry":
             base["department"] = "laundry"
             la = mine_landscape(spec_map.get(sku, ""), cat_name)   # labelled, authoritative
@@ -398,7 +414,7 @@ def collect_category(driver, cat_path, cat_name, debug=True, dept="cooling"):
     base_url = BASE + cat_path
 
     for page in range(1, MAX_PAGES + 1):
-        lay = "&layout=landscape" if dept in ("laundry", "cooking") else ""
+        lay = "&layout=landscape" if dept in ("laundry", "cooking", "dishwashing") else ""
         url = f"{base_url}?page={page}{lay}"
         driver.get(url)
         if page == 1:
@@ -508,6 +524,19 @@ def main():
         d = make_chrome(headless=headless)
         try:
             dump_item(d, cat)
+        finally:
+            d.quit()
+        return
+    if raw == ["dishwashing"]:
+        print("Starting Chrome..." + (" (visible)" if not headless else ""))
+        d = make_chrome(headless=headless)
+        try:
+            rows, total = collect_category(d, DISH["dw_all"], "dw_all", debug=False, dept="dishwashing")
+            rows = [r for r in rows if dishwashing.keep(r)]
+            print(f"  dishwashers: {len(rows)} (of ~{total})")
+            dishwashing.print_coverage(rows)
+            write_excel(rows, path="plaisio_dishwashing.xlsx", cols=dishwashing.DISH_COLS,
+                        title="plaisio_dishwashing")
         finally:
             d.quit()
         return

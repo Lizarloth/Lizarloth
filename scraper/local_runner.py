@@ -83,6 +83,8 @@ SUBCAT_INTERVAL_DAYS = {
     "hob":       1,
     "hood":      2,
     "microwave": 3,
+    # dishwashing: one scrape covers all five derived types
+    "dishwasher": 1,
 }
 DEFAULT_INTERVAL_DAYS = 3
 # Laundry canonical subcategories — the PLP fetchers' LAUNDRY dicts key on these;
@@ -91,6 +93,9 @@ DEFAULT_INTERVAL_DAYS = 3
 LAUNDRY_SUBCATS = {"washing_machine", "washer_dryer", "dryer"}
 # Cooking canonical subcategories (the fetchers' COOKING dicts key on these).
 COOKING_SUBCATS = {"cooker", "oven", "hob", "hood", "microwave"}
+# Dishwashing is scheduled as one unit ("dishwasher"); each product's stored
+# category is its derived type (dw_free_60, dw_bi_45, ... see dishwashing.py).
+DISH_SCOPE = "dishwasher"
 LAST_RUN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "last_run.json")
 
 # Each category URL is tagged with a canonical subcategory so every product
@@ -192,7 +197,7 @@ def _all_subcats():
     # cooling subcats (from the crawl CATEGORIES) + the laundry and cooking
     # departments, so --due schedules them too (their keys aren't in CATEGORIES)
     return (set(sum([[c[1] for c in v] for v in CATEGORIES.values()], []))
-            | LAUNDRY_SUBCATS | COOKING_SUBCATS)
+            | LAUNDRY_SUBCATS | COOKING_SUBCATS | {DISH_SCOPE})
 
 def _due_subcats(now=None):
     """Subcategories due for a scrape, based on each one's interval and when it
@@ -234,7 +239,8 @@ def _derive_pillars(p):
     H = "".join(c for c in unicodedata.normalize("NFD", blob.upper())
                 if unicodedata.category(c) != "Mn")
     def has(*words): return any(w in H for w in words)
-    cooking_dept = specs.get("__dept") == "cooking"
+    # fridge-only pillars (cooling system, dispensers) never apply to these
+    cooking_dept = specs.get("__dept") in ("cooking", "dishwashing")
 
     # Cooling system (fridges only — "static" on an oven is a heating mode)
     if cooking_dept:
@@ -1002,21 +1008,35 @@ def _load_urls(site):
                 out[ln] = "general"
     return out
 
+# canonical row field -> stored Greek spec label, for the departments whose
+# fetchers emit normalised fields (scraper/cooking.py, scraper/dishwashing.py)
+_DEPT_SPEC_LABELS = {
+    "cooking": (("hob_type", "Τύπος εστίας"), ("fuel", "Καύσιμο"),
+                ("oven_lt", "Χωρητικότητα (lt)"), ("zones", "Εστίες"),
+                ("cleaning", "Καθαρισμός"), ("hood_type", "Τύπος απορροφητήρα"),
+                ("airflow", "Απορροφητικότητα (m3/h)"), ("power_w", "Ισχύς (W)"),
+                ("install", "Κατασκευή"), ("grill", "Grill"),
+                ("width_cm", "Πλάτος (cm)"), ("energy", "Ενεργειακή κλάση"),
+                ("color", "Χρώμα"), ("dimensions", "Διαστάσεις")),
+    "dishwashing": (("install", "Κατασκευή"), ("integration", "Εντοιχισμός"),
+                    ("settings", "Σερβίτσια"), ("width_cm", "Πλάτος (cm)"),
+                    ("energy", "Ενεργειακή κλάση"), ("noise_db", "Θόρυβος (dB)"),
+                    ("programs", "Προγράμματα"), ("wifi", "WiFi"),
+                    ("half_load", "Μισό φορτίο"), ("autodose", "Αυτόματη δοσολογία"),
+                    ("color", "Χρώμα"), ("dimensions", "Διαστάσεις")),
+}
+
+
 def _plp_row_to_result(row, canonical_subcat):
     """Map a standalone-fetcher row into the backend result schema. Flat spec
     fields become a specs{} dict (Greek labels). Laundry rows carry kg/rpm/
     programs/etc. and are tagged department=laundry so the dashboard keeps them
     in their own section, never blended with cooling. Cooking rows carry the
     canonical fields from cooking.py, tagged department=cooking."""
-    if row.get("department") == "cooking":
-        specs = {"__dept": "cooking"}
-        for key, label in (("hob_type", "Τύπος εστίας"), ("fuel", "Καύσιμο"),
-                           ("oven_lt", "Χωρητικότητα (lt)"), ("zones", "Εστίες"),
-                           ("cleaning", "Καθαρισμός"), ("hood_type", "Τύπος απορροφητήρα"),
-                           ("airflow", "Απορροφητικότητα (m3/h)"), ("power_w", "Ισχύς (W)"),
-                           ("install", "Κατασκευή"), ("grill", "Grill"),
-                           ("width_cm", "Πλάτος (cm)"), ("energy", "Ενεργειακή κλάση"),
-                           ("color", "Χρώμα"), ("dimensions", "Διαστάσεις")):
+    if row.get("department") in _DEPT_SPEC_LABELS:
+        dept = row["department"]
+        specs = {"__dept": dept}
+        for key, label in _DEPT_SPEC_LABELS[dept]:
             if row.get(key):
                 specs[label] = row[key]
         res = {
@@ -1025,7 +1045,8 @@ def _plp_row_to_result(row, canonical_subcat):
             "name": row.get("name", ""),
             "price": row.get("price"),
             "success": row.get("price") is not None,
-            "category": canonical_subcat,        # cooker / oven / hob / hood / microwave
+            # cooker/oven/hob/hood/microwave, or the derived dishwasher type
+            "category": row.get("category") if dept == "dishwashing" else canonical_subcat,
             "specs": specs,
         }
         if row.get("availability"): res["availability"] = row["availability"]
@@ -1252,6 +1273,22 @@ def run_plp(sites, scope_subs, headless=True, enrich_prices=False):
                     buf.append(_plp_row_to_result(row, key))
                     if len(buf) >= PUSH_EVERY: flush()
                 log(f"   public/{key} [cooking]: {len(rows)} (of ~{total})")
+            # ---- dishwashing (types derived per product) ----
+            if in_scope(DISH_SCOPE):
+                for key, path in getattr(public_plp, "DISH", {}).items():
+                    log(f"[PLP] public/{key} -> dishwashing")
+                    try:
+                        rows, total = public_plp.collect_all(
+                            path, cat_name=key, debug=False,
+                            spec_map=public_plp.DISH_SPEC_MAP, dept="dishwashing")
+                        rows = public_plp.finish_dish(rows, key)
+                    except Exception as e:
+                        log(f"   ! public/{key} failed: {str(e)[:70]}"); continue
+                    for row in rows:
+                        row["site"] = "public"
+                        buf.append(_plp_row_to_result(row, row["category"]))
+                        if len(buf) >= PUSH_EVERY: flush()
+                    log(f"   public/{key} [dishwashing]: {len(rows)} (of ~{total})")
             flush()
 
         elif site == "kotsovolos":
@@ -1300,6 +1337,16 @@ def run_plp(sites, scope_subs, headless=True, enrich_prices=False):
                     buf.append(_plp_row_to_result(row, key))
                     if len(buf) >= PUSH_EVERY: flush()
                 log(f"   kotsovolos/{key} [cooking]: {len(rows)}")
+            if in_scope(DISH_SCOPE) and hasattr(kotsovolos_plp, "collect_dish"):
+                log("[PLP] kotsovolos/dishwasher -> dishwashing")
+                try:
+                    rows, _ = kotsovolos_plp.collect_dish(session)
+                except Exception as e:
+                    log(f"   ! kotsovolos/dishwasher failed: {str(e)[:70]}"); rows = []
+                for row in rows:
+                    buf.append(_plp_row_to_result(row, row["category"]))
+                    if len(buf) >= PUSH_EVERY: flush()
+                log(f"   kotsovolos/dishwasher [dishwashing]: {len(rows)}")
             flush()
 
         elif site == "plaisio":
@@ -1358,6 +1405,18 @@ def run_plp(sites, scope_subs, headless=True, enrich_prices=False):
                         buf.append(_plp_row_to_result(row, key))
                         if len(buf) >= PUSH_EVERY: flush()
                     log(f"   plaisio/{key} [cooking]: {len(rows)} (of ~{total})")
+                # ---- dishwashing (one list page; types derived per product) ----
+                for key, path in (getattr(plaisio_plp, "DISH", {}).items() if in_scope(DISH_SCOPE) else []):
+                    log(f"[PLP] plaisio/{key} -> dishwashing")
+                    try:
+                        rows, total = plaisio_plp.collect_category(pdriver, path, key, debug=False, dept="dishwashing")
+                        rows = [r for r in rows if plaisio_plp.dishwashing.keep(r)]
+                    except Exception as e:
+                        log(f"   ! plaisio/{key} failed: {str(e)[:70]}"); continue
+                    for row in rows:
+                        buf.append(_plp_row_to_result(row, row["category"]))
+                        if len(buf) >= PUSH_EVERY: flush()
+                    log(f"   plaisio/{key} [dishwashing]: {len(rows)} (of ~{total})")
             finally:
                 pdriver.quit()
             flush()

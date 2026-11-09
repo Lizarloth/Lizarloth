@@ -28,6 +28,7 @@ import json
 import requests
 
 import cooking
+import dishwashing
 
 BASE = "https://www.public.gr/category/"
 
@@ -147,6 +148,38 @@ def finish_cooking(rows, cat):
             install_text=r.get("_install", "")))
         r["category"] = cat
         if cooking.keep(cat, r):
+            out.append(r)
+    return out
+
+
+# ---- DISHWASHING (separate department). The source key only says
+# ---- freestanding vs built-in; finish_dish() derives the five types.
+DISH = {
+    "dw_free":    "/cat/oikiakes-syskeyes/dishwasher/plyntiria-piatwn/",
+    "dw_builtin": "/cat/oikiakes-syskeyes/entoixizomenes-suskeues/entoixizomena-plyntiria-piatwn/",
+}
+DISH_SPEC_MAP = {
+    "σερβιτσια":            "_settings",
+    "αριθμος προγραμματων": "_programs",
+    "ενεργειακη κλαση":     "_energy",
+    "συνδεσιμοτητα":        "_wifi",
+    "διαστασεις":           "_dims",
+    "χρωμα":                "_color",
+    "θορυβος":              "_noise",
+    "επιπεδο θορυβου":      "_noise",
+}
+
+
+def finish_dish(rows, source_key):
+    out = []
+    for r in rows:
+        r.update(dishwashing.dish_fields(
+            r.get("name", ""), builtin_hint=(source_key == "dw_builtin"),
+            settings=r.get("_settings", ""), dimensions=r.get("_dims", ""), dims_axis=0,  # W x D x H
+            energy_text=r.get("_energy", ""), noise=r.get("_noise", ""),
+            programs=r.get("_programs", ""), wifi_text=r.get("_wifi", ""),
+            color=r.get("_color", "")))
+        if dishwashing.keep(r):
             out.append(r)
     return out
 
@@ -561,6 +594,8 @@ def _run_targets(targets, source, spec_map, dept, out_path, cols, title):
                                   spec_map=spec_map, dept=dept)
         if dept == "cooking":
             rows = finish_cooking(rows, cat_name)
+        elif dept == "dishwashing":
+            rows = finish_dish(rows, cat_name)
         added = 0
         for r in rows:
             if r["sku_id"] not in all_rows:
@@ -598,6 +633,8 @@ def _run_targets(targets, source, spec_map, dept, out_path, cols, title):
         print(f"  loader: front {front}, top {top}, untagged {len(wm)-front-top} /{len(wm)} washing machines")
     if dept == "cooking":
         cooking.print_coverage(rows)
+    elif dept == "dishwashing":
+        dishwashing.print_coverage(rows)
 
     my_brands = {"WHIRLPOOL", "INDESIT", "BEKO"}
     mine = [r for r in rows if (r["brand"] or "").upper() in my_brands]
@@ -844,16 +881,21 @@ def main():
         targets = list(LAUNDRY)
     elif args == ["cooking"]:
         targets = list(COOKING)
+    elif args == ["dishwashing"]:
+        targets = list(DISH)
     else:
         targets = args if args else list(CATEGORIES)
 
     laundry_t = [t for t in targets if t in LAUNDRY]
     cooking_t = [t for t in targets if t in COOKING]
+    dish_t = [t for t in targets if t in DISH]
     fridge_t = [t for t in targets if t in CATEGORIES]
-    unknown = [t for t in targets if t not in CATEGORIES and t not in LAUNDRY and t not in COOKING]
+    unknown = [t for t in targets if t not in CATEGORIES and t not in LAUNDRY
+               and t not in COOKING and t not in DISH]
     if unknown:
         print(f"Unknown category {unknown}. Fridge: {list(CATEGORIES)}  "
-              f"Laundry: {list(LAUNDRY)} (or 'laundry')  Cooking: {list(COOKING)} (or 'cooking')")
+              f"Laundry: {list(LAUNDRY)} (or 'laundry')  Cooking: {list(COOKING)} (or 'cooking')  "
+              f"Dishwashing: {list(DISH)} (or 'dishwashing')")
         sys.exit(1)
 
     if fridge_t:
@@ -865,6 +907,9 @@ def main():
     if cooking_t:
         _run_targets(cooking_t, COOKING, COOKING_SPEC_MAP, "cooking",
                      "public_cooking.xlsx", cooking.COOKING_COLS, "public_cooking")
+    if dish_t:
+        _run_targets(dish_t, DISH, DISH_SPEC_MAP, "dishwashing",
+                     "public_dishwashing.xlsx", dishwashing.DISH_COLS, "public_dishwashing")
 
 
 if __name__ == "__main__":

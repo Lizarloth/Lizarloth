@@ -505,7 +505,9 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 .l-stand .good{color:#5EEAD4;font-weight:700}
 
 .l-filters{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:20px 0 4px}
-.l-seg{display:inline-flex;background:var(--frost);border:1px solid var(--line);border-radius:11px;padding:3px;gap:2px}
+.l-seg{display:inline-flex;background:var(--frost);border:1px solid var(--line);border-radius:11px;padding:3px;gap:2px;
+  max-width:100%;overflow-x:auto;scrollbar-width:none}   /* many type tabs scroll inside the bar, never widen the page */
+.l-seg::-webkit-scrollbar{display:none}
 .l-seg button{border:0;background:transparent;font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
 .l-seg button.on{background:var(--ink);color:#fff}
 .lau-chip{border:1px solid var(--line);background:var(--frost);border-radius:99px;padding:7px 13px;font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);cursor:pointer}
@@ -675,7 +677,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-09-C1</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-10-D1</span></div>
 </aside>
 
 <div class="shell">
@@ -685,6 +687,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button class="dept-pill on" data-dept="cooling"><span class="ico" data-ico="cooling"></span> Cooling</button>
     <button class="dept-pill" data-dept="laundry"><span class="ico" data-ico="laundry"></span> Laundry</button>
     <button class="dept-pill" data-dept="cooking"><span class="ico" data-ico="cooking"></span> Cooking</button>
+    <button class="dept-pill" data-dept="dishwashing"><span class="ico" data-ico="dishwashing"></span> Dish</button>
   </div>
   <div class="search"><input id="globalSearch" placeholder="Search products, brands, model codes…"></div>
   <div class="spacer"></div>
@@ -950,6 +953,76 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <div class="card">
       <div class="toolbar" style="margin-bottom:10px"><input id="cpSearch" placeholder="Search brand or model code…" style="max-width:320px"></div>
       <div style="overflow-x:auto" id="cpTable"></div>
+    </div>
+  </section>
+
+  <!-- DISHWASHING DEPARTMENT (parallel tab set; shown when state.dept==='dishwashing') -->
+  <section class="page" id="page-d-dashboard">
+    <div class="l-hero">
+      <div class="l-eyebrow">Dishwashing · Greece</div>
+      <h2 class="l-h1">Where your dishwashing brands stand</h2>
+      <p class="l-lede">Freestanding and built-in, 60 and 45 cm, plus compacts · Public · Kotsovolos · Plaisio</p>
+      <div class="l-statstrip" id="dishStatStrip"></div>
+    </div>
+    <div class="l-filters" id="dishFilters"></div>
+    <div id="dishStand"></div>
+    <div class="l-pulse">
+      <h2>Market pulse</h2>
+      <p class="l-psub">The shape of the market right now.</p>
+      <div class="grid two-col">
+        <div class="card"><h3>Products per retailer</h3><div class="chart-box"><canvas id="dCoverageChart"></canvas></div></div>
+        <div class="card"><h3>Top brands by model count</h3><div class="chart-box"><canvas id="dBrandChart"></canvas></div></div>
+      </div>
+      <div class="grid two-col" style="margin-top:16px">
+        <div class="card"><h3>Price distribution</h3><div class="chart-box"><canvas id="dPriceChart"></canvas></div></div>
+        <div class="card"><h3>Energy class mix</h3><div class="chart-box"><canvas id="dEnergyChart"></canvas></div></div>
+      </div>
+      <div class="card" style="margin-top:16px"><h3>Availability by retailer</h3><div class="chart-box short"><canvas id="dAvailChart"></canvas></div></div>
+    </div>
+    <div class="grid two-col" style="margin-top:18px">
+      <div class="card"><h3><span class="dot" style="background:var(--mint)"></span>Biggest drops</h3><div id="dMoversDown" class="mini-list"></div></div>
+      <div class="card"><h3><span class="dot" style="background:var(--heat)"></span>Biggest rises</h3><div id="dMoversUp" class="mini-list"></div></div>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <h3><span class="dot" style="background:var(--heat)"></span>Promo pressure <span id="dppSummary" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span>
+        <select id="dppWindow" style="width:auto;margin-left:auto;padding:6px 10px"><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></h3>
+      <div class="grid two-col">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Brands discounting hardest — % of SKUs on promo (avg depth)</div><div class="chart-box"><canvas id="dppBrandChart"></canvas></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Discount depth distribution</div><div class="chart-box"><canvas id="dppDepthChart"></canvas></div></div>
+      </div>
+      <div class="grid two-col" style="margin-top:16px">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Promo intensity by retailer — % of SKUs on promo</div><div class="chart-box short"><canvas id="dppRetailerChart"></canvas></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Longest-running promos in the window</div><div id="dppLongest" class="mini-list"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="page-d-brands">
+    <h2 class="page-title">My Brands · Dishwashing</h2>
+    <p class="page-sub">Price parity and erosion for Whirlpool, Indesit, Hotpoint and Beko dishwashers — per model, across the three retailers, by type.</p>
+    <div class="l-filters" id="dbType"></div>
+    <div class="grid metrics" id="dbMetrics"></div>
+    <div class="card" style="margin-top:18px">
+      <h3><span class="dot" style="background:var(--warn)"></span>Price spread by model <span id="dbScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin:-6px 0 14px">
+        Each row is one of your models. <span style="color:var(--mint);font-weight:600">Lowest</span> and
+        <span style="color:var(--heat);font-weight:600">highest</span> live prices are highlighted; a wide spread means a retailer is breaking price parity on your product.</p>
+      <div id="dbTable"></div>
+    </div>
+  </section>
+
+  <section class="page" id="page-d-segments">
+    <h2 class="page-title">Segments · Dishwashing</h2>
+    <p class="page-sub">Entry price by type and number of place settings. Who holds it, where you're present.</p>
+    <div id="dsBody"></div>
+  </section>
+
+  <section class="page" id="page-d-products">
+    <h2 class="page-title">Products · Dishwashing</h2>
+    <p class="page-sub">Every tracked dishwasher across the three retailers. Search by brand or model code; tap to open on the retailer.</p>
+    <div class="card">
+      <div class="toolbar" style="margin-bottom:10px"><input id="dpSearch" placeholder="Search brand or model code…" style="max-width:320px"></div>
+      <div style="overflow-x:auto" id="dpTable"></div>
     </div>
   </section>
 
@@ -1219,10 +1292,10 @@ function estMargin(price, srp){
   const cost = srp*(1-BRAND_SETTINGS.marginPct/100);
   return Math.round((price-cost)/price*100);
 }
-// Hotpoint counts as yours only in Cooking
+// Hotpoint counts as yours only in Cooking and Dishwashing
 const MY_BRANDS_COOKING = [...MY_BRANDS, "HOTPOINT"];
-function myBrandsFor(dept){ return dept==="cooking" ? MY_BRANDS_COOKING : MY_BRANDS; }
-function isMyBrand(p){ const n=f.name(p).toUpperCase(); return (isCooking(p)?MY_BRANDS_COOKING:MY_BRANDS).some(b=>n.includes(b)); }
+function myBrandsFor(dept){ return (dept==="cooking"||dept==="dishwashing") ? MY_BRANDS_COOKING : MY_BRANDS; }
+function isMyBrand(p){ const n=f.name(p).toUpperCase(); return ((isCooking(p)||isDish(p))?MY_BRANDS_COOKING:MY_BRANDS).some(b=>n.includes(b)); }
 function brandOf(name){ const n=(name||"").toUpperCase(); return MY_BRANDS.find(b=>n.includes(b)) || null; }
 /* Clearance / display / last-piece / refurbished items get phased out and are
    often discounted to clear stock, so they distort positioning and trigger
@@ -1277,7 +1350,9 @@ const BRANDS = ["WHIRLPOOL","SAMSUNG","LG","BOSCH","SIEMENS","PITSOS","DELONGHI"
   "ELICA","FABER","LA GERMANIA","PYRAMIS","CECOTEC","KÜPPERSBUSCH","KUPPERSBUSCH","HOOVER","BRANDT",
   "ZANUSSI","SINGER","ROHNSON","IZZY","ESTIA"];
 
-let state = {products:[], laundry:[], cooking:[], history:[], alerts:[], srp:{}, demo:false, dept:"cooling"};
+let state = {products:[], laundry:[], cooking:[], dishwashing:[], history:[], alerts:[], srp:{}, demo:false, dept:"cooling"};
+/* every department's products (freshness, SRP matching, match review, MAP checks) */
+function allProducts(){ return [...(state.products||[]), ...(state.laundry||[]), ...(state.cooking||[]), ...(state.dishwashing||[])]; }
 let charts = {};
 
 /* Promo-pressure state: window (days) + per-product history stats from
@@ -1636,7 +1711,8 @@ async function loadAll(){
     const _real = raw.filter(isRealProduct);
     state.laundry  = _real.filter(isLaundry);
     state.cooking  = _real.filter(isCooking);
-    state.products = _real.filter(p=>!isLaundry(p) && !isCooking(p));
+    state.dishwashing = _real.filter(isDish);
+    state.products = _real.filter(p=>!isLaundry(p) && !isCooking(p) && !isDish(p));
     state.demo=false;
     document.getElementById("apiBanner").classList.remove("show");
     if(lb) lb.classList.remove("on");
@@ -1652,7 +1728,7 @@ async function loadAll(){
         safeRender("dealCount",updateDealCount);
         // history feeds the price-index sparklines on both dashboards
         safeRender("dashboard",renderDashboard); safeRender("l-dashboard",renderLDashboard);
-        safeRender("c-dashboard",renderCooking);
+        safeRender("c-dashboard",renderCooking); safeRender("d-dashboard",renderDish);
       }).catch(()=>{});
     // SRP/MAP policy layer (older backends without /api/srp: fail silently)
     api("/api/srp").then(rows=>{
@@ -1684,7 +1760,8 @@ async function _loadAll_old(){
     const _real = raw.filter(isRealProduct);
     state.laundry  = _real.filter(isLaundry);
     state.cooking  = _real.filter(isCooking);
-    state.products = _real.filter(p=>!isLaundry(p) && !isCooking(p));
+    state.dishwashing = _real.filter(isDish);
+    state.products = _real.filter(p=>!isLaundry(p) && !isCooking(p) && !isDish(p));
     state.history  = Array.isArray(history)?history:(history.history||[]);
     state.alerts   = Array.isArray(alerts)?alerts:(alerts.alerts||[]);
     state.demo=false;
@@ -1731,6 +1808,7 @@ const LAUNDRY_HIDE_TABS = new Set(["mysku"]);
 const DEPT_PAGES = {
   laundry: {prefix:"l", tabs:LAUNDRY_TAB_SET, hide:LAUNDRY_HIDE_TABS},
   cooking: {prefix:"c", tabs:new Set(["dashboard","brands","segments","products"]), hide:new Set(["mysku","compare"])},
+  dishwashing: {prefix:"d", tabs:new Set(["dashboard","brands","segments","products"]), hide:new Set(["mysku","compare"])},
 };
 function deptHides(tab){ const d=DEPT_PAGES[state.dept]; return !!(d && d.hide.has(tab)); }
 
@@ -2149,107 +2227,261 @@ function cookFilterBarHTML(all, typePool){
     <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`;
 }
 
-function renderCooking(){
-  const host = document.getElementById("cookStatStrip");
-  if(!host) return;
+/* ===================== DISHWASHING DEPARTMENT =====================
+   Types are derived per product by the runner (scraper/dishwashing.py):
+   freestanding / built-in × 60 / 45 cm, plus compact tabletops. */
+const DISH_CATS = new Set(["dw_free_60","dw_free_45","dw_bi_60","dw_bi_45","dw_compact"]);
+const DISH_TYPE_LABEL = {dw_free_60:"Freestanding 60 cm", dw_free_45:"Freestanding 45 cm",
+                         dw_bi_60:"Built-in 60 cm", dw_bi_45:"Built-in 45 cm", dw_compact:"Compact"};
+const DISH_INTEG_LABEL = {fully:"Fully integrated", semi:"Semi-integrated"};
+const DISH_NOISE_BANDS = [["le42","≤ 42 dB",0,42.9],["43_44","43–44 dB",43,44.9],["45_46","45–46 dB",45,46.9],["47p","47 dB +",47,99]];
+function isDish(p){
+  if(DISH_CATS.has(f.category(p))) return true;
+  return (p.specs||{}).__dept === "dishwashing";
+}
+function dishNorm(p){
+  if(p.__dnorm) return p.__dnorm;
+  const s = f.specs(p) || {}, g = k => s[k] || "";
+  let type = f.category(p);
+  if(!DISH_CATS.has(type)) type = "dw_free_60";
+  return p.__dnorm = {
+    type, typeLabel: DISH_TYPE_LABEL[type],
+    install: g("Κατασκευή"), integration: g("Εντοιχισμός"),
+    settings: lnum(g("Σερβίτσια")), width: lnum(g("Πλάτος (cm)")),
+    energy: lEnergy(g("Ενεργειακή κλάση")), noise: lnum(g("Θόρυβος (dB)")),
+    programs: lnum(g("Προγράμματα")), wifi: g("WiFi")==="yes",
+    half: g("Μισό φορτίο")==="yes", autodose: g("Αυτόματη δοσολογία")==="yes",
+    dims: g("Διαστάσεις"),
+  };
+}
+/* comparability tier for threats: same type and place-settings band */
+function dishSettingsBand(st){ if(st==null) return "?"; return st<=9?"≤9":st<=11?"10–11":st<=13?"12–13":"14+"; }
+function dishTierLabel(n){
+  return [n.settings?n.settings+" settings":"", DISH_INTEG_LABEL[n.integration]||"", n.noise?n.noise+" dB":""].filter(Boolean).join(" · ");
+}
+const dishFilter = { type:"any", brands:new Set(), retailer:"any", settings:"any", integration:"any", noise:"any",
+                     energy:new Set(), colors:new Set(), mine:false, wifi:false };
+function dishFacetMatch(p, n){
+  const F = dishFilter;
+  if(F.mine && !isMyBrand(p)) return false;
+  if(F.brands.size && !F.brands.has(cap(extractModel(f.name(p)).brand||""))) return false;
+  if(F.retailer!=="any" && f.site(p)!==F.retailer) return false;
+  if(F.energy.size && !(n.energy && F.energy.has(n.energy))) return false;
+  if(F.settings!=="any" && String(n.settings)!==F.settings) return false;
+  if(F.integration!=="any" && n.integration!==F.integration) return false;
+  if(F.noise!=="any" && cookBand(DISH_NOISE_BANDS, n.noise)!==F.noise) return false;
+  if(F.wifi && !n.wifi) return false;
+  if(F.colors.size){ const c=lauColorOf(p); if(!c || !F.colors.has(c)) return false; }
+  return true;
+}
+function dishSpecs(n){
+  const sp = t => `<span class="lau-spec">${esc(t)}</span>`;
+  const out=[];
+  if(n.settings) out.push(sp(n.settings+" settings"));
+  if(n.integration) out.push(`<span class="lau-spec load">${DISH_INTEG_LABEL[n.integration]}</span>`);
+  if(n.noise) out.push(sp(n.noise+" dB"));
+  if(n.programs) out.push(sp(n.programs+" programs"));
+  if(n.wifi) out.push(sp("WiFi"));
+  if(n.energy) out.push(`<span class="lau-spec energy" style="background:${L_EC[n.energy[0]]||'#94A3B8'}">${esc(n.energy)}</span>`);
+  return out.join("");
+}
+/* Dishwashing attribute bar — shared by its dashboard and Benchmark. Place
+   settings ("number of plates") is a facet inside every type. */
+function dishFilterBarHTML(all, typePool){
+  const F=dishFilter, t=F.type;
+  const cnt=k=>all.filter(p=>dishNorm(p).type===k).length;
+  const seg=(k,lbl)=>`<button class="${t===k?'on':''}" data-dish-type="${k}">${lbl}</button>`;
+  const sel=(id,cur,opts)=>`<select id="${id}">${opts.map(([v,l])=>`<option value="${v}" ${cur===v?'selected':''}>${l}</option>`).join("")}</select>`;
+  const settings=[...new Set(typePool.map(p=>dishNorm(p).settings).filter(x=>x!=null))].sort((a,b)=>a-b);
+  const parts=[`<span class="df-lbl">Retailer</span>`+sel("dishRetailer",F.retailer,[["any","All retailers (best price)"]].concat(["kotsovolos","public","plaisio"].map(s=>[s,SITE_LABEL[s]])))];
+  parts.push(sel("dishSettings",F.settings,[["any","Any place settings"]].concat(settings.map(s=>[String(s),s+" place settings"]))));
+  if(t==="any"||t.startsWith("dw_bi")) parts.push(sel("dishIntegration",F.integration,[["any","Fully or semi-integrated"],["fully","Fully integrated"],["semi","Semi-integrated"]]));
+  parts.push(sel("dishNoise",F.noise,[["any","Any noise level"]].concat(DISH_NOISE_BANDS.map(([k,l])=>[k,l]))));
+  const energies=[...new Set(typePool.map(p=>dishNorm(p).energy).filter(Boolean))].sort((a,b)=>cookEnergyRank(a)-cookEnergyRank(b));
+  const energyChips=energies.map(en=>`<span class="fchip ${F.energy.has(en)?'on':''}" data-dish-energy="${en}">${en}</span>`).join("");
+  const brandsPresent=[...new Set(typePool.map(p=>cap(extractModel(f.name(p)).brand||"")).filter(Boolean))].sort();
+  const brandChips=brandsPresent.map(b=>`<span class="fchip ${F.brands.has(b)?'on':''}" data-dish-brand="${esc(b)}">${esc(b)}</span>`).join("");
+  const colorsPresent=[...new Set(typePool.map(lauColorOf).filter(Boolean))].sort();
+  const colorChips=colorsPresent.map(c=>`<span class="fchip ${F.colors.has(c)?'on':''}" data-dish-color="${esc(c)}">${esc(c)}</span>`).join("");
+  const active=F.brands.size||F.retailer!=="any"||F.settings!=="any"||F.integration!=="any"||F.noise!=="any"||F.energy.size||F.colors.size||F.mine||F.wifi;
+  return `
+    <div class="l-seg">${seg("any","All")}${["dw_free_60","dw_free_45","dw_bi_60","dw_bi_45","dw_compact"].map(k=>seg(k,DISH_TYPE_LABEL[k]+" · "+cnt(k))).join("")}</div>
+    <div class="dash-filters" style="margin:12px 0 0">
+      ${parts.join("\n      ")}
+      ${energyChips?`<span class="df-lbl">Energy</span><div class="df-chips">${energyChips}</div>`:""}
+      <span class="fchip ${F.wifi?'on':''}" data-dish-wifi="1">WiFi</span>
+      <span class="fchip ${F.mine?'on':''}" data-dish-mine="1">★ My brands</span>
+      ${active?`<button class="df-reset" id="dishReset">Clear</button>`:``}
+    </div>
+    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips||'<span class="df-lbl" style="text-transform:none">none in view</span>'}</div></div>
+    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`;
+}
+/* Dishwasher threats: same type and place-settings band, priced at/below one
+   of your models; a disruption is cheaper, not worse on energy or settings,
+   and strictly better on one of them. */
+function computeDishThreats(){
+  const PW=0.25;
+  const all=(state.dishwashing||[]).filter(p=>f.price(p)!=null);
+  const norm=p=>{const n=dishNorm(p); return {p,n,type:n.type,tier:n.type+":"+dishSettingsBand(n.settings),cap:n.settings,e:cookEnergyRank(n.energy)};};
+  const mine=all.filter(isMyBrand).map(norm), rivals=all.filter(p=>!isMyBrand(p)).map(norm);
+  const threats=[];
+  for(const me of mine){
+    const myPrice=f.price(me.p), floor=myPrice*(1-PW);
+    for(const r of rivals){
+      if(f.url(r.p)===f.url(me.p) || r.tier!==me.tier) continue;
+      const rp=f.price(r.p);
+      if(rp==null || rp>myPrice || rp<myPrice*0.35) continue;
+      const haveE=(me.n.energy && r.n.energy);
+      if(haveE && r.e>me.e && rp<floor) continue;
+      const betterClass=(haveE && r.e<me.e);
+      const moreCap=(me.cap!=null && r.cap!=null && r.cap>me.cap);
+      const classNotWorse=!haveE || r.e<=me.e, capNotWorse=!(me.cap!=null && r.cap!=null) || r.cap>=me.cap;
+      let sev="standard", score=(myPrice-rp);
+      if(classNotWorse && capNotWorse && (betterClass||moreCap)){ sev="high"; score += 1000 + (betterClass?(me.e-r.e)*30:0) + (moreCap?(r.cap-me.cap)*40:0); }
+      threats.push({mine:f.name(me.p), myPrice, mySite:f.site(me.p), myE:me.n.energy, myType:me.type,
+        tier:dishTierLabel(me.n), capUnit:"settings", myCap:me.cap, rivalCap:r.cap, moreLitres:moreCap,
+        rival:f.name(r.p), rivalPrice:rp, rivalSite:f.site(r.p), rivalE:r.n.energy,
+        gap:+(myPrice-rp).toFixed(2), betterClass, sev, score, key:f.url(me.p)+"|"+f.url(r.p)});
+    }
+  }
+  return threats.sort((a,b)=>b.score-a.score);
+}
+
+/* ===== SECONDARY-DEPARTMENT ENGINE =====
+   Cooking and Dishwashing share one set of page renderers; each department
+   is a config (data, normaliser, filter, labels, element ids). */
+let cbFilter = { type:"any", brand:"ALL" };
+let dbFilter = { type:"any", brand:"ALL" };
+const SEC_DEPTS = {
+  cooking: {
+    key:"cooking", noun:"cooking", list:()=>state.cooking||[], norm:cookingNorm, filter:cookingFilter,
+    match:cookFacetMatch, bar:cookFilterBarHTML, specs:cookSpecs, tierLabel:cookTierLabel,
+    types:["cooker","oven","hob","hood","microwave"], typeLabel:COOKING_TYPE_LABEL, plural:t=>COOKING_TYPE_LABEL[t]+"s",
+    brandState:cbFilter, threats:()=>computeCookingThreats(), icon:"cooking",
+    priceBins:[[0,150,250,350,500,700,1000,99999],["<150","150-250","250-350","350-500","500-700","700-1k","1k+"]],
+    segs:[["cooker","Cookers","width",COOK_WIDTH_BANDS],["oven","Built-in ovens","lt",COOK_LT_BANDS],
+          ["hob","Hobs","width",COOK_WIDTH_BANDS],["hood","Hoods","width",COOK_WIDTH_BANDS],["microwave","Microwaves","lt",COOK_LT_BANDS]],
+    segDim:{width:"Width", lt:"Capacity"},
+    ids:{stat:"cookStatStrip", filters:"cookingFilters", stand:"cookStand", spark:"cpiSpark", cov:"cCoverageChart",
+         brand:"cBrandChart", price:"cPriceChart", energy:"cEnergyChart", avail:"cAvailChart", down:"cMoversDown",
+         up:"cMoversUp", pp:"cpp", bType:"cbType", bMetrics:"cbMetrics", bTable:"cbTable", bScope:"cbScope",
+         seg:"csBody", pSearch:"cpSearch", pTable:"cpTable"},
+  },
+  dishwashing: {
+    key:"dishwashing", noun:"dishwasher", list:()=>state.dishwashing||[], norm:dishNorm, filter:dishFilter,
+    match:dishFacetMatch, bar:dishFilterBarHTML, specs:dishSpecs, tierLabel:dishTierLabel,
+    types:["dw_free_60","dw_free_45","dw_bi_60","dw_bi_45","dw_compact"], typeLabel:DISH_TYPE_LABEL,
+    plural:t=>DISH_TYPE_LABEL[t], brandState:dbFilter, threats:()=>computeDishThreats(), icon:"dishwashing",
+    priceBins:[[0,300,400,500,600,800,1000,99999],["<300","300-400","400-500","500-600","600-800","800-1k","1k+"]],
+    segs:[["dw_free_60","Freestanding 60 cm","settings",null],["dw_free_45","Freestanding 45 cm","settings",null],
+          ["dw_bi_60","Built-in 60 cm","settings",null],["dw_bi_45","Built-in 45 cm","settings",null],["dw_compact","Compact","settings",null]],
+    segDim:{settings:"Place settings"},
+    ids:{stat:"dishStatStrip", filters:"dishFilters", stand:"dishStand", spark:"dpiSpark", cov:"dCoverageChart",
+         brand:"dBrandChart", price:"dPriceChart", energy:"dEnergyChart", avail:"dAvailChart", down:"dMoversDown",
+         up:"dMoversUp", pp:"dpp", bType:"dbType", bMetrics:"dbMetrics", bTable:"dbTable", bScope:"dbScope",
+         seg:"dsBody", pSearch:"dpSearch", pTable:"dpTable"},
+  },
+};
+function secSlice(D){
+  const all=D.list(), F=D.filter;
+  const typePool=F.type==="any"?all:all.filter(p=>D.norm(p).type===F.type);
+  return {all, typePool, cset:typePool.filter(p=>D.match(p, D.norm(p)))};
+}
+function secTypeWord(D){ const t=D.filter.type; return t==="any" ? "models" : D.plural(t).toLowerCase(); }
+function cookSlice(){ return secSlice(SEC_DEPTS.cooking); }
+function cookTypeWord(){ return secTypeWord(SEC_DEPTS.cooking); }
+
+function renderSecDashboard(D){
+  const I=D.ids, host=document.getElementById(I.stat); if(!host) return;
   const setHTML=(id,html)=>{const el=document.getElementById(id); if(el) el.innerHTML=html;};
-  const {all, typePool, cset} = cookSlice();
+  const {all, typePool, cset} = secSlice(D);
   if(all.length===0){
-    ["cookStatStrip","cookingFilters","cMoversDown","cMoversUp"].forEach(id=>setHTML(id,""));
-    setHTML("cookStand", `<div class="l-stand"><div class="badge">–</div><div class="txt"><div class="lbl">No data</div><div class="line">No cooking data yet. Run <code>py local_runner.py --plp</code> with the updated scraper files to pull the catalogue, then refresh.</div></div></div>`);
+    [I.stat,I.filters,I.down,I.up].forEach(id=>setHTML(id,""));
+    setHTML(I.stand, `<div class="l-stand"><div class="badge">–</div><div class="txt"><div class="lbl">No data</div><div class="line">No ${D.noun} data yet. Run <code>py local_runner.py --plp</code> with the updated scraper files to pull the catalogue, then refresh.</div></div></div>`);
     return;
   }
-  const F = cookingFilter;
-  setHTML("cookingFilters", cookFilterBarHTML(all, typePool));
+  const F=D.filter;
+  setHTML(I.filters, D.bar(all, typePool));
   const priced = cset.map(f.price).filter(x=>x>0);
   const avg = priced.length ? priced.reduce((a,b)=>a+b,0)/priced.length : 0;
-  const cpi = computePriceIndex(cset);
-  setHTML("cookStatStrip",`
-    <div class="l-stat"><div class="v">${cset.length}</div><div class="k">${F.type==="any"?"models tracked":COOKING_TYPE_LABEL[F.type]+"s"}</div></div>
+  const pi = computePriceIndex(cset);
+  setHTML(I.stat,`
+    <div class="l-stat"><div class="v">${cset.length}</div><div class="k">${F.type==="any"?"models tracked":D.plural(F.type)}</div></div>
     <div class="l-stat"><div class="v mine">${cset.filter(isMyBrand).length}</div><div class="k">yours</div></div>
     <div class="l-stat"><div class="v">${priced.length?fmt(avg):"–"}</div><div class="k">market average</div></div>
-    <div class="l-stat"><div class="v mine">${cpi?cpi.idx.toFixed(1):"–"}</div><div class="k">${cpi?`price index · ${cpi.nMine} yours vs ${cpi.nRivals} rivals · 100 = parity`:"price index — needs yours + rivals in view"}</div><canvas id="cpiSpark" style="width:100%;height:28px;display:block;margin-top:6px"></canvas></div>`);
-  drawSparkline("cpiSpark", cpi ? priceIndexSeries(cset, 30) : null);
-
+    <div class="l-stat"><div class="v mine">${pi?pi.idx.toFixed(1):"–"}</div><div class="k">${pi?`price index · ${pi.nMine} yours vs ${pi.nRivals} rivals · 100 = parity`:"price index — needs yours + rivals in view"}</div><canvas id="${I.spark}" style="width:100%;height:28px;display:block;margin-top:6px"></canvas></div>`);
+  drawSparkline(I.spark, pi ? priceIndexSeries(cset, 30) : null);
   const brows = benchDedupe(cset).sort((a,b)=>f.price(a.p)-f.price(b.p));
-  setHTML("cookStand", benchStandHTML(brows, cookTypeWord(), true));
-
+  setHTML(I.stand, benchStandHTML(brows, secTypeWord(D), true));
   const mv = computeMovers(state.history);
-  setHTML("cMoversDown", moverRowsHTML(mv.filter(m=>m.delta<0).slice(0,6)) || miniEmpty());
-  setHTML("cMoversUp",   moverRowsHTML(mv.filter(m=>m.delta>0).slice(0,6)) || miniEmpty());
-
+  setHTML(I.down, moverRowsHTML(mv.filter(m=>m.delta<0).slice(0,6)) || miniEmpty());
+  setHTML(I.up,   moverRowsHTML(mv.filter(m=>m.delta>0).slice(0,6)) || miniEmpty());
   if(typeof makeChart==="function"){
     const cov={kotsovolos:0,public:0,plaisio:0};
     cset.forEach(p=>{const s=f.site(p); if(s in cov)cov[s]++;});
-    if(cset.length) makeChart("cCoverageChart","bar",{labels:Object.keys(cov).map(s=>SITE_LABEL[s]||s),datasets:[{data:Object.values(cov),backgroundColor:["#FF6A3D","#0B6E6E","#0EA5B7"],borderRadius:8,maxBarThickness:60}]},{plugins:{legend:{display:false}}});
-    else emptyChart("cCoverageChart","No products in view");
-    const cb={}; cset.forEach(p=>{const b=cap(extractModel(f.name(p)).brand||"").trim(); if(b)cb[b]=(cb[b]||0)+1;});
-    const topB=Object.entries(cb).sort((a,b)=>b[1]-a[1]).slice(0,8);
-    if(topB.length) makeChart("cBrandChart","bar",{labels:topB.map(b=>b[0]),datasets:[{data:topB.map(b=>b[1]),backgroundColor:"#0B6E6E",borderRadius:6,maxBarThickness:30}]},{indexAxis:"y",plugins:{legend:{display:false}}});
-    else emptyChart("cBrandChart","No brand data yet");
+    if(cset.length) makeChart(I.cov,"bar",{labels:Object.keys(cov).map(s=>SITE_LABEL[s]||s),datasets:[{data:Object.values(cov),backgroundColor:["#FF6A3D","#0B6E6E","#0EA5B7"],borderRadius:8,maxBarThickness:60}]},{plugins:{legend:{display:false}}});
+    else emptyChart(I.cov,"No products in view");
+    const bc={}; cset.forEach(p=>{const b=cap(extractModel(f.name(p)).brand||"").trim(); if(b)bc[b]=(bc[b]||0)+1;});
+    const topB=Object.entries(bc).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    if(topB.length) makeChart(I.brand,"bar",{labels:topB.map(b=>b[0]),datasets:[{data:topB.map(b=>b[1]),backgroundColor:"#0B6E6E",borderRadius:6,maxBarThickness:30}]},{indexAxis:"y",plugins:{legend:{display:false}}});
+    else emptyChart(I.brand,"No brand data yet");
     if(priced.length){
-      const bins=[0,150,250,350,500,700,1000,99999], labels=["<150","150-250","250-350","350-500","500-700","700-1k","1k+"];
-      const counts=labels.map(()=>0);
+      const [bins,labels]=D.priceBins, counts=labels.map(()=>0);
       priced.forEach(v=>{ for(let i=0;i<bins.length-1;i++){ if(v>=bins[i]&&v<bins[i+1]){counts[i]++;break;} } });
-      makeChart("cPriceChart","bar",{labels,datasets:[{data:counts,backgroundColor:"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}}});
-    } else emptyChart("cPriceChart","No price data yet");
-    const enmix={}; cset.forEach(p=>{const e=cookingNorm(p).energy; if(e)enmix[e]=(enmix[e]||0)+1;});
+      makeChart(I.price,"bar",{labels,datasets:[{data:counts,backgroundColor:"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}}});
+    } else emptyChart(I.price,"No price data yet");
+    const enmix={}; cset.forEach(p=>{const e=D.norm(p).energy; if(e)enmix[e]=(enmix[e]||0)+1;});
     const eL=Object.keys(enmix).sort((a,b)=>cookEnergyRank(a)-cookEnergyRank(b));
-    if(eL.length) makeChart("cEnergyChart","doughnut",{labels:eL,datasets:[{data:eL.map(x=>enmix[x]),backgroundColor:eL.map(x=>L_EC[x[0]]||"#94A3B8")}]},{plugins:{legend:{position:"right"}}});
-    else emptyChart("cEnergyChart","No energy data in view (microwaves carry none)");
+    if(eL.length) makeChart(I.energy,"doughnut",{labels:eL,datasets:[{data:eL.map(x=>enmix[x]),backgroundColor:eL.map(x=>L_EC[x[0]]||"#94A3B8")}]},{plugins:{legend:{position:"right"}}});
+    else emptyChart(I.energy,"No energy data in view");
     const bk=["In stock","On order","Last pieces","Display","Out of stock","Unknown"];
     const av={kotsovolos:[0,0,0,0,0,0],public:[0,0,0,0,0,0],plaisio:[0,0,0,0,0,0]};
     cset.forEach(p=>{const s=f.site(p); if(!(s in av))return; const i=bk.indexOf(availBucket(f.avail(p))); if(i>=0)av[s][i]++;});
     if(Object.values(av).some(a=>a.some(x=>x>0))){
-      const bc=["#10B981","#0B6E6E","#F59E0B","#A78BFA","#EF4444","#94A3B8"];
-      makeChart("cAvailChart","bar",{labels:["Kotsovolos","Public","Plaisio"],datasets:bk.map((b,i)=>({label:b,data:["kotsovolos","public","plaisio"].map(s=>av[s][i]),backgroundColor:bc[i]}))},{plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true}}});
-    } else emptyChart("cAvailChart","No availability data yet");
+      const bcol=["#10B981","#0B6E6E","#F59E0B","#A78BFA","#EF4444","#94A3B8"];
+      makeChart(I.avail,"bar",{labels:["Kotsovolos","Public","Plaisio"],datasets:bk.map((b,i)=>({label:b,data:["kotsovolos","public","plaisio"].map(s=>av[s][i]),backgroundColor:bcol[i]}))},{plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true}}});
+    } else emptyChart(I.avail,"No availability data yet");
   }
-  renderPromoSection("cpp", cset);
+  renderPromoSection(I.pp, cset);
 }
 
-/* My Brands · Cooking — the laundry parity view with cooking's type segments
-   and the size/spec line under each model. */
-let cbFilter = { type:"any", brand:"ALL" };
-function renderCBrands(){
-  const host = document.getElementById("cbTable"); if(!host) return;
-  const all = (state.cooking||[]);
-  const cnt = t => all.filter(p=>cookingNorm(p).type===t).length;
-  const seg = (k,l)=>`<button class="${cbFilter.type===k?'on':''}" data-cb-type="${k}">${l}</button>`;
-  const pool = all.filter(p=> isMyBrand(p) && f.price(p)!=null && !isClearance(p)
-    && (cbFilter.type==="any" || cookingNorm(p).type===cbFilter.type));
+/* My Brands — the laundry parity view with the department's type segments
+   and its size/spec line under each model. */
+function renderSecBrands(D){
+  const I=D.ids, host=document.getElementById(I.bTable); if(!host) return;
+  const S=D.brandState, all=D.list(), MB=myBrandsFor(D.key);
+  const cnt = t => all.filter(p=>D.norm(p).type===t).length;
+  const seg = (k,l)=>`<button class="${S.type===k?'on':''}" data-sb-type="${k}">${l}</button>`;
+  const pool = all.filter(p=> isMyBrand(p) && f.price(p)!=null && !isClearance(p) && (S.type==="any" || D.norm(p).type===S.type));
   const groups = {};
   for(const p of pool){
     const {code}=extractModel(f.name(p));
     const key = code && code.length>=4 ? code : ("U:"+f.name(p).slice(0,24));
-    if(!groups[key]) groups[key]={code:key, brand:brandOf(f.name(p)), name:f.name(p), offers:{}, n:cookingNorm(p)};
+    if(!groups[key]) groups[key]={code:key, brand:brandOf(f.name(p)), name:f.name(p), offers:{}, n:D.norm(p)};
     const s=f.site(p), pr=f.price(p);
     if(pr!=null && (groups[key].offers[s]==null || pr<groups[key].offers[s])) groups[key].offers[s]=pr;
     if(!groups[key].brand) groups[key].brand=brandOf(f.name(p));
   }
   const allModels = Object.values(groups);
   const counts = {ALL: allModels.length};
-  MY_BRANDS_COOKING.forEach(b=> counts[b]=allModels.filter(m=>(m.brand||"").toUpperCase().includes(b)).length);
-  const models = cbFilter.brand==="ALL" ? allModels : allModels.filter(m=>(m.brand||"").toUpperCase().includes(cbFilter.brand));
-  const tabs = [["ALL","All my brands"]].concat(MY_BRANDS_COOKING.map(b=>[b,cap(b)]))
+  MB.forEach(b=> counts[b]=allModels.filter(m=>(m.brand||"").toUpperCase().includes(b)).length);
+  const models = S.brand==="ALL" ? allModels : allModels.filter(m=>(m.brand||"").toUpperCase().includes(S.brand));
+  const tabs = [["ALL","All my brands"]].concat(MB.map(b=>[b,cap(b)]))
     .filter(([k])=>k==="ALL"||counts[k])
-    .map(([k,label])=>`<button class="brand-tab ${cbFilter.brand===k?'on':''}" data-cb-brand="${k}">${label}<span class="b-cnt">${counts[k]||0}</span></button>`).join("");
-  const tf = document.getElementById("cbType");
-  if(tf) tf.innerHTML = `<div class="l-seg">${seg("any","All")}${["cooker","oven","hob","hood","microwave"].map(k=>seg(k,COOKING_TYPE_LABEL[k]+"s · "+cnt(k))).join("")}</div>`
+    .map(([k,label])=>`<button class="brand-tab ${S.brand===k?'on':''}" data-sb-brand="${k}">${label}<span class="b-cnt">${counts[k]||0}</span></button>`).join("");
+  const tf = document.getElementById(I.bType);
+  if(tf) tf.innerHTML = `<div class="l-seg">${seg("any","All")}${D.types.map(k=>seg(k,D.plural(k)+" · "+cnt(k))).join("")}</div>`
     +`<div class="brand-tabs" style="margin:12px 0 0;width:100%">${tabs}</div>`;
-
   const onMulti = models.filter(m=>Object.keys(m.offers).length>=2);
   const spreads = onMulti.map(m=>{const v=Object.values(m.offers);return Math.max(...v)-Math.min(...v);});
   const avgSpread = spreads.length? spreads.reduce((a,b)=>a+b,0)/spreads.length : 0;
   const eroded = onMulti.filter(m=>{const v=Object.values(m.offers);const mx=Math.max(...v);return mx>0 && (mx-Math.min(...v))/mx>=0.10;}).length;
   const srpLoaded = Object.keys(state.srp).length>0;
   const srpCov = srpLoaded ? models.filter(m=>srpOf(m.code)).length : 0;
-  const mapBreaches = srpLoaded ? models.filter(m=>{
-    const s=srpOf(m.code); if(!s||!s.map) return false;
-    return Object.values(m.offers).some(x=>x!=null&&x<s.map-0.005);
-  }).length : 0;
+  const mapBreaches = srpLoaded ? models.filter(m=>{ const s=srpOf(m.code); if(!s||!s.map) return false;
+    return Object.values(m.offers).some(x=>x!=null&&x<s.map-0.005); }).length : 0;
   const m1 = (label,val,foot,cls)=>`<div class="stat-card ${cls}"><div class="metric-value">${val}</div><div class="metric-label">${label}</div><div class="metric-foot">${foot}</div></div>`;
-  const mEl=document.getElementById("cbMetrics");
+  const mEl=document.getElementById(I.bMetrics);
   if(mEl) mEl.innerHTML =
     m1("My models tracked", models.length, "across the 3 retailers","sc-blue")+
     m1("On 2+ retailers", onMulti.length, "comparable for parity","sc-aqua")+
@@ -2257,11 +2489,10 @@ function renderCBrands(){
     m1("Parity breaks", eroded, "≥10% gap between retailers","sc-heat")+
     m1("SRP coverage", srpLoaded?srpCov+"/"+models.length:"–", srpLoaded?"models with an SRP loaded":"import SRPs on the Export page","sc-blue")+
     m1("MAP breaches", srpLoaded?mapBreaches:"–", srpLoaded?"retailer advertising below MAP":"activates with SRP/MAP import","sc-heat");
-  const sc = document.getElementById("cbScope");
-  if(sc) sc.textContent = "· " + (cbFilter.type==="any"?"all types":COOKING_TYPE_LABEL[cbFilter.type].toLowerCase()+"s")
-    + (cbFilter.brand!=="ALL" ? " · "+cap(cbFilter.brand) : "");
+  const sc = document.getElementById(I.bScope);
+  if(sc) sc.textContent = "· " + (S.type==="any"?"all types":D.plural(S.type).toLowerCase()) + (S.brand!=="ALL" ? " · "+cap(S.brand) : "");
   if(!models.length){
-    host.innerHTML = `<div class="empty" style="padding:40px">No ${cbFilter.brand==="ALL"?"":cap(cbFilter.brand)+" "}cooking models in this slice yet.<br><span style="font-size:12px;color:var(--ink-soft)">They'll appear once tracking includes Whirlpool / Indesit / Hotpoint / Beko cooking models.</span></div>`;
+    host.innerHTML = `<div class="empty" style="padding:40px">No ${S.brand==="ALL"?"":cap(S.brand)+" "}${D.noun} models in this slice yet.<br><span style="font-size:12px;color:var(--ink-soft)">They'll appear once tracking includes ${MB.map(cap).join(" / ")} ${D.noun} models.</span></div>`;
     return;
   }
   const head = `<div class="bp-row head"><div>Model</div><div style="text-align:center">Kotsovolos</div><div style="text-align:center">Public</div><div style="text-align:center">Plaisio</div><div style="text-align:right">Spread</div></div>`;
@@ -2290,7 +2521,7 @@ function renderCBrands(){
     } else { spread="<span style='color:#CBD5E1;font-weight:400'>1 listing</span>"; }
     if(mapBreach) flag = '<span class="bp-flag erosion">MAP breach</span> ' + flag;
     const n=m.n;
-    const specLine=[COOKING_TYPE_LABEL[n.type]||"", cookTierLabel(n), n.energy||null].filter(Boolean).join(" · ");
+    const specLine=[D.typeLabel[n.type]||"", D.tierLabel(n), n.energy||null].filter(Boolean).join(" · ");
     return `<div class="bp-row">
       <div class="bp-name"><b>${esc(cap(m.brand)||"")} ${esc(m.code.startsWith("U:")?short(m.name,26):m.code)}</b><span>${esc(specLine)}</span></div>
       ${cell("kotsovolos")}${cell("public")}${cell("plaisio")}
@@ -2300,21 +2531,22 @@ function renderCBrands(){
   host.innerHTML = head+rows;
 }
 
-/* Segments · Cooking — entry price per size tier: width for cookers, hobs and
-   hoods; capacity for ovens and microwaves. */
-function renderCSegments(){
-  const host = document.getElementById("csBody"); if(!host) return;
-  const all = (state.cooking||[]).filter(p=>f.price(p)!=null);
-  if(!all.length){ host.innerHTML = `<div class="card" style="color:var(--ink-soft)">No cooking data yet. Run <code>py local_runner.py --plp</code>.</div>`; return; }
-  const types = [["cooker","Cookers","width"],["oven","Built-in ovens","lt"],["hob","Hobs","width"],["hood","Hoods","width"],["microwave","Microwaves","lt"]];
+/* Segments — entry price per size tier. Band-based dimensions (width, litres)
+   use the config's bands; dishwashers list each place-settings value. */
+function renderSecSegments(D){
+  const host = document.getElementById(D.ids.seg); if(!host) return;
+  const all = D.list().filter(p=>f.price(p)!=null);
+  if(!all.length){ host.innerHTML = `<div class="card" style="color:var(--ink-soft)">No ${D.noun} data yet. Run <code>py local_runner.py --plp</code>.</div>`; return; }
   let html = "";
-  for(const [tk,tl,dim] of types){
-    const pool = all.filter(p=>cookingNorm(p).type===tk);
+  for(const [tk,tl,dim,bands] of D.segs){
+    const pool = all.filter(p=>D.norm(p).type===tk);
     if(!pool.length) continue;
-    const bands = dim==="width" ? COOK_WIDTH_BANDS : COOK_LT_BANDS;
+    const tiers = bands ? bands.map(([k,l])=>[k,l])
+      : [...new Set(pool.map(p=>D.norm(p)[dim]).filter(x=>x!=null))].sort((a,b)=>a-b).map(v=>[String(v), v+" "+(dim==="settings"?"settings":"")]);
+    const keyOf = p => bands ? cookBand(bands, D.norm(p)[dim]) : (D.norm(p)[dim]!=null ? String(D.norm(p)[dim]) : null);
     let rows = "";
-    for(const [bk,lbl] of bands){
-      const seg = pool.filter(p=>cookBand(bands, cookingNorm(p)[dim])===bk);
+    for(const [bk,lbl] of tiers){
+      const seg = pool.filter(p=>keyOf(p)===bk);
       if(!seg.length) continue;
       const sorted = seg.slice().sort((a,b)=>f.price(a)-f.price(b));
       const {brand} = extractModel(f.name(sorted[0]));
@@ -2325,29 +2557,39 @@ function renderCSegments(){
         <td>${mineIn.length?`<span style="color:var(--cobalt);font-weight:600">${mineIn.length} ✓</span>`:'<span style="color:var(--ink-soft)">—</span>'}</td>
         <td>${myMin!=null?fmt(myMin):"—"}</td></tr>`;
     }
-    const unsized = pool.filter(p=>cookBand(bands, cookingNorm(p)[dim])==null).length;
-    if(rows) html += `<div class="card" style="margin-bottom:16px"><h3>${tl} <span style="font-weight:500;color:var(--ink-soft);font-size:13px">· ${pool.length} models${unsized?` · ${unsized} without a listed ${dim==="width"?"width":"capacity"}`:""}</span></h3>
-      <div style="overflow-x:auto"><table><thead><tr><th>${dim==="width"?"Width":"Capacity"}</th><th>Models</th><th>Entry €</th><th>Held by</th><th>Your brands</th><th>Your entry €</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    const unsized = pool.filter(p=>keyOf(p)==null).length;
+    const dimName = D.segDim[dim]||dim;
+    if(rows) html += `<div class="card" style="margin-bottom:16px"><h3>${tl} <span style="font-weight:500;color:var(--ink-soft);font-size:13px">· ${pool.length} models${unsized?` · ${unsized} without listed ${dimName.toLowerCase()}`:""}</span></h3>
+      <div style="overflow-x:auto"><table><thead><tr><th>${dimName}</th><th>Models</th><th>Entry €</th><th>Held by</th><th>Your brands</th><th>Your entry €</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   }
   host.innerHTML = html || `<div class="card">No segments to show.</div>`;
 }
 
-function renderCProducts(){
-  const host = document.getElementById("cpTable"); if(!host) return;
-  const q = (document.getElementById("cpSearch")?.value||"").toLowerCase().trim();
-  let rows = (state.cooking||[]).filter(p=>f.price(p)!=null);
+function renderSecProducts(D){
+  const host = document.getElementById(D.ids.pTable); if(!host) return;
+  const q = (document.getElementById(D.ids.pSearch)?.value||"").toLowerCase().trim();
+  let rows = D.list().filter(p=>f.price(p)!=null);
   if(q) rows = rows.filter(p=> f.name(p).toLowerCase().includes(q) || (extractModel(f.name(p)).brand||"").toLowerCase().includes(q));
   const total = rows.length;
   rows = rows.sort((a,b)=>f.price(a)-f.price(b)).slice(0,400);
   host.innerHTML = `<table><thead><tr><th></th><th>Model</th><th>Type</th><th>Retailer</th><th>Key specs</th><th>Energy</th><th>Price</th></tr></thead><tbody>${
-    rows.map(p=>{ const n=cookingNorm(p); const {brand,code}=extractModel(f.name(p)); const url=f.url(p);
+    rows.map(p=>{ const n=D.norm(p); const {brand,code}=extractModel(f.name(p)); const url=f.url(p);
       const nm = `${esc(cap(brand))} ${esc(short(code||f.name(p),22))}`;
       return `<tr><td>${lauThumb(p).replace('lau-thumb','lp-thumb')}</td><td>${url?`<a class="rl" href="${esc(url)}" target="_blank" rel="noopener">${nm}</a>`:nm}${isMyBrand(p)?' <b style="color:var(--cobalt)">★</b>':''}</td>
-        <td>${esc(COOKING_TYPE_LABEL[n.type]||"")}</td><td>${SITE_LABEL[f.site(p)]||f.site(p)}</td>
-        <td>${esc(cookTierLabel(n)||"—")}</td><td>${esc(n.energy||"—")}</td><td><b>${fmtWas(p)}</b></td></tr>`;
+        <td>${esc(D.typeLabel[n.type]||"")}</td><td>${SITE_LABEL[f.site(p)]||f.site(p)}</td>
+        <td>${esc(D.tierLabel(n)||"—")}</td><td>${esc(n.energy||"—")}</td><td><b>${fmtWas(p)}</b></td></tr>`;
     }).join("")
   }</tbody></table><div style="color:var(--ink-soft);font-size:12px;margin-top:8px">${total} product${total!==1?'s':''}${total>400?" · showing cheapest 400, search to narrow":""}</div>`;
 }
+
+function renderCooking(){ renderSecDashboard(SEC_DEPTS.cooking); }
+function renderCBrands(){ renderSecBrands(SEC_DEPTS.cooking); }
+function renderCSegments(){ renderSecSegments(SEC_DEPTS.cooking); }
+function renderCProducts(){ renderSecProducts(SEC_DEPTS.cooking); }
+function renderDish(){ renderSecDashboard(SEC_DEPTS.dishwashing); }
+function renderDBrands(){ renderSecBrands(SEC_DEPTS.dishwashing); }
+function renderDSegments(){ renderSecSegments(SEC_DEPTS.dishwashing); }
+function renderDProducts(){ renderSecProducts(SEC_DEPTS.dishwashing); }
 
 function renderAll(){
   safeRender("freshness",renderFreshness);
@@ -2365,12 +2607,13 @@ function renderAll(){
     safeRender("matches",renderMatches);
     return;
   }
-  if(state.dept==="cooking"){
-    safeRender("c-dashboard",renderCooking);
+  if(state.dept==="cooking" || state.dept==="dishwashing"){
+    const ck = state.dept==="cooking";
+    safeRender("sec-dashboard", ck?renderCooking:renderDish);
     safeRender("benchmark",renderBenchmark);
-    safeRender("c-brands",renderCBrands);
-    safeRender("c-segments",renderCSegments);
-    safeRender("c-products",renderCProducts);
+    safeRender("sec-brands", ck?renderCBrands:renderDBrands);
+    safeRender("sec-segments", ck?renderCSegments:renderDSegments);
+    safeRender("sec-products", ck?renderCProducts:renderDProducts);
     safeRender("history",renderHistory);
     safeRender("alerts",renderAlerts);
     safeRender("dealCount",updateDealCount);
@@ -2398,7 +2641,7 @@ function renderFreshness(){
   const el=document.getElementById("freshBadge"); if(!el) return;
   if(state.demo){ el.innerHTML='<span class="fr fr-bad">DEMO DATA</span>'; return; }
   const per={};
-  for(const p of [...(state.products||[]), ...(state.laundry||[]), ...(state.cooking||[])]){
+  for(const p of allProducts()){
     const s=f.site(p), t=p.scraped_at;
     if(t && (!per[s]||t>per[s])) per[s]=t;
   }
@@ -2712,6 +2955,18 @@ const TECH_RULES_COOKING = [
   ["Touch control", /TOUCH ?CONTROL|ΠΛΗΚΤΡΑ ΑΦΗΣ|ΑΦΗΣ/],
   ["Child lock", /CHILD ?LOCK|ΚΛΕΙΔΩΜ/],
 ];
+const TECH_RULES_DISH = [
+  ["WiFi", /WI-?FI\b|WIFI/],
+  ["Smart", /SMART|HOMEWHIZ|THINQ|SMARTTHINGS|HOME ?CONNECT|ΕΞΥΠΝ/],
+  ["Auto-dose", /ΑΥΤΟΜΑΤΗ ΔΟΣΟΛΟΓ|AUTO ?DOS|AUTODOS/],
+  ["Half load", /ΜΙΣΟ ΦΟΡΤΙΟ|HALF ?LOAD|ΜΙΣΗΣ ΠΛΥΣΗΣ/],
+  ["Auto-open drying", /AUTO ?OPEN|AUTODOOR|EXTRA ?DRY|ΑΥΤΟΜΑΤΟ ΑΝΟΙΓΜΑ/],
+  ["Zeolite", /ZEOLITH|ZEOLITE|ΖΕΟΛΙΘ/],
+  ["Third rack", /3RD ?RACK|THIRD ?RACK|CUTLERY ?TRAY|ΣΥΡΤΑΡΙ ΜΑΧΑΙΡΟΠ|3Ο ?ΚΑΛΑΘΙ|3 ΚΑΛΑΘΙΑ/],
+  ["Steam", /STEAM|ΑΤΜΟ/],
+  ["Inverter", /INVERTER|ΙΝΒΕΡΤΕΡ/],
+  ["Aqua stop", /AQUA ?STOP|AQUASTOP/],
+];
 function techHay(p){
   const specs = f.specs(p) || {};
   const blob = f.name(p) + " " + Object.entries(specs).map(([k,v])=>k+" "+v).join(" ");
@@ -2719,7 +2974,8 @@ function techHay(p){
 }
 function deriveTech(p, dept){
   const H = techHay(p);
-  const rules = dept==="laundry" ? TECH_RULES_LAUNDRY : dept==="cooking" ? TECH_RULES_COOKING : TECH_RULES_COOLING;
+  const rules = dept==="laundry" ? TECH_RULES_LAUNDRY : dept==="cooking" ? TECH_RULES_COOKING
+              : dept==="dishwashing" ? TECH_RULES_DISH : TECH_RULES_COOLING;
   const out = [];
   for(const [label,re] of rules){ if(re.test(H)) out.push(label); }
   // honour the runner's explicit pillar fields where present
@@ -2815,6 +3071,20 @@ function benchDetailHTML(row, dept){
     add("Energy", n.energy);
     add("Dimensions", n.dims);
     add("Colour", lauColorOf(p));
+  } else if(dept==="dishwashing"){
+    const n=dishNorm(p);
+    add("Type", DISH_TYPE_LABEL[n.type]||"");
+    add("Integration", DISH_INTEG_LABEL[n.integration]||"");
+    add("Place settings", n.settings);
+    add("Width", n.width?Math.round(n.width)+" cm":"");
+    add("Energy", n.energy);
+    add("Noise", n.noise?n.noise+" dB":"");
+    add("Programs", n.programs);
+    add("WiFi", n.wifi?"Yes":"");
+    add("Half load", n.half?"Yes":"");
+    add("Auto-dosing", n.autodose?"Yes":"");
+    add("Dimensions", n.dims);
+    add("Colour", lauColorOf(p));
   } else {
     const n=p.__norm||(p.__norm=normalize(p));
     add("Energy", n.energy);
@@ -2837,7 +3107,9 @@ function benchDetailHTML(row, dept){
   // cooking specs are canonical tokens already shown (translated) above
   const shown = dept==="cooking" ? new Set(["Τύπος εστίας","Καύσιμο","Χωρητικότητα (lt)","Εστίες","Καθαρισμός",
     "Τύπος απορροφητήρα","Απορροφητικότητα (m3/h)","Ισχύς (W)","Κατασκευή","Grill","Πλάτος (cm)",
-    "Ενεργειακή κλάση","Διαστάσεις","Χρώμα"]) : null;
+    "Ενεργειακή κλάση","Διαστάσεις","Χρώμα"])
+    : dept==="dishwashing" ? new Set(["Κατασκευή","Εντοιχισμός","Σερβίτσια","Πλάτος (cm)","Ενεργειακή κλάση",
+    "Θόρυβος (dB)","Προγράμματα","WiFi","Μισό φορτίο","Αυτόματη δοσολογία","Διαστάσεις","Χρώμα"]) : null;
   for(const [k,v] of Object.entries(specs)){
     if(k.startsWith("__")||k.startsWith("pillar_")) continue;
     if(shown && shown.has(k)) continue;
@@ -2852,7 +3124,7 @@ function benchDetailHTML(row, dept){
 function benchRowHTML(row, i, dept){
   const p=row.p, mine=isMyBrand(p), {brand,code}=extractModel(f.name(p)), url=f.url(p);
   const chips = dept==="laundry" ? lauSpecs(laundryNorm(p))
-              : dept==="cooking" ? cookSpecs(cookingNorm(p))
+              : SEC_DEPTS[dept] ? SEC_DEPTS[dept].specs(SEC_DEPTS[dept].norm(p))
               : coolSpecChips(p.__norm||(p.__norm=normalize(p)));
   const tech = deriveTech(p, dept);
   const nm=`${esc(cap(brand)||"")} ${esc(short(code||f.name(p),26))}`;
@@ -2862,7 +3134,7 @@ function benchRowHTML(row, i, dept){
     : (SITE_LABEL[f.site(p)]||f.site(p));
   return `<div class="bench-item"><div class="lau-row ${mine?'mine':''}" data-bx="1">
     <div class="lau-rank">${i+1}</div>
-    ${lauThumbCell(p, dept==="laundry"?"t_drum":dept==="cooking"?"cooking":"e_snow")}
+    ${lauThumbCell(p, dept==="laundry"?"t_drum":SEC_DEPTS[dept]?SEC_DEPTS[dept].icon:"e_snow")}
     <div class="lau-body">
       <div class="lau-nm">${nameHTML}${mine?'<span class="lau-yours">YOURS</span>':''}</div>
       <div class="lau-specs">${chips}</div>
@@ -2908,23 +3180,23 @@ function lauFilterBarHTML(all, typePool){
 function renderBenchmark(){
   const host=document.getElementById("benchBody"); if(!host) return;
   const setHTML=(id,html)=>{const el=document.getElementById(id); if(el) el.innerHTML=html;};
-  const lau = state.dept==="laundry", cook = state.dept==="cooking";
+  const lau = state.dept==="laundry", sec = SEC_DEPTS[state.dept];
   const title=document.getElementById("benchTitle");
-  if(title) title.textContent = lau ? "Benchmark · Laundry" : cook ? "Benchmark · Cooking" : "Benchmark · Cooling";
+  if(title) title.textContent = "Benchmark · " + ({laundry:"Laundry", cooking:"Cooking", dishwashing:"Dishwashing"}[state.dept] || "Cooling");
 
   let rows, dedup, typeWord, barHTML;
-  if(cook){
-    const {all, typePool, cset} = cookSlice();
+  if(sec){
+    const {all, typePool, cset} = secSlice(sec);
     if(!all.length){
       ["benchFilters","benchStand","benchSummary"].forEach(id=>setHTML(id,""));
-      host.innerHTML=`<div style="padding:40px 16px;text-align:center;color:var(--ink-soft);font:600 14px 'Hanken Grotesk'">No cooking data yet. Run <code>py local_runner.py --plp</code>, then refresh.</div>`;
+      host.innerHTML=`<div style="padding:40px 16px;text-align:center;color:var(--ink-soft);font:600 14px 'Hanken Grotesk'">No ${sec.noun} data yet. Run <code>py local_runner.py --plp</code>, then refresh.</div>`;
       return;
     }
-    barHTML = cookFilterBarHTML(all, typePool);
-    dedup = cookingFilter.retailer==="any";
+    barHTML = sec.bar(all, typePool);
+    dedup = sec.filter.retailer==="any";
     rows = dedup ? benchDedupe(cset)
                  : cset.filter(p=>f.price(p)!=null).map(p=>({p, others:[], groupSize:1}));
-    typeWord = cookTypeWord();
+    typeWord = secTypeWord(sec);
   } else if(lau){
     const all=(state.laundry||[]);
     if(!all.length){
@@ -3643,9 +3915,13 @@ function laundryKeySet(){ return new Set((state.laundry||[]).map(p=>histModelKey
 /* history rows carry only a product name, so the department is resolved by
    model key against each department's catalogue */
 function deptKeySets(){
-  return {laundry: laundryKeySet(), cooking: new Set((state.cooking||[]).map(p=>histModelKey(f.name(p))))};
+  const keys = list => new Set((list||[]).map(p=>histModelKey(f.name(p))));
+  return {laundry: laundryKeySet(), cooking: keys(state.cooking), dishwashing: keys(state.dishwashing)};
 }
-function histDept(key, ks){ return ks.cooking.has(key) ? "cooking" : ks.laundry.has(key) ? "laundry" : "cooling"; }
+function histDept(key, ks){
+  return ks.cooking.has(key) ? "cooking" : ks.dishwashing.has(key) ? "dishwashing"
+       : ks.laundry.has(key) ? "laundry" : "cooling";
+}
 function buildHistoryModels(){
   const ks = deptKeySets();
   const models={};
@@ -3931,7 +4207,7 @@ function computeCookingThreats(){
 function computeMapViolations(){
   if(!Object.keys(state.srp).length) return [];
   const out=[];
-  const pool=[...state.products, ...(state.laundry||[]), ...(state.cooking||[])]
+  const pool=allProducts()
     .filter(p=>isMyBrand(p) && f.price(p)!=null && !isClearance(p));
   for(const p of pool){
     const {code}=extractModel(f.name(p));
@@ -3947,9 +4223,9 @@ function computeMapViolations(){
 }
 
 function renderAlerts(){
-  const lau = state.dept==="laundry", cook = state.dept==="cooking";
+  const lau = state.dept==="laundry", sec = SEC_DEPTS[state.dept], cook = !!sec;
   const showAll = (document.getElementById("alertShowAll")||{}).checked;
-  const threats = lau ? computeLaundryThreats() : cook ? computeCookingThreats() : computeThreats();
+  const threats = lau ? computeLaundryThreats() : sec ? sec.threats() : computeThreats();
   // group: my product -> rival model -> {offers per retailer, edge}
   const byMine = {};
   for(const t of threats){
@@ -3987,14 +4263,13 @@ function renderAlerts(){
       : `${grp.width?Math.round(grp.width)+"cm":"?"} × ${grp.height?(grp.height>200?">2m":Math.round(grp.height)+"cm"):"?"}`;
     const seg = lau
       ? (LAUNDRY_TYPE_LABEL[grp.myType]||"Laundry")
-      : cook ? (COOKING_TYPE_LABEL[grp.myType]||"Cooking")
+      : cook ? (sec.typeLabel[grp.myType]||sec.noun)
       : `${SUBCAT_LABEL[grp.cat]||grp.cat||""}${grp.install==="builtin"?" · Built-in":" · Free-standing"}`;
     const rivalHtml = shown.map(r=>{
       const edge=[];
       if(r.betterClass) edge.push(`<span class="ab-edge">better class</span> (${r.rivalE} vs ${grp.myE})`);
       if(lau && r.moreKg) edge.push(`<span class="ab-edge">+${r.kgGain}kg</span>`);
-      if(!lau && r.moreLitres) edge.push(`<span class="ab-edge">+${r.capGain}${cook&&grp.capUnit!=="L"?" "+grp.capUnit:"L"}</span>`);
-      const stores=r.offers.map(o=>`${SITE_LABEL[o.site]||o.site} ${fmt(o.price)}`).join(" · ");
+      if(!lau && r.moreLitres) edge.push(`<span class="ab-edge">+${r.capGain}${cook&&grp.capUnit!=="L"?" "+grp.capUnit:"L"}</span>`);      const stores=r.offers.map(o=>`${SITE_LABEL[o.site]||o.site} ${fmt(o.price)}`).join(" · ");
       return `<div class="ab-rival ${r.disruption?'disrupt':''}">
         <div class="ab-rival-main"><b>${esc(short(r.name,40))}</b> ${edge.length?`<span class="ab-edges">${edge.join(" · ")}</span>`:""}</div>
         <div class="ab-rival-sub">${stores} · <b style="color:var(--heat)">€${r.gap.toFixed(0)} below you</b></div>
@@ -4060,7 +4335,7 @@ function applyTheme(t){
   // apply class immediately (button text set once DOM is ready)
   document.documentElement.dataset.theme = saved==="dark" ? "dark" : "";
 })();
-const ICONS={'benchmark':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"11\" width=\"5.4\" height=\"10\" rx=\"1.6\"/><rect class=\"body\" x=\"9.3\" y=\"6.5\" width=\"5.4\" height=\"14.5\" rx=\"1.6\"/><rect class=\"body\" x=\"15.6\" y=\"14\" width=\"5.4\" height=\"7\" rx=\"1.6\"/><circle class=\"acc\" cx=\"12\" cy=\"3.4\" r=\"2\"/></svg>",'dashboard':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"8\" height=\"8\" rx=\"2\"/><rect class=\"body\" x=\"13\" y=\"3\" width=\"8\" height=\"5\" rx=\"2\"/><rect class=\"body\" x=\"13\" y=\"10.5\" width=\"8\" height=\"10.5\" rx=\"2\"/><rect class=\"body\" x=\"3\" y=\"13\" width=\"8\" height=\"8\" rx=\"2\"/></svg>",'brands':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M3.5 12.6V5.6a2 2 0 0 1 2-2h7l8.4 8.4a1 1 0 0 1 0 1.4l-6.6 6.6a1 1 0 0 1-1.4 0z\"/><circle class=\"detf\" cx=\"8.2\" cy=\"8.2\" r=\"1.7\"/></svg>",'segments':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><circle class=\"body\" cx=\"12\" cy=\"12\" r=\"9\"/><path class=\"det\" d=\"M12 4v8h8\"/></svg>",'compare':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"4\" width=\"7\" height=\"16\" rx=\"2\"/><rect class=\"acc\" x=\"14\" y=\"9\" width=\"7\" height=\"11\" rx=\"2\"/></svg>",'mysku':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M12 2.6l2.7 5.5 6 .9-4.3 4.2 1 6L12 18.4 6.6 21.2l1-6L3.3 11l6-.9z\"/></svg>",'products':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2.6\"/><path class=\"det\" d=\"M7 8h10M7 12h10M7 16h6\"/></svg>",'history':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2.6\"/><path class=\"det\" d=\"M6.5 14.5l3.2-3.2 2.6 2.6 5.2-6\"/></svg>",'alerts':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M6 9a6 6 0 0 1 12 0c0 6 2.4 8 2.4 8H3.6S6 15 6 9\"/><path class=\"det\" d=\"M10.2 20.4a2 2 0 0 0 3.6 0\"/><circle class=\"acc\" cx=\"17.6\" cy=\"6\" r=\"2.7\"/></svg>",'exports':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"13\" width=\"18\" height=\"8\" rx=\"2.2\"/><path class=\"bodys\" d=\"M12 3.5v8M9 9l3 3 3-3\"/></svg>",'about':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><circle class=\"body\" cx=\"12\" cy=\"12\" r=\"9\"/><circle class=\"detf\" cx=\"12\" cy=\"8.3\" r=\"1.35\"/><path class=\"det\" d=\"M12 11.4v5.2\"/></svg>",'cooling':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"6\" y=\"2.5\" width=\"12\" height=\"19\" rx=\"2.8\"/><path class=\"det\" d=\"M6.5 9.6h11M9 5.2v1.9M9 12.2v2.6\"/></svg>",'laundry':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>",'deal':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"acc\" d=\"M13 2.4L4.4 13.6H11l-1 8 8.6-11.2H12z\"/></svg>",'e_snow':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"6\" y=\"2.5\" width=\"12\" height=\"19\" rx=\"2.8\"/><path class=\"det\" d=\"M6.5 9.6h11M9 5.2v1.9M9 12.2v2.6\"/></svg>",'e_drum':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>",'t_drum':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>",'cooking':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><path class=\"det\" d=\"M4.5 8.2h15\"/><circle class=\"detf\" cx=\"8.2\" cy=\"5.6\" r=\"1.1\"/><circle class=\"detf\" cx=\"11.8\" cy=\"5.6\" r=\"1.1\"/><rect class=\"det\" x=\"7.4\" y=\"11.4\" width=\"9.2\" height=\"6.4\" rx=\"1.3\"/></svg>"};
+const ICONS={'benchmark':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"11\" width=\"5.4\" height=\"10\" rx=\"1.6\"/><rect class=\"body\" x=\"9.3\" y=\"6.5\" width=\"5.4\" height=\"14.5\" rx=\"1.6\"/><rect class=\"body\" x=\"15.6\" y=\"14\" width=\"5.4\" height=\"7\" rx=\"1.6\"/><circle class=\"acc\" cx=\"12\" cy=\"3.4\" r=\"2\"/></svg>",'dashboard':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"8\" height=\"8\" rx=\"2\"/><rect class=\"body\" x=\"13\" y=\"3\" width=\"8\" height=\"5\" rx=\"2\"/><rect class=\"body\" x=\"13\" y=\"10.5\" width=\"8\" height=\"10.5\" rx=\"2\"/><rect class=\"body\" x=\"3\" y=\"13\" width=\"8\" height=\"8\" rx=\"2\"/></svg>",'brands':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M3.5 12.6V5.6a2 2 0 0 1 2-2h7l8.4 8.4a1 1 0 0 1 0 1.4l-6.6 6.6a1 1 0 0 1-1.4 0z\"/><circle class=\"detf\" cx=\"8.2\" cy=\"8.2\" r=\"1.7\"/></svg>",'segments':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><circle class=\"body\" cx=\"12\" cy=\"12\" r=\"9\"/><path class=\"det\" d=\"M12 4v8h8\"/></svg>",'compare':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"4\" width=\"7\" height=\"16\" rx=\"2\"/><rect class=\"acc\" x=\"14\" y=\"9\" width=\"7\" height=\"11\" rx=\"2\"/></svg>",'mysku':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M12 2.6l2.7 5.5 6 .9-4.3 4.2 1 6L12 18.4 6.6 21.2l1-6L3.3 11l6-.9z\"/></svg>",'products':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2.6\"/><path class=\"det\" d=\"M7 8h10M7 12h10M7 16h6\"/></svg>",'history':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2.6\"/><path class=\"det\" d=\"M6.5 14.5l3.2-3.2 2.6 2.6 5.2-6\"/></svg>",'alerts':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M6 9a6 6 0 0 1 12 0c0 6 2.4 8 2.4 8H3.6S6 15 6 9\"/><path class=\"det\" d=\"M10.2 20.4a2 2 0 0 0 3.6 0\"/><circle class=\"acc\" cx=\"17.6\" cy=\"6\" r=\"2.7\"/></svg>",'exports':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"13\" width=\"18\" height=\"8\" rx=\"2.2\"/><path class=\"bodys\" d=\"M12 3.5v8M9 9l3 3 3-3\"/></svg>",'about':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><circle class=\"body\" cx=\"12\" cy=\"12\" r=\"9\"/><circle class=\"detf\" cx=\"12\" cy=\"8.3\" r=\"1.35\"/><path class=\"det\" d=\"M12 11.4v5.2\"/></svg>",'cooling':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"6\" y=\"2.5\" width=\"12\" height=\"19\" rx=\"2.8\"/><path class=\"det\" d=\"M6.5 9.6h11M9 5.2v1.9M9 12.2v2.6\"/></svg>",'laundry':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>",'deal':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"acc\" d=\"M13 2.4L4.4 13.6H11l-1 8 8.6-11.2H12z\"/></svg>",'e_snow':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"6\" y=\"2.5\" width=\"12\" height=\"19\" rx=\"2.8\"/><path class=\"det\" d=\"M6.5 9.6h11M9 5.2v1.9M9 12.2v2.6\"/></svg>",'e_drum':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>",'t_drum':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>",'cooking':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><path class=\"det\" d=\"M4.5 8.2h15\"/><circle class=\"detf\" cx=\"8.2\" cy=\"5.6\" r=\"1.1\"/><circle class=\"detf\" cx=\"11.8\" cy=\"5.6\" r=\"1.1\"/><rect class=\"det\" x=\"7.4\" y=\"11.4\" width=\"9.2\" height=\"6.4\" rx=\"1.3\"/></svg>",'dishwashing':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><path class=\"det\" d=\"M4.5 7.6h15M7.2 5.3h2.6\"/><circle class=\"detf\" cx=\"16.4\" cy=\"5.3\" r=\"0.9\"/><path class=\"det\" d=\"M8 11.2v6.4M10.7 11.2v6.4M13.4 11.2v6.4M16.1 11.2v6.4\"/></svg>"};
 function paintIcons(r){(r||document).querySelectorAll("[data-ico]").forEach(e=>{if(ICONS[e.dataset.ico])e.innerHTML=ICONS[e.dataset.ico];});}
 document.addEventListener("DOMContentLoaded",()=>{
   paintIcons();
@@ -4466,11 +4741,14 @@ on("lbType","click",e=>{
   const t=e.target.closest("[data-lb-brand]"); if(t){ lbFilter.brand=t.dataset.lbBrand; return renderLBrands(); }
 });
 on("lpSearch","input",()=>renderLProducts());
-on("cbType","click",e=>{
-  const b=e.target.closest("[data-cb-type]"); if(b){ cbFilter.type=b.dataset.cbType; return renderCBrands(); }
-  const t=e.target.closest("[data-cb-brand]"); if(t){ cbFilter.brand=t.dataset.cbBrand; return renderCBrands(); }
-});
-on("cpSearch","input",()=>renderCProducts());
+// My Brands type/brand tabs for the cooking + dishwashing pages (shared engine)
+for(const D of Object.values(SEC_DEPTS)){
+  on(D.ids.bType,"click",e=>{
+    const b=e.target.closest("[data-sb-type]"); if(b){ D.brandState.type=b.dataset.sbType; return renderSecBrands(D); }
+    const t=e.target.closest("[data-sb-brand]"); if(t){ D.brandState.brand=t.dataset.sbBrand; return renderSecBrands(D); }
+  });
+  on(D.ids.pSearch,"input",()=>renderSecProducts(D));
+}
 /* Attribute-bar handlers — ONE set, bound to both the Benchmark bar and the
    laundry dashboard bar. Laundry controls mutate laundryFilter and refresh
    the laundry dashboard + benchmark; cooling controls mutate the shared
@@ -4479,8 +4757,19 @@ on("cpSearch","input",()=>renderCProducts());
 function _lauRefresh(){ safeRender("l-dashboard",renderLaundry); safeRender("benchmark",renderBenchmark); }
 function _coolRefresh(){ safeRender("dashboard",renderDashboard); safeRender("benchmark",renderBenchmark); }
 function _cookRefresh(){ safeRender("c-dashboard",renderCooking); safeRender("benchmark",renderBenchmark); }
+function _dishRefresh(){ safeRender("d-dashboard",renderDish); safeRender("benchmark",renderBenchmark); }
 function _toggle(set, v){ set.has(v)?set.delete(v):set.add(v); }
 function _attrBarClick(e){
+  // dishwashing controls
+  const dt=e.target.closest("[data-dish-type]");
+  if(dt){ dishFilter.type=dt.dataset.dishType; dishFilter.settings="any"; dishFilter.integration="any"; return _dishRefresh(); }
+  const de=e.target.closest("[data-dish-energy]"); if(de){ _toggle(dishFilter.energy, de.dataset.dishEnergy); return _dishRefresh(); }
+  const db=e.target.closest("[data-dish-brand]"); if(db){ _toggle(dishFilter.brands, db.dataset.dishBrand); return _dishRefresh(); }
+  const dc=e.target.closest("[data-dish-color]"); if(dc){ _toggle(dishFilter.colors, dc.dataset.dishColor); return _dishRefresh(); }
+  if(e.target.closest("[data-dish-wifi]")){ dishFilter.wifi=!dishFilter.wifi; return _dishRefresh(); }
+  if(e.target.closest("[data-dish-mine]")){ dishFilter.mine=!dishFilter.mine; return _dishRefresh(); }
+  if(e.target.id==="dishReset"){ Object.assign(dishFilter,{retailer:"any",settings:"any",integration:"any",noise:"any",mine:false,wifi:false});
+    dishFilter.brands.clear(); dishFilter.energy.clear(); dishFilter.colors.clear(); return _dishRefresh(); }
   // cooking controls
   const ct=e.target.closest("[data-cook-type]");
   if(ct){ cookingFilter.type=ct.dataset.cookType; COOK_TYPE_FACETS.forEach(k=>cookingFilter[k]="any"); cookingFilter.energy.clear(); return _cookRefresh(); }
@@ -4510,15 +4799,17 @@ function _attrBarClick(e){
 }
 const COOK_SELECTS = {cookRetailer:"retailer", cookFuel:"fuel", cookHob:"hob", cookHood:"hood",
                       cookWidth:"width", cookLt:"lt", cookClean:"clean", cookInstall:"install"};
+const DISH_SELECTS = {dishRetailer:"retailer", dishSettings:"settings", dishIntegration:"integration", dishNoise:"noise"};
 function _attrBarChange(e){
   if(COOK_SELECTS[e.target.id]){ cookingFilter[COOK_SELECTS[e.target.id]]=e.target.value; return _cookRefresh(); }
+  if(DISH_SELECTS[e.target.id]){ dishFilter[DISH_SELECTS[e.target.id]]=e.target.value; return _dishRefresh(); }
   if(e.target.id==="lauRetailer"){ laundryFilter.retailer=e.target.value; return _lauRefresh(); }
   if(e.target.id==="lauKg"){ laundryFilter.kg=e.target.value; return _lauRefresh(); }
   if(e.target.id==="lauRpm"){ laundryFilter.rpm=e.target.value; return _lauRefresh(); }
   if(e.target.id==="lauLoader"){ laundryFilter.loader=e.target.value; return _lauRefresh(); }
   const sel=e.target.closest("select[data-bd]"); if(sel){ dashFilter[sel.dataset.bd]=sel.value; return _coolRefresh(); }
 }
-["benchFilters","laundryFilters","cookingFilters"].forEach(id=>{
+["benchFilters","laundryFilters","cookingFilters","dishFilters"].forEach(id=>{
   const el=document.getElementById(id); if(!el) return;
   el.addEventListener("click", _attrBarClick);
   el.addEventListener("change", _attrBarChange);
@@ -4540,9 +4831,9 @@ on("menuToggle","click",()=>{
 });
 /* global search jumps to Explore and filters there */
 on("globalSearch","input",e=>{
-  // cooking has no explorer yet: search its Products table instead
-  if(state.dept==="cooking"){
-    const box=document.getElementById("cpSearch"); if(box) box.value=e.target.value||"";
+  // cooking/dishwashing have no explorer yet: search their Products table instead
+  if(SEC_DEPTS[state.dept]){
+    const box=document.getElementById(SEC_DEPTS[state.dept].ids.pSearch); if(box) box.value=e.target.value||"";
     showTab("products"); return;
   }
   expFilters.q=(e.target.value||"").toUpperCase();
@@ -4611,6 +4902,7 @@ on("alertShowAll","change",renderAlerts);
 on("ppWindow","change",e=>{ promoWin=+e.target.value||30; loadPromoStats(); });
 on("lppWindow","change",e=>{ promoWin=+e.target.value||30; loadPromoStats(); });
 on("cppWindow","change",e=>{ promoWin=+e.target.value||30; loadPromoStats(); });
+on("dppWindow","change",e=>{ promoWin=+e.target.value||30; loadPromoStats(); });
 on("dashFilters","change",e=>{
   const sel=e.target.closest("select[data-dash]"); if(!sel)return;
   dashFilter[sel.dataset.dash]=sel.value; renderDashboard();
@@ -4784,7 +5076,7 @@ function parseSrpCsv(text){
 }
 function _catalogueCodes(){
   const set=new Set();
-  for(const p of [...state.products, ...(state.laundry||[]), ...(state.cooking||[])]){
+  for(const p of allProducts()){
     const c=normCode(extractModel(f.name(p)).code);
     if(c && c.length>=4) set.add(c);
   }
@@ -4867,7 +5159,7 @@ function renderMatches(){
     `<button class="chip ${matchFilter===k?'on':''}" data-mchip="${k}">${l}<span class="cnt">${counts[k]||0}</span></button>`).join("");
 
   const byId={};
-  [...state.products, ...(state.laundry||[]), ...(state.cooking||[])].forEach(p=>{ byId[String(f.id(p))]=p; });
+  allProducts().forEach(p=>{ byId[String(f.id(p))]=p; });
   const groups=(matchData.groups||[]).filter(g=>g.status===matchFilter);
   host.innerHTML = groups.slice(0,60).map(g=>{
     // collapse same-site-SKU twins in the display (a URL-change duplicate is

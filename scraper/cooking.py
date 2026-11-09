@@ -142,7 +142,7 @@ def width_from(name="", dims="", dims_axis=0, explicit=""):
     (Kotsovolos sometimes) are scaled down."""
     v = num(explicit, 20, 1300)
     if v is None:
-        m = re.search(r"(\d{2,3}(?:[.,]\d)?)\s*cm\b", str(name), re.I)
+        m = re.search(r"(\d{2,3}(?:[.,]\d{1,2})?)\s*cm\b", str(name), re.I)
         if m:
             v = num(m.group(1), 20, 130)
     if v is None and dims:

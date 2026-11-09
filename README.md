@@ -1,16 +1,16 @@
 # Pricedge — competitive price intelligence (GR appliances)
 
 Tracks prices, availability and specs across **Kotsovolos, Public and Plaisio**
-(cooling, laundry and cooking departments) and turns them into positioning
-views, parity checks and threat alerts for the Whirlpool / Indesit / Beko brand
-team (plus Hotpoint in cooking).
+(cooling, laundry, cooking and dishwashing departments) and turns them into
+positioning views, parity checks and threat alerts for the Whirlpool / Indesit /
+Beko brand team (plus Hotpoint in cooking and dishwashing).
 
 ## Repository layout
 
 | Path | What it is |
 |---|---|
 | `backend/` | FastAPI + SQLite API deployed on Railway (`main.py`, `database.py`, `exports.py`, `alerts.py` — SMTP threshold alerts) with its own `requirements.txt` |
-| `scraper/` | Local runner (`local_runner.py`) plus the per-retailer catalogue fetchers it imports (`public_plp.py`, `kotsovolos_plp.py`, `plaisio_plp.py`) and the shared cooking normaliser they use (`cooking.py`); `plp_scraper.py` inspection build; PC-side `requirements.txt` |
+| `scraper/` | Local runner (`local_runner.py`) plus the per-retailer catalogue fetchers it imports (`public_plp.py`, `kotsovolos_plp.py`, `plaisio_plp.py`) and the shared normalisers they use (`cooking.py`, `dishwashing.py`); `plp_scraper.py` inspection build; PC-side `requirements.txt` |
 | `frontend/` | Single-file dashboard (`index.html`) served statically |
 | `AUDIT.md` | Full platform audit (five pillars) + backend addendum |
 
@@ -74,9 +74,9 @@ python local_runner.py --plp --due
 python local_runner.py --enrich-ids --limit 300
 ```
 
-The runner PC needs **all five** scraper files side by side: `local_runner.py`,
-`public_plp.py`, `kotsovolos_plp.py`, `plaisio_plp.py` and `cooking.py` (the
-three fetchers import it).
+The runner PC needs **all six** scraper files side by side: `local_runner.py`,
+`public_plp.py`, `kotsovolos_plp.py`, `plaisio_plp.py`, `cooking.py` and
+`dishwashing.py` (the three fetchers import the last two).
 
 ### Cooking department
 
@@ -96,6 +96,17 @@ python public_plp.py cooking        # -> public_cooking.xlsx / .csv
 python kotsovolos_plp.py cooking    # -> kotsovolos_cooking.xlsx / .csv
 python plaisio_plp.py cooking       # -> plaisio_cooking.xlsx / .csv
 ```
+
+### Dishwashing department
+
+No retailer splits dishwashers the way the dashboard does, so each product's
+type is derived by `dishwashing.py` from install type, width and size:
+`dw_free_60`, `dw_free_45`, `dw_bi_60`, `dw_bi_45`, `dw_compact` (tabletops —
+"Κάτω Πάγκου" under-counter models are full size). Fields: place settings,
+width, built-in integration (fully/semi), energy, noise, programs, WiFi, half
+load, auto-dosing. `--due` / `--only` schedule it as one unit, `dishwasher`.
+Inspect with `python public_plp.py dishwashing` (likewise for the other two
+fetchers).
 
 Set `PRICEDGE_API_KEY` on the runner PC (same value as Railway's `API_KEY`)
 so `--quick` mode can read `/api/products` through the auth layer.

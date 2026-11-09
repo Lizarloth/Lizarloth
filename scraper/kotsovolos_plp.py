@@ -25,6 +25,7 @@ import time
 import requests
 
 import cooking
+import dishwashing
 
 API = "https://www.kotsovolos.gr/api/ext/getProductsByCategory"
 SITE_BASE = "https://www.kotsovolos.gr/"
@@ -74,6 +75,13 @@ COOKING = {
     "microwave": [("35023", lambda r: "MICROWAVE" in r.get("_sap3", "")),
                   ("35229", lambda r: "MICROWAVE" in r.get("_sap3", ""))],
 }
+
+# Dishwashing: the dishwasher page holds freestanding + mini models, the
+# built-in/dishwashers page the built-in ones; both pages also carry a few
+# other appliances, so keep only rows whose item type is a dishwasher.
+# catIds resolved from /washing-machines/dish-washing-machines and
+# /built-in/dishwashers.
+DISH = ["35801", "35846"]
 
 HEADERS = {
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -370,6 +378,29 @@ def parse_entry(entry, cat_name, dept="cooling"):
         base["_sap3"] = g("SAP - product hierarchy level 3").upper()
         return base
 
+    if dept == "dishwashing":
+        g = _g
+        kind = f"{g('Τύπος Είδους')} {g('Τύπος Πλυντηρίου Πιάτων')} {g('Space Group')}"
+        # the built-in page labels things differently: settings live in
+        # "Χωρητικότητα" ("16 σερβίτσια") and a hidden panel means fully integrated
+        cap = g("Χωρητικότητα")
+        panel = g("Πίνακας Χειρισμού")
+        if panel:
+            kind += " Πλήρως" if "μη εμφαν" in panel.lower() else " Ημι"
+        base.update(dishwashing.dish_fields(
+            name, install_text=kind, builtin_hint="Εντοιχ" in g("Τύπος Είδους"),
+            settings=g("Χωρητικότητα σε Σερβίτσια") or (cap if "ερβ" in cap.lower() else ""),
+            width="45" if "45" in g("Τύπος Πλυντηρίου Πιάτων") else ("60" if "60" in g("Τύπος Πλυντηρίου Πιάτων") else ""),
+            dimensions=g("Διάσταση ΥxΠxΒ (cm)"), dims_axis=1,          # H x W x D
+            energy_text=g("Ενεργειακή Κλάση", "Ενεργειακή κλάση"), noise=g("Θόρυβος (db)"),
+            programs=g("Αριθμός Προγραμμάτων", "Προγράμματα"), wifi_text=g("Συνδεσιμότητα"),
+            half_text=g("Δυνατότητα Μισής Πλύσης"),
+            autodose_text=g("Αυτόματη αναγνώριση απορρυπαντικού"),
+            semi_text=g("Εμφανής Πίνακας Χειρισμού") if "Εντοιχ" in g("Τύπος Είδους") else "",
+            color=g("Χρώμα"), compact_text=g("Space Group")))
+        base["_kind"] = g("Τύπος Είδους")
+        return base
+
     if dept == "laundry":
         base["department"] = "laundry"
         la = laundry_from_attrs(attrs_all)                  # structured, authoritative
@@ -454,6 +485,18 @@ def collect_cooking(session, cat, debug=False):
                 merged.setdefault(r["sku_id"], r)
     total = len(merged)
     return list(merged.values()), total
+
+
+def collect_dish(session, debug=False):
+    """All dishwashers from both source pages (deduped by SKU); each row's
+    category is already its derived dashboard type."""
+    merged = {}
+    for cid in DISH:
+        rows, _ = collect_category(session, cid, "dishwasher", debug=debug, dept="dishwashing")
+        for r in rows:
+            if "Πιάτων" in r.get("_kind", "") and "Επένδυση" not in r.get("_kind", "") and dishwashing.keep(r):
+                merged.setdefault(r["sku_id"], r)
+    return list(merged.values()), len(merged)
 
 
 def write_excel(rows, path="kotsovolos_plp.xlsx", cols=None, title="kotsovolos"):
@@ -546,6 +589,14 @@ def main():
         cooking.print_coverage(rows)
         write_excel(rows, path="kotsovolos_cooking.xlsx", cols=cooking.COOKING_COLS,
                     title="kotsovolos_cooking")
+        return
+    if args == ["dishwashing"]:
+        session = requests.Session(); session.headers.update(HEADERS)
+        rows, n = collect_dish(session)
+        print(f"  dishwashers: {n}")
+        dishwashing.print_coverage(rows)
+        write_excel(rows, path="kotsovolos_dishwashing.xlsx", cols=dishwashing.DISH_COLS,
+                    title="kotsovolos_dishwashing")
         return
     if args == ["laundry"]:
         targets = list(LAUNDRY)
