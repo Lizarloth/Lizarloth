@@ -27,6 +27,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+import cooking
+
 BASE = "https://www.plaisio.gr"
 
 # Category list-paths, all confirmed from Plaisio's own subcategory nav.
@@ -44,6 +46,15 @@ LAUNDRY = {
     "washing_machine": "/list/megales-oikiakes-siskeves/plisi-stegnoma-rouxon/plintiria-rouxon",
     "washer_dryer":    "/list/megales-oikiakes-siskeves/plisi-stegnoma-rouxon/plintiria-stegnotiria",
     "dryer":           "/list/megales-oikiakes-siskeves/stegnoma-rouxon/stegnotiria",
+}
+# Cooking department (keys = canonical subcategories). The landscape layout
+# prints a labelled spec line per card, mined by mine_cooking_card().
+COOKING = {
+    "cooker":    "/list/megales-oikiakes-siskeves/mageirema/kouzines",
+    "oven":      "/list/megales-oikiakes-siskeves/mageirema/fournoi",
+    "hob":       "/list/megales-oikiakes-siskeves/mageirema/esties",
+    "hood":      "/list/megales-oikiakes-siskeves/mageirema/aporrofitires",
+    "microwave": "/list/megales-oikiakes-siskeves/mageirema/fournoi-mikrokimaton",
 }
 LAUNDRY_COLS = ["site", "category", "department", "sku_id", "brand", "name",
                 "price", "availability", "energy", "wash_kg", "dry_kg", "rpm",
@@ -78,7 +89,7 @@ document.querySelectorAll('a[href*="/product/"]').forEach(a => {
   let el = a;
   for (let i = 0; i < 8 && el; i++) {
     const t = el.innerText || "";
-    if (/Ενεργειακ[ήη]\s+κλάση/i.test(t)) { specMap[sku] = t; break; }
+    if (/Ενεργειακ[ήη]\s+κλάση|Χωρητικότητα\s*:|Είδος Εστιών\s*:|Τύπος Συσκευής\s*:/i.test(t)) { specMap[sku] = t; break; }
     el = el.parentElement;
   }
 });
@@ -272,6 +283,36 @@ def mine_landscape(text, cat_name):
     }
 
 
+# "Τύπος κουζίνας: Ηλεκτρική, Χωρητικότητα: 66 Lt, Ενεργειακή κλάση: A"
+_LS_PAIR = re.compile(r"([^\s:,|][^:,|\n]{1,40}?)\s*:\s*([^,|\n]+)")
+
+
+def mine_cooking_card(text, name, desc, cat_name):
+    pairs = {}
+    for m in _LS_PAIR.finditer(text or ""):
+        pairs.setdefault(cooking.fold(m.group(1)).strip(), m.group(2).strip())
+
+    def g(*labels):
+        for lb in labels:
+            v = pairs.get(cooking.fold(lb))
+            if v:
+                return v
+        return ""
+    typ = g("Τύπος Συσκευής")
+    return cooking.cooking_fields(
+        cat_name, name, type_text=typ,
+        hob_text=g("Είδος Εστιών") or (typ if cat_name == "cooker" else ""),
+        fuel_text=g("Τύπος κουζίνας"),
+        oven_lt=g("Χωρητικότητα"), zones=g("Αριθμός εστιών"),
+        # only description clauses about cleaning — "ατμός" elsewhere is steam cooking
+        clean_text=" ".join(s for s in re.split(r"[.;!]", desc or "")
+                            if re.search(r"ΚΑΘΑΡ|ΠΥΡΟΛ|ΥΔΡΟΛ|ΚΑΤΑΛΥΤ", cooking.fold(s)))
+                   if cat_name in ("cooker", "oven") else "",
+        hood_text=typ, airflow=g("Μέγιστη απορροφητικότητα"),
+        power=g("Μέγιστη Ισχύς", "Ισχύς"), energy_text=g("Ενεργειακή κλάση"),
+        width=g("Πλάτος"), install_text=typ)
+
+
 def parse_items(items, cat_name, dept="cooling", spec_map=None):
     spec_map = spec_map or {}
     out = []
@@ -311,7 +352,9 @@ def parse_items(items, cat_name, dept="cooling", spec_map=None):
             "image": img,
             "url": it.get("url", ""),
         }
-        if dept == "laundry":
+        if dept == "cooking":
+            base.update(mine_cooking_card(spec_map.get(sku, ""), name, desc, cat_name))
+        elif dept == "laundry":
             base["department"] = "laundry"
             la = mine_landscape(spec_map.get(sku, ""), cat_name)   # labelled, authoritative
             tla = mine_laundry(name, desc, cat_name)               # name/desc fallback
@@ -355,7 +398,7 @@ def collect_category(driver, cat_path, cat_name, debug=True, dept="cooling"):
     base_url = BASE + cat_path
 
     for page in range(1, MAX_PAGES + 1):
-        lay = "&layout=landscape" if dept == "laundry" else ""
+        lay = "&layout=landscape" if dept in ("laundry", "cooking") else ""
         url = f"{base_url}?page={page}{lay}"
         driver.get(url)
         if page == 1:
@@ -468,12 +511,15 @@ def main():
         finally:
             d.quit()
         return
-    targets = list(LAUNDRY) if raw == ["laundry"] else (raw if raw else list(CATEGORIES))
+    targets = (list(LAUNDRY) if raw == ["laundry"] else list(COOKING) if raw == ["cooking"]
+               else (raw if raw else list(CATEGORIES)))
     laundry_t = [t for t in targets if t in LAUNDRY]
+    cooking_t = [t for t in targets if t in COOKING]
     fridge_t = [t for t in targets if t in CATEGORIES]
-    unknown = [t for t in targets if t not in CATEGORIES and t not in LAUNDRY]
+    unknown = [t for t in targets if t not in CATEGORIES and t not in LAUNDRY and t not in COOKING]
     if unknown:
-        print(f"Unknown {unknown}. Fridge:{list(CATEGORIES)} Laundry:{list(LAUNDRY)} (or 'laundry')")
+        print(f"Unknown {unknown}. Fridge:{list(CATEGORIES)} Laundry:{list(LAUNDRY)} (or 'laundry') "
+              f"Cooking:{list(COOKING)} (or 'cooking')")
         sys.exit(1)
 
     print("Starting Chrome..." + (" (visible)" if not headless else ""))
@@ -484,6 +530,9 @@ def main():
         if laundry_t:
             _run(driver, laundry_t, LAUNDRY, "laundry", "plaisio_laundry.xlsx",
                  LAUNDRY_COLS, "plaisio_laundry")
+        if cooking_t:
+            _run(driver, cooking_t, COOKING, "cooking", "plaisio_cooking.xlsx",
+                 cooking.COOKING_COLS, "plaisio_cooking")
     finally:
         driver.quit()
 
@@ -493,6 +542,8 @@ def _run(driver, targets, source, dept, out_path, cols, title):
     for cat_name in targets:
         print(f"\n=== {cat_name}  ({source[cat_name]})  [{dept}] ===")
         rows, total = collect_category(driver, source[cat_name], cat_name, dept=dept)
+        if dept == "cooking":
+            rows = [r for r in rows if cooking.keep(cat_name, r)]
         for r in rows:
             all_rows.setdefault(r["sku_id"], r)
         per_cat[cat_name] = (len(rows), total)
@@ -516,6 +567,8 @@ def _run(driver, targets, source, dept, out_path, cols, title):
         print(f"  pillars: wash_kg {fl('wash_kg')}, dry_kg {fl('dry_kg')}, rpm {fl('rpm')}, "
               f"energy {fl('energy')}, programs {fl('programs')} /{len(rows)}")
         print(f"  loader: front {fr}, top {tp}, untagged {len(wm)-fr-tp} /{len(wm)} washing machines")
+    if dept == "cooking":
+        cooking.print_coverage(rows)
     write_excel(rows, path=out_path, cols=cols, title=title)
 
 

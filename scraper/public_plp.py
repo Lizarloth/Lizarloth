@@ -27,6 +27,8 @@ import time
 import json
 import requests
 
+import cooking
+
 BASE = "https://www.public.gr/category/"
 
 # Category paths (the "s" param). All slugs confirmed from Public's own
@@ -95,6 +97,59 @@ LAUNDRY_COLS = ["site", "category", "department", "sku_id", "brand", "name",
                 "price", "list_price", "energy", "dry_energy", "wash_kg",
                 "dry_kg", "rpm", "programs", "steam", "heat_pump",
                 "condenser", "loader", "dimensions", "image", "url"]
+
+# ---- COOKING (separate department). Keys are already the canonical
+# ---- subcategories. Public's microwave category includes the built-in ones.
+COOKING = {
+    "cooker":    "/cat/oikiakes-syskeyes/kouzines-fournakia/kouzines/",
+    "oven":      "/cat/oikiakes-syskeyes/entoixizomenes-suskeues/entoihizomenoi-foyrnoi/",
+    "hob":       "/cat/oikiakes-syskeyes/entoixizomenes-suskeues/esties-mageirikis/",
+    "hood":      "/cat/oikiakes-syskeyes/aporofitires/",
+    "microwave": "/cat/oikiakes-syskeyes/fournoi-mirokimatwn/",
+}
+# topSpec labels -> raw "_" keys; finish_cooking() turns them into the shared
+# canonical fields (cooking.py). Labels confirmed from live listings.
+COOKING_SPEC_MAP = {
+    "τυπος επιφανειας μαγειρεματος": "_surface",
+    "τυπος εστιας":                  "_surface",
+    "τυπος συσκευης":                "_type",
+    "τυπος φουρνου":                 "_type",
+    "ωφελιμη χωρητικοτητα φουρνου":  "_lt",
+    "χωρητικοτητα":                  "_lt",
+    "αριθμος εστιων":                "_zones",
+    "εστιες":                        "_zones",
+    "συστημα καθαρισμου":            "_clean",
+    "μεγιστη απορροφητικοτητα":      "_airflow",
+    "ισχυς":                         "_power",
+    "κατασκευη":                     "_install",
+    "ενεργειακη κλαση":              "_energy",
+    "χρωμα":                         "_color",
+    "διαστασεις":                    "_dims",
+    "ειδος αξεσουαρ":                "_accessory",
+}
+
+
+def finish_cooking(rows, cat):
+    """Raw cooking topSpecs -> canonical fields; drops accessories (Public lists
+    filters/mounting parts inside the hoods category)."""
+    out = []
+    for r in rows:
+        if r.get("_accessory"):
+            continue
+        r.update(cooking.cooking_fields(
+            cat, r.get("name", ""), type_text=r.get("_type", ""),
+            hob_text=r.get("_surface", ""), fuel_text=r.get("_type", "") if cat == "cooker" else "",
+            oven_lt=r.get("_lt", ""), zones=r.get("_zones", ""),
+            clean_text=r.get("_clean", ""), hood_text=r.get("_type", ""),
+            airflow=r.get("_airflow", ""), power=r.get("_power", ""),
+            energy_text=r.get("_energy", ""), color=r.get("_color", ""),
+            dimensions=r.get("_dims", ""), dims_axis=0,     # Public: W x D x H
+            install_text=r.get("_install", "")))
+        r["category"] = cat
+        if cooking.keep(cat, r):
+            out.append(r)
+    return out
+
 
 # Load type (top vs front) isn't in topSpecs -> Public exposes it only as a
 # category facet, so we crawl the two filtered listings and tag by sku_id.
@@ -504,6 +559,8 @@ def _run_targets(targets, source, spec_map, dept, out_path, cols, title):
         print(f"\n=== {cat_name}  ({source[cat_name]})  [{dept}] ===")
         rows, total = collect_all(source[cat_name], cat_name=cat_name,
                                   spec_map=spec_map, dept=dept)
+        if dept == "cooking":
+            rows = finish_cooking(rows, cat_name)
         added = 0
         for r in rows:
             if r["sku_id"] not in all_rows:
@@ -539,6 +596,8 @@ def _run_targets(targets, source, spec_map, dept, out_path, cols, title):
               f"dimensions {filled('dimensions')}, dry_kg {filled('dry_kg')}, "
               f"dry_energy {filled('dry_energy')} /{len(rows)}")
         print(f"  loader: front {front}, top {top}, untagged {len(wm)-front-top} /{len(wm)} washing machines")
+    if dept == "cooking":
+        cooking.print_coverage(rows)
 
     my_brands = {"WHIRLPOOL", "INDESIT", "BEKO"}
     mine = [r for r in rows if (r["brand"] or "").upper() in my_brands]
@@ -783,15 +842,18 @@ def main():
 
     if args == ["laundry"]:
         targets = list(LAUNDRY)
+    elif args == ["cooking"]:
+        targets = list(COOKING)
     else:
         targets = args if args else list(CATEGORIES)
 
     laundry_t = [t for t in targets if t in LAUNDRY]
+    cooking_t = [t for t in targets if t in COOKING]
     fridge_t = [t for t in targets if t in CATEGORIES]
-    unknown = [t for t in targets if t not in CATEGORIES and t not in LAUNDRY]
+    unknown = [t for t in targets if t not in CATEGORIES and t not in LAUNDRY and t not in COOKING]
     if unknown:
-        print(f"Unknown category {unknown}. "
-              f"Fridge: {list(CATEGORIES)}  Laundry: {list(LAUNDRY)} (or 'laundry')")
+        print(f"Unknown category {unknown}. Fridge: {list(CATEGORIES)}  "
+              f"Laundry: {list(LAUNDRY)} (or 'laundry')  Cooking: {list(COOKING)} (or 'cooking')")
         sys.exit(1)
 
     if fridge_t:
@@ -800,6 +862,9 @@ def main():
     if laundry_t:
         _run_targets(laundry_t, LAUNDRY, LAUNDRY_SPEC_MAP, "laundry",
                      "public_laundry.xlsx", LAUNDRY_COLS, "public_laundry")
+    if cooking_t:
+        _run_targets(cooking_t, COOKING, COOKING_SPEC_MAP, "cooking",
+                     "public_cooking.xlsx", cooking.COOKING_COLS, "public_cooking")
 
 
 if __name__ == "__main__":

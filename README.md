@@ -1,15 +1,16 @@
 # Pricedge — competitive price intelligence (GR appliances)
 
 Tracks prices, availability and specs across **Kotsovolos, Public and Plaisio**
-(cooling + laundry departments) and turns them into positioning views, parity
-checks and threat alerts for the Whirlpool / Indesit / Beko brand team.
+(cooling, laundry and cooking departments) and turns them into positioning
+views, parity checks and threat alerts for the Whirlpool / Indesit / Beko brand
+team (plus Hotpoint in cooking).
 
 ## Repository layout
 
 | Path | What it is |
 |---|---|
 | `backend/` | FastAPI + SQLite API deployed on Railway (`main.py`, `database.py`, `exports.py`, `alerts.py` — SMTP threshold alerts) with its own `requirements.txt` |
-| `scraper/` | Local runner (`local_runner.py`) plus the per-retailer catalogue fetchers it imports (`public_plp.py`, `kotsovolos_plp.py`, `plaisio_plp.py`); `plp_scraper.py` inspection build; PC-side `requirements.txt` |
+| `scraper/` | Local runner (`local_runner.py`) plus the per-retailer catalogue fetchers it imports (`public_plp.py`, `kotsovolos_plp.py`, `plaisio_plp.py`) and the shared cooking normaliser they use (`cooking.py`); `plp_scraper.py` inspection build; PC-side `requirements.txt` |
 | `frontend/` | Single-file dashboard (`index.html`) served statically |
 | `AUDIT.md` | Full platform audit (five pillars) + backend addendum |
 
@@ -71,6 +72,29 @@ python local_runner.py --plp --due
 # read schema.org JSON-LD identity (run after --plp; Plaisio/Public work over
 # HTTP, Kotsovolos ids come from the PLP attributes instead)
 python local_runner.py --enrich-ids --limit 300
+```
+
+The runner PC needs **all five** scraper files side by side: `local_runner.py`,
+`public_plp.py`, `kotsovolos_plp.py`, `plaisio_plp.py` and `cooking.py` (the
+three fetchers import it).
+
+### Cooking department
+
+Subcategories `cooker`, `oven`, `hob`, `hood`, `microwave`, scraped in the
+same `--plp` pass and scheduled by `--due` (cooker/oven/hob daily, hoods
+every 2 days, microwaves every 3). Each fetcher reads its retailer's own
+labels (Public topSpecs, Kotsovolos `attributes[]`, Plaisio landscape cards)
+and `cooking.py` turns them into shared tokens — hob type, fuel, oven litres,
+zones, cleaning system, hood type, airflow, power, install, width, energy —
+stored with `__dept=cooking`. Accessories that retailers list inside the hood
+and cooker categories (filters, frames, front panels) are dropped.
+
+Inspect a retailer's cooking catalogue without touching the database:
+
+```bash
+python public_plp.py cooking        # -> public_cooking.xlsx / .csv
+python kotsovolos_plp.py cooking    # -> kotsovolos_cooking.xlsx / .csv
+python plaisio_plp.py cooking       # -> plaisio_cooking.xlsx / .csv
 ```
 
 Set `PRICEDGE_API_KEY` on the runner PC (same value as Railway's `API_KEY`)

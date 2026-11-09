@@ -24,6 +24,8 @@ import sys
 import time
 import requests
 
+import cooking
+
 API = "https://www.kotsovolos.gr/api/ext/getProductsByCategory"
 SITE_BASE = "https://www.kotsovolos.gr/"
 
@@ -58,6 +60,20 @@ LAUNDRY_COLS = ["site", "category", "department", "sku_id", "brand", "name",
                 "dry_kg", "rpm", "programs", "steam", "heat_pump", "condenser",
                 "loader", "dimensions", "image", "url"]
 _CATID_CACHE = {}
+
+# Cooking department: canonical subcategory -> [(catId, keep-filter)]. The
+# category pages mix in accessories / professional ovens / compact ovens, so
+# each source carries a filter on Kotsovolos's own classification fields.
+# catIds resolved from /household-appliances/{cookers, built-in/ovens,
+# built-in/hobs, hoods, microwaves, built-in/microwaves}.
+COOKING = {
+    "cooker":    [("35031", lambda r: r.get("_psc") == "Κουζίνες")],
+    "oven":      [("35222", lambda r: True)],
+    "hob":       [("35224", lambda r: True)],
+    "hood":      [("35030", lambda r: r.get("_psc") == "Απορροφητήρες")],
+    "microwave": [("35023", lambda r: "MICROWAVE" in r.get("_sap3", "")),
+                  ("35229", lambda r: "MICROWAVE" in r.get("_sap3", ""))],
+}
 
 HEADERS = {
     "User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -331,6 +347,29 @@ def parse_entry(entry, cat_name, dept="cooling"):
         "url": url,
     }
 
+    if dept == "cooking":
+        g = _g
+        clean = g("Σύστημα εύκολου καθαρισμού")
+        if not clean and _YES.search(g("Πυρόλυση") or "") and "δεν" not in g("Πυρόλυση").lower():
+            clean = "Πυρόλυση"
+        base.update(cooking.cooking_fields(
+            cat_name, name,
+            type_text=f"{g('Τύπος Είδους')} {g('Space Group')}",
+            hob_text=g("Εστίες"), fuel_text=f"{g('Εστίες')} {g('Τύπος Είδους')}",
+            oven_lt=g("Χωρητικότητα Φούρνου", "Χωρητικότητα Φούρνου (Lt)", "Ωφέλιμη Χωρητικότητα",
+                      "Χωρητικότητα (Lt)", "Χωρητικότητα"),
+            zones=g("Αριθμός Εστιών"), clean_text=clean,
+            hood_text=f"{g('Τύπος Απορροφητήρα')} {g('Τύπος Είδους')}",
+            airflow=g("Μέγιστη Απορροφητικότητα"),
+            power=g("Ισχύς Μικροκυμάτων (W)", "Ισχύς Μικροκυμάτων", "Μέγιστη Ισχύς (W)", "Ισχύς (W)", "Ισχύς"),
+            energy_text=g("Ενεργειακή Κλάση", "Ενεργειακή κλάση", "Ενεργειακή Κατανάλωση"),
+            color=g("Χρώμα"), dimensions=g("Διάσταση ΥxΠxΒ (cm)"), dims_axis=1,   # H x W x D
+            grill_text=g("Grill"),
+            install_text="built-in" if g("SAP - product hierarchy level 2") == "BUILT IN" else ""))
+        base["_psc"] = g("Parent Sales Category")
+        base["_sap3"] = g("SAP - product hierarchy level 3").upper()
+        return base
+
     if dept == "laundry":
         base["department"] = "laundry"
         la = laundry_from_attrs(attrs_all)                  # structured, authoritative
@@ -401,6 +440,19 @@ def collect_category(session, cat_id, cat_name, debug=True, dept="cooling"):
             break
         page += 1
         time.sleep(0.4)
+    return list(merged.values()), total
+
+
+def collect_cooking(session, cat, debug=False):
+    """One canonical cooking subcategory: union its source catIds, keep only the
+    rows each source's filter accepts, drop accessories."""
+    merged, total = {}, 0
+    for cid, ok in COOKING[cat]:
+        rows, _ = collect_category(session, cid, cat, debug=debug, dept="cooking")
+        for r in rows:
+            if ok(r) and cooking.keep(cat, r):
+                merged.setdefault(r["sku_id"], r)
+    total = len(merged)
     return list(merged.values()), total
 
 
@@ -483,6 +535,17 @@ def main():
     if args and args[0] == "dumpkeys":
         session = requests.Session(); session.headers.update(HEADERS)
         dump_entry(session, args[1] if len(args) > 1 else "washing_machine")
+        return
+    if args == ["cooking"]:
+        session = requests.Session(); session.headers.update(HEADERS)
+        rows = []
+        for cat in COOKING:
+            got, _ = collect_cooking(session, cat)
+            print(f"  {cat:10} {len(got)}")
+            rows += got
+        cooking.print_coverage(rows)
+        write_excel(rows, path="kotsovolos_cooking.xlsx", cols=cooking.COOKING_COLS,
+                    title="kotsovolos_cooking")
         return
     if args == ["laundry"]:
         targets = list(LAUNDRY)

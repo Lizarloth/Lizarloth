@@ -76,12 +76,21 @@ SUBCAT_INTERVAL_DAYS = {
     "washing_machine": 1,
     "washer_dryer":    1,
     "dryer":           1,
+    # cooking department — cookers/ovens/hobs move like laundry; hoods and
+    # microwaves are slower
+    "cooker":    1,
+    "oven":      1,
+    "hob":       1,
+    "hood":      2,
+    "microwave": 3,
 }
 DEFAULT_INTERVAL_DAYS = 3
 # Laundry canonical subcategories — the PLP fetchers' LAUNDRY dicts key on these;
 # they live outside the cooling CATEGORIES map, so --due must be told about them
 # explicitly or it never schedules laundry.
 LAUNDRY_SUBCATS = {"washing_machine", "washer_dryer", "dryer"}
+# Cooking canonical subcategories (the fetchers' COOKING dicts key on these).
+COOKING_SUBCATS = {"cooker", "oven", "hob", "hood", "microwave"}
 LAST_RUN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "last_run.json")
 
 # Each category URL is tagged with a canonical subcategory so every product
@@ -180,9 +189,10 @@ def _save_last_run(data):
         log(f"⚠ could not write last_run log: {e}")
 
 def _all_subcats():
-    # cooling subcats (from the crawl CATEGORIES) + the laundry department,
-    # so --due schedules laundry too (its keys aren't in CATEGORIES)
-    return set(sum([[c[1] for c in v] for v in CATEGORIES.values()], [])) | LAUNDRY_SUBCATS
+    # cooling subcats (from the crawl CATEGORIES) + the laundry and cooking
+    # departments, so --due schedules them too (their keys aren't in CATEGORIES)
+    return (set(sum([[c[1] for c in v] for v in CATEGORIES.values()], []))
+            | LAUNDRY_SUBCATS | COOKING_SUBCATS)
 
 def _due_subcats(now=None):
     """Subcategories due for a scrape, based on each one's interval and when it
@@ -224,9 +234,12 @@ def _derive_pillars(p):
     H = "".join(c for c in unicodedata.normalize("NFD", blob.upper())
                 if unicodedata.category(c) != "Mn")
     def has(*words): return any(w in H for w in words)
+    cooking_dept = specs.get("__dept") == "cooking"
 
-    # Cooling system
-    if has("TOTAL NO FROST", "FULL NO FROST", "ΠΛΗΡΩΣ NO FROST"):
+    # Cooling system (fridges only — "static" on an oven is a heating mode)
+    if cooking_dept:
+        pass
+    elif has("TOTAL NO FROST", "FULL NO FROST", "ΠΛΗΡΩΣ NO FROST"):
         specs["pillar_cooling"] = "Total No Frost"
     elif has("NO FROST"):
         specs["pillar_cooling"] = "No Frost"
@@ -244,8 +257,8 @@ def _derive_pillars(p):
         specs["pillar_smart"] = "Yes"
 
     # Water / ice dispenser (mostly multidoor / side-by-side)
-    water = has("ΔΙΑΝΟΜΕΑΣ ΝΕΡΟΥ", "WATER DISPENSER", "ΠΑΡΟΧΗ ΝΕΡΟΥ", "DISPENSER ΝΕΡΟΥ")
-    ice   = has("ΠΑΓΟΜΗΧΑΝ", "ICE MAKER", "ICE DISPENSER", "ΠΑΓΑΚΙ", "ICE")
+    water = not cooking_dept and has("ΔΙΑΝΟΜΕΑΣ ΝΕΡΟΥ", "WATER DISPENSER", "ΠΑΡΟΧΗ ΝΕΡΟΥ", "DISPENSER ΝΕΡΟΥ")
+    ice   = not cooking_dept and has("ΠΑΓΟΜΗΧΑΝ", "ICE MAKER", "ICE DISPENSER", "ΠΑΓΑΚΙ", "ICE")
     if water and ice:
         specs["pillar_dispenser"] = "Water + Ice"
     elif water:
@@ -993,7 +1006,38 @@ def _plp_row_to_result(row, canonical_subcat):
     """Map a standalone-fetcher row into the backend result schema. Flat spec
     fields become a specs{} dict (Greek labels). Laundry rows carry kg/rpm/
     programs/etc. and are tagged department=laundry so the dashboard keeps them
-    in their own section, never blended with cooling."""
+    in their own section, never blended with cooling. Cooking rows carry the
+    canonical fields from cooking.py, tagged department=cooking."""
+    if row.get("department") == "cooking":
+        specs = {"__dept": "cooking"}
+        for key, label in (("hob_type", "Τύπος εστίας"), ("fuel", "Καύσιμο"),
+                           ("oven_lt", "Χωρητικότητα (lt)"), ("zones", "Εστίες"),
+                           ("cleaning", "Καθαρισμός"), ("hood_type", "Τύπος απορροφητήρα"),
+                           ("airflow", "Απορροφητικότητα (m3/h)"), ("power_w", "Ισχύς (W)"),
+                           ("install", "Κατασκευή"), ("grill", "Grill"),
+                           ("width_cm", "Πλάτος (cm)"), ("energy", "Ενεργειακή κλάση"),
+                           ("color", "Χρώμα"), ("dimensions", "Διαστάσεις")):
+            if row.get(key):
+                specs[label] = row[key]
+        res = {
+            "url": row.get("url", ""),
+            "site": row.get("site", ""),
+            "name": row.get("name", ""),
+            "price": row.get("price"),
+            "success": row.get("price") is not None,
+            "category": canonical_subcat,        # cooker / oven / hob / hood / microwave
+            "specs": specs,
+        }
+        if row.get("availability"): res["availability"] = row["availability"]
+        if row.get("image"):        res["image"] = row["image"]
+        if row.get("list_price"):   res["old_price"] = row["list_price"]
+        _sid = row.get("sku") or row.get("sku_id")
+        if _sid: res["sku"] = str(_sid)
+        if row.get("ean"): res["ean"] = str(row["ean"])
+        if row.get("mpn"): res["mpn"] = str(row["mpn"])
+        if row.get("unbeatable"): res["unbeatable"] = True
+        return res
+
     if row.get("department") == "laundry":
         specs = {"__dept": "laundry"}
         if row.get("wash_kg"):    specs["Χωρητικότητα Πλύσης (kg)"] = row["wash_kg"]
@@ -1018,6 +1062,10 @@ def _plp_row_to_result(row, canonical_subcat):
             "category": canonical_subcat,        # washing_machine / washer_dryer / dryer
             "specs": specs,
         }
+        # availability + the Άπαιχτη Τιμή flag were dropped for laundry before,
+        # so laundry never got stock status or the PDP re-price
+        if row.get("availability"): res["availability"] = row["availability"]
+        if row.get("unbeatable"): res["unbeatable"] = True
         if row.get("image"):      res["image"] = row["image"]
         if row.get("list_price"): res["old_price"] = row["list_price"]
         _sid = row.get("sku") or row.get("sku_id")
@@ -1187,6 +1235,23 @@ def run_plp(sites, scope_subs, headless=True, enrich_prices=False):
                     buf.append(_plp_row_to_result(row, key))
                     if len(buf) >= PUSH_EVERY: flush()
                 log(f"   public/{key} [laundry]: {len(rows)} (of ~{total})")
+            # ---- cooking department (keys are canonical subcategories) ----
+            for key, path in getattr(public_plp, "COOKING", {}).items():
+                if not in_scope(key):
+                    continue
+                log(f"[PLP] public/{key} -> cooking")
+                try:
+                    rows, total = public_plp.collect_all(
+                        path, cat_name=key, debug=False,
+                        spec_map=public_plp.COOKING_SPEC_MAP, dept="cooking")
+                    rows = public_plp.finish_cooking(rows, key)
+                except Exception as e:
+                    log(f"   ! public/{key} failed: {str(e)[:70]}"); continue
+                for row in rows:
+                    row["site"] = "public"
+                    buf.append(_plp_row_to_result(row, key))
+                    if len(buf) >= PUSH_EVERY: flush()
+                log(f"   public/{key} [cooking]: {len(rows)} (of ~{total})")
             flush()
 
         elif site == "kotsovolos":
@@ -1222,6 +1287,19 @@ def run_plp(sites, scope_subs, headless=True, enrich_prices=False):
                     buf.append(_plp_row_to_result(row, key))
                     if len(buf) >= PUSH_EVERY: flush()
                 log(f"   kotsovolos/{key} [laundry]: {len(rows)} (of ~{total})")
+            # ---- cooking (catIds + per-source filters live in the fetcher) ----
+            for key in getattr(kotsovolos_plp, "COOKING", {}):
+                if not in_scope(key):
+                    continue
+                log(f"[PLP] kotsovolos/{key} -> cooking")
+                try:
+                    rows, total = kotsovolos_plp.collect_cooking(session, key)
+                except Exception as e:
+                    log(f"   ! kotsovolos/{key} failed: {str(e)[:70]}"); continue
+                for row in rows:
+                    buf.append(_plp_row_to_result(row, key))
+                    if len(buf) >= PUSH_EVERY: flush()
+                log(f"   kotsovolos/{key} [cooking]: {len(rows)}")
             flush()
 
         elif site == "plaisio":
@@ -1266,6 +1344,20 @@ def run_plp(sites, scope_subs, headless=True, enrich_prices=False):
                         buf.append(_plp_row_to_result(row, key))
                         if len(buf) >= PUSH_EVERY: flush()
                     log(f"   plaisio/{key} [laundry]: {len(rows)} (of ~{total})")
+                # ---- cooking (landscape cards carry a labelled spec line) ----
+                for key, path in getattr(plaisio_plp, "COOKING", {}).items():
+                    if not in_scope(key):
+                        continue
+                    log(f"[PLP] plaisio/{key} -> cooking")
+                    try:
+                        rows, total = plaisio_plp.collect_category(pdriver, path, key, debug=False, dept="cooking")
+                        rows = [r for r in rows if plaisio_plp.cooking.keep(key, r)]
+                    except Exception as e:
+                        log(f"   ! plaisio/{key} failed: {str(e)[:70]}"); continue
+                    for row in rows:
+                        buf.append(_plp_row_to_result(row, key))
+                        if len(buf) >= PUSH_EVERY: flush()
+                    log(f"   plaisio/{key} [cooking]: {len(rows)} (of ~{total})")
             finally:
                 pdriver.quit()
             flush()

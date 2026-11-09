@@ -675,7 +675,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-07-13-B6</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-09-C1</span></div>
 </aside>
 
 <div class="shell">
@@ -684,6 +684,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
   <div class="dept-toggle" id="deptToggle">
     <button class="dept-pill on" data-dept="cooling"><span class="ico" data-ico="cooling"></span> Cooling</button>
     <button class="dept-pill" data-dept="laundry"><span class="ico" data-ico="laundry"></span> Laundry</button>
+    <button class="dept-pill" data-dept="cooking"><span class="ico" data-ico="cooking"></span> Cooking</button>
   </div>
   <div class="search"><input id="globalSearch" placeholder="Search products, brands, model codes…"></div>
   <div class="spacer"></div>
@@ -871,6 +872,84 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
         <div class="exp-insight" id="lexpInsight"></div>
         <div class="exp-results" id="lexpResults"></div>
       </div>
+    </div>
+  </section>
+
+  <!-- COOKING DEPARTMENT (parallel tab set; shown when state.dept==='cooking') -->
+  <section class="page" id="page-c-dashboard">
+    <div class="l-hero">
+      <div class="l-eyebrow">Cooking · Greece</div>
+      <h2 class="l-h1">Where your cooking brands stand</h2>
+      <p class="l-lede">Cookers, ovens, hobs, hoods and microwaves · Public · Kotsovolos · Plaisio</p>
+      <div class="l-statstrip" id="cookStatStrip"></div>
+    </div>
+    <div class="l-filters" id="cookingFilters"></div>
+    <div id="cookStand"></div>
+    <div class="l-pulse">
+      <h2>Market pulse</h2>
+      <p class="l-psub">The shape of the market right now.</p>
+      <div class="grid two-col">
+        <div class="card"><h3>Products per retailer</h3><div class="chart-box"><canvas id="cCoverageChart"></canvas></div></div>
+        <div class="card"><h3>Top brands by model count</h3><div class="chart-box"><canvas id="cBrandChart"></canvas></div></div>
+      </div>
+      <div class="grid two-col" style="margin-top:16px">
+        <div class="card"><h3>Price distribution</h3><div class="chart-box"><canvas id="cPriceChart"></canvas></div></div>
+        <div class="card"><h3>Energy class mix</h3><div class="chart-box"><canvas id="cEnergyChart"></canvas></div></div>
+      </div>
+      <div class="card" style="margin-top:16px"><h3>Availability by retailer</h3><div class="chart-box short"><canvas id="cAvailChart"></canvas></div></div>
+    </div>
+
+    <div class="grid two-col" style="margin-top:18px">
+      <div class="card">
+        <h3><span class="dot" style="background:var(--mint)"></span>Biggest drops</h3>
+        <div id="cMoversDown" class="mini-list"></div>
+      </div>
+      <div class="card">
+        <h3><span class="dot" style="background:var(--heat)"></span>Biggest rises</h3>
+        <div id="cMoversUp" class="mini-list"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:18px">
+      <h3><span class="dot" style="background:var(--heat)"></span>Promo pressure <span id="cppSummary" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span>
+        <select id="cppWindow" style="width:auto;margin-left:auto;padding:6px 10px"><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></h3>
+      <div class="grid two-col">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Brands discounting hardest — % of SKUs on promo (avg depth)</div><div class="chart-box"><canvas id="cppBrandChart"></canvas></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Discount depth distribution</div><div class="chart-box"><canvas id="cppDepthChart"></canvas></div></div>
+      </div>
+      <div class="grid two-col" style="margin-top:16px">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Promo intensity by retailer — % of SKUs on promo</div><div class="chart-box short"><canvas id="cppRetailerChart"></canvas></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Longest-running promos in the window</div><div id="cppLongest" class="mini-list"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="page-c-brands">
+    <h2 class="page-title">My Brands · Cooking</h2>
+    <p class="page-sub">Price parity and erosion for Whirlpool, Indesit, Hotpoint and Beko in cooking — per model, across the three retailers, by type.</p>
+    <div class="l-filters" id="cbType"></div>
+    <div class="grid metrics" id="cbMetrics"></div>
+    <div class="card" style="margin-top:18px">
+      <h3><span class="dot" style="background:var(--warn)"></span>Price spread by model <span id="cbScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin:-6px 0 14px">
+        Each row is one of your models. <span style="color:var(--mint);font-weight:600">Lowest</span> and
+        <span style="color:var(--heat);font-weight:600">highest</span> live prices are highlighted; a wide spread means a retailer is breaking price parity on your product.</p>
+      <div id="cbTable"></div>
+    </div>
+  </section>
+
+  <section class="page" id="page-c-segments">
+    <h2 class="page-title">Segments · Cooking</h2>
+    <p class="page-sub">Entry price by type and size tier. Who holds it, where you're present.</p>
+    <div id="csBody"></div>
+  </section>
+
+  <section class="page" id="page-c-products">
+    <h2 class="page-title">Products · Cooking</h2>
+    <p class="page-sub">Every tracked cooking SKU across the three retailers. Search by brand or model code; tap to open on the retailer.</p>
+    <div class="card">
+      <div class="toolbar" style="margin-bottom:10px"><input id="cpSearch" placeholder="Search brand or model code…" style="max-width:320px"></div>
+      <div style="overflow-x:auto" id="cpTable"></div>
     </div>
   </section>
 
@@ -1140,7 +1219,10 @@ function estMargin(price, srp){
   const cost = srp*(1-BRAND_SETTINGS.marginPct/100);
   return Math.round((price-cost)/price*100);
 }
-function isMyBrand(p){ const n=f.name(p).toUpperCase(); return MY_BRANDS.some(b=>n.includes(b)); }
+// Hotpoint counts as yours only in Cooking
+const MY_BRANDS_COOKING = [...MY_BRANDS, "HOTPOINT"];
+function myBrandsFor(dept){ return dept==="cooking" ? MY_BRANDS_COOKING : MY_BRANDS; }
+function isMyBrand(p){ const n=f.name(p).toUpperCase(); return (isCooking(p)?MY_BRANDS_COOKING:MY_BRANDS).some(b=>n.includes(b)); }
 function brandOf(name){ const n=(name||"").toUpperCase(); return MY_BRANDS.find(b=>n.includes(b)) || null; }
 /* Clearance / display / last-piece / refurbished items get phased out and are
    often discounted to clear stock, so they distort positioning and trigger
@@ -1190,9 +1272,12 @@ const FEATURE_MAP = [
 
 const SITE_LABEL = {kotsovolos:"Kotsovolos", public:"Public", plaisio:"Plaisio"};
 const SITE_PILL  = {kotsovolos:"site-k", public:"site-p", plaisio:"site-l"};
-const BRANDS = ["WHIRLPOOL","SAMSUNG","LG","BOSCH","SIEMENS","PITSOS","DELONGHI","DE LONGHI","AEG","BEKO","HISENSE","TOSHIBA","SHARP","CANDY","LIEBHERR","MIELE","INVENTOR","MORRIS","UNITED","CROWN","MIDEA","HAIER","TCL","DAVOLINE","ELECTROLUX","INDESIT","HOTPOINT","GORENJE","TEKA","FINLUX","PHILCO","FRANKE","NEFF","SMEG","BERTAZZONI","KENDRIX","OMNYS","PROFI COOK","PROFICOOK","LA SOMMELIERE","JURO PRO","JURO-PRO","ESKIMO","ROBIN","CARAD","TELEFUNKEN","NASCO","KARAMCO"];
+const BRANDS = ["WHIRLPOOL","SAMSUNG","LG","BOSCH","SIEMENS","PITSOS","DELONGHI","DE LONGHI","AEG","BEKO","HISENSE","TOSHIBA","SHARP","CANDY","LIEBHERR","MIELE","INVENTOR","MORRIS","UNITED","CROWN","MIDEA","HAIER","TCL","DAVOLINE","ELECTROLUX","INDESIT","HOTPOINT","GORENJE","TEKA","FINLUX","PHILCO","FRANKE","NEFF","SMEG","BERTAZZONI","KENDRIX","OMNYS","PROFI COOK","PROFICOOK","LA SOMMELIERE","JURO PRO","JURO-PRO","ESKIMO","ROBIN","CARAD","TELEFUNKEN","NASCO","KARAMCO",
+  // cooking-only brands (hoods, hobs, cookers, microwaves)
+  "ELICA","FABER","LA GERMANIA","PYRAMIS","CECOTEC","KÜPPERSBUSCH","KUPPERSBUSCH","HOOVER","BRANDT",
+  "ZANUSSI","SINGER","ROHNSON","IZZY","ESTIA"];
 
-let state = {products:[], laundry:[], history:[], alerts:[], srp:{}, demo:false, dept:"cooling"};
+let state = {products:[], laundry:[], cooking:[], history:[], alerts:[], srp:{}, demo:false, dept:"cooling"};
 let charts = {};
 
 /* Promo-pressure state: window (days) + per-product history stats from
@@ -1270,6 +1355,68 @@ function lauColorOf(p){
   const c = specVal(f.specs(p), ["Χρώμα","Color"]);
   return c ? colorFamily(c) : null;
 }
+/* ---- Cooking department: same separation as laundry. The runner tags rows
+   with __dept=cooking and stores canonical tokens (scraper/cooking.py), so
+   the values here are already normalised across the three retailers. ---- */
+const COOKING_CATS = new Set(["cooker", "oven", "hob", "hood", "microwave"]);
+const COOKING_TYPE_LABEL = {cooker:"Cooker", oven:"Built-in oven", hob:"Hob", hood:"Hood", microwave:"Microwave"};
+const COOK_HOB_LABEL = {induction:"Induction", ceramic:"Ceramic", gas:"Gas", mixed:"Mixed", enamel:"Solid plate"};
+const COOK_FUEL_LABEL = {electric:"Electric", gas:"Gas", mixed:"Mixed (gas + electric)"};
+const COOK_HOOD_LABEL = {chimney:"Chimney", "slide-out":"Slide-out", integrated:"Integrated", island:"Island",
+                         wall:"Wall", downdraft:"Downdraft", ceiling:"Ceiling"};
+const COOK_CLEAN_LABEL = {pyrolytic:"Pyrolytic", hydrolytic:"Hydrolytic", catalytic:"Catalytic", steam:"Steam", none:"None"};
+function isCooking(p){
+  if(COOKING_CATS.has(f.category(p))) return true;
+  const s = p.specs || {};
+  return s.__dept === "cooking";
+}
+function cookingNorm(p){
+  if(p.__cnorm) return p.__cnorm;
+  const s = f.specs(p) || {};
+  const g = k => s[k] || "";
+  let type = f.category(p);
+  if(!COOKING_CATS.has(type)) type = "oven";
+  return p.__cnorm = {
+    type,
+    typeLabel: COOKING_TYPE_LABEL[type] || "Cooking",
+    hob    : g("Τύπος εστίας"),
+    fuel   : g("Καύσιμο"),
+    lt     : lnum(g("Χωρητικότητα (lt)")),
+    zones  : lnum(g("Εστίες")),
+    clean  : g("Καθαρισμός") ? g("Καθαρισμός").split(",") : [],
+    hood   : g("Τύπος απορροφητήρα"),
+    airflow: lnum(g("Απορροφητικότητα (m3/h)")),
+    power  : lnum(g("Ισχύς (W)")),
+    install: g("Κατασκευή"),
+    grill  : g("Grill")==="yes",
+    width  : lnum(g("Πλάτος (cm)")),
+    energy : lEnergy(g("Ενεργειακή κλάση")),
+    dims   : g("Διαστάσεις"),
+  };
+}
+/* Cooking energy classes run A+++..G, so rank on letter then plusses */
+function cookEnergyRank(e){ if(!e) return 99; const i="ABCDEFG".indexOf(e[0]); return i<0?99:i*4-(e.length-1); }
+/* size tier used for comparability (segments, threats, filters) */
+const COOK_WIDTH_BANDS = [["le45","≤ 45 cm",0,47],["50","50 cm",47.1,54.9],["60","60 cm",55,64.9],
+                          ["70_80","70–80 cm",65,84.9],["90p","90 cm +",85,999]];
+const COOK_LT_BANDS = [["le30","≤ 30 L",0,30.9],["31_60","31–60 L",31,60.9],["61_70","61–70 L",61,70.9],
+                       ["71_75","71–75 L",71,75.9],["76p","76 L +",76,999]];
+function cookBand(bands, v){ if(v==null) return null; const b=bands.find(([,,lo,hi])=>v>=lo&&v<=hi); return b?b[0]:null; }
+function cookTier(n){
+  // the dimension that decides "is this rival comparable" per type
+  if(n.type==="oven" || n.type==="microwave") return (n.install||"")+":"+(cookBand(COOK_LT_BANDS, n.lt)||"?");
+  if(n.type==="hood") return (n.hood||"?")+":"+(cookBand(COOK_WIDTH_BANDS, n.width)||"?");
+  if(n.type==="hob") return (n.hob||"?")+":"+(cookBand(COOK_WIDTH_BANDS, n.width)||"?");
+  return (n.fuel||"?")+":"+(cookBand(COOK_WIDTH_BANDS, n.width)||"?");
+}
+function cookTierLabel(n){
+  const w = n.width ? Math.round(n.width)+" cm" : "";
+  if(n.type==="oven" || n.type==="microwave") return [n.lt?Math.round(n.lt)+" L":"", n.install==="built-in"?"built-in":""].filter(Boolean).join(" · ");
+  if(n.type==="hood") return [COOK_HOOD_LABEL[n.hood]||"", w].filter(Boolean).join(" · ");
+  if(n.type==="hob") return [COOK_HOB_LABEL[n.hob]||"", w].filter(Boolean).join(" · ");
+  return [COOK_FUEL_LABEL[n.fuel]||"", w].filter(Boolean).join(" · ");
+}
+
 /* tidy a scraped product name for display: trim trailing quotes/whitespace */
 function cleanName(s){ return String(s||"").replace(/^["'\s]+|["'\s]+$/g,"").trim() || "—"; }
 function num(v){ if(v==null) return null; const n=parseFloat(String(v).replace(/[^\d.,]/g,"").replace(/\.(?=\d{3})/g,"").replace(",",".")); return isNaN(n)?null:n; }
@@ -1488,7 +1635,8 @@ async function loadAll(){
     const raw = Array.isArray(products)?products:(products.products||[]);
     const _real = raw.filter(isRealProduct);
     state.laundry  = _real.filter(isLaundry);
-    state.products = _real.filter(p=>!isLaundry(p));
+    state.cooking  = _real.filter(isCooking);
+    state.products = _real.filter(p=>!isLaundry(p) && !isCooking(p));
     state.demo=false;
     document.getElementById("apiBanner").classList.remove("show");
     if(lb) lb.classList.remove("on");
@@ -1504,6 +1652,7 @@ async function loadAll(){
         safeRender("dealCount",updateDealCount);
         // history feeds the price-index sparklines on both dashboards
         safeRender("dashboard",renderDashboard); safeRender("l-dashboard",renderLDashboard);
+        safeRender("c-dashboard",renderCooking);
       }).catch(()=>{});
     // SRP/MAP policy layer (older backends without /api/srp: fail silently)
     api("/api/srp").then(rows=>{
@@ -1534,7 +1683,8 @@ async function _loadAll_old(){
     const raw = Array.isArray(products)?products:(products.products||[]);
     const _real = raw.filter(isRealProduct);
     state.laundry  = _real.filter(isLaundry);
-    state.products = _real.filter(p=>!isLaundry(p));
+    state.cooking  = _real.filter(isCooking);
+    state.products = _real.filter(p=>!isLaundry(p) && !isCooking(p));
     state.history  = Array.isArray(history)?history:(history.history||[]);
     state.alerts   = Array.isArray(alerts)?alerts:(alerts.alerts||[]);
     state.demo=false;
@@ -1576,10 +1726,18 @@ function lauFacetMatch(p, n){
 const LAUNDRY_TAB_SET = new Set(["dashboard","brands","segments","compare","products"]);
 // tabs with no laundry equivalent yet — hidden from nav while in laundry mode
 const LAUNDRY_HIDE_TABS = new Set(["mysku"]);
+/* per-department page variants: tabs listed in `tabs` render page-<prefix>-<tab>;
+   `hide` tabs have no equivalent in that department yet */
+const DEPT_PAGES = {
+  laundry: {prefix:"l", tabs:LAUNDRY_TAB_SET, hide:LAUNDRY_HIDE_TABS},
+  cooking: {prefix:"c", tabs:new Set(["dashboard","brands","segments","products"]), hide:new Set(["mysku","compare"])},
+};
+function deptHides(tab){ const d=DEPT_PAGES[state.dept]; return !!(d && d.hide.has(tab)); }
 
 function showTab(tab){
   document.querySelectorAll("#nav [data-page]").forEach(b=>b.classList.toggle("active", b.dataset.page===tab));
-  const id = (state.dept==="laundry" && LAUNDRY_TAB_SET.has(tab)) ? "page-l-"+tab : "page-"+tab;
+  const dp = DEPT_PAGES[state.dept];
+  const id = (dp && dp.tabs.has(tab)) ? "page-"+dp.prefix+"-"+tab : "page-"+tab;
   document.querySelectorAll(".page").forEach(pg=>pg.classList.toggle("visible", pg.id===id));
   const sb=document.getElementById("sidebar"); if(sb) sb.classList.remove("open");
   renderAll();
@@ -1587,10 +1745,9 @@ function showTab(tab){
 }
 
 function applyDeptNav(){
-  // hide nav items that have no laundry equivalent yet while in laundry mode
+  // hide nav items that have no equivalent yet in the current department
   document.querySelectorAll("#nav [data-page]").forEach(b=>{
-    const hide = state.dept==="laundry" && LAUNDRY_HIDE_TABS.has(b.dataset.page);
-    b.style.display = hide ? "none" : "";
+    b.style.display = deptHides(b.dataset.page) ? "none" : "";
   });
 }
 function setDept(d){
@@ -1600,7 +1757,7 @@ function setDept(d){
   // keep the user on the same tab, unless it doesn't exist in this dept -> Dashboard
   const active = document.querySelector("#nav [data-page].active");
   let tab = active ? active.dataset.page : "dashboard";
-  if(state.dept==="laundry" && LAUNDRY_HIDE_TABS.has(tab)) tab = "dashboard";
+  if(deptHides(tab)) tab = "dashboard";
   showTab(tab);
 }
 
@@ -1888,6 +2045,310 @@ function renderLProducts(){
   }</tbody></table><div style="color:var(--ink-soft);font-size:12px;margin-top:8px">${total} product${total!==1?'s':''}${total>400?" · showing cheapest 400, search to narrow":""}</div>`;
 }
 
+/* ===================== COOKING DEPARTMENT ===================== */
+/* One filter state shared by the cooking dashboard and Benchmark, like
+   laundryFilter. Type-specific facets reset when the type changes so no
+   hidden filter keeps narrowing the view. */
+const cookingFilter = { type:"any", brands:new Set(), retailer:"any", hob:"any", fuel:"any", width:"any",
+                        lt:"any", clean:"any", hood:"any", install:"any", energy:new Set(), colors:new Set(), mine:false };
+const COOK_TYPE_FACETS = ["hob","fuel","width","lt","clean","hood","install"];
+function cookFacetMatch(p, n){
+  const F = cookingFilter;
+  if(F.mine && !isMyBrand(p)) return false;
+  if(F.brands.size && !F.brands.has(cap(extractModel(f.name(p)).brand||""))) return false;
+  if(F.retailer!=="any" && f.site(p)!==F.retailer) return false;
+  if(F.energy.size && !(n.energy && F.energy.has(n.energy))) return false;
+  if(F.hob!=="any" && n.hob!==F.hob) return false;
+  if(F.fuel!=="any" && n.fuel!==F.fuel) return false;
+  if(F.width!=="any" && cookBand(COOK_WIDTH_BANDS, n.width)!==F.width) return false;
+  if(F.lt!=="any" && cookBand(COOK_LT_BANDS, n.lt)!==F.lt) return false;
+  if(F.clean!=="any" && !n.clean.includes(F.clean)) return false;
+  if(F.hood!=="any" && n.hood!==F.hood) return false;
+  if(F.install!=="any" && n.install!==F.install) return false;
+  if(F.colors.size){ const c=lauColorOf(p); if(!c || !F.colors.has(c)) return false; }
+  return true;
+}
+function cookSlice(){
+  const all = state.cooking||[], F = cookingFilter;
+  const typePool = F.type==="any" ? all : all.filter(p=>cookingNorm(p).type===F.type);
+  return {all, typePool, cset: typePool.filter(p=>cookFacetMatch(p, cookingNorm(p)))};
+}
+function cookTypeWord(){ const t=cookingFilter.type; return t==="any" ? "models" : (COOKING_TYPE_LABEL[t].toLowerCase()+"s"); }
+
+function cookSpecs(n){
+  const en = e => `<span class="lau-spec energy" style="background:${L_EC[e[0]]||'#94A3B8'}">${esc(e)}</span>`;
+  const sp = t => `<span class="lau-spec">${esc(t)}</span>`;
+  const out=[];
+  const cleanTxt = n.clean.filter(c=>c!=="none").map(c=>COOK_CLEAN_LABEL[c]||c).join("+");
+  if(n.type==="cooker"){
+    if(n.fuel) out.push(sp(COOK_FUEL_LABEL[n.fuel]?.split(" ")[0]||n.fuel));
+    if(n.hob && n.hob!==n.fuel) out.push(sp(COOK_HOB_LABEL[n.hob]||n.hob));
+    if(n.lt) out.push(sp(Math.round(n.lt)+" L"));
+    if(n.width) out.push(sp(Math.round(n.width)+" cm"));
+    if(cleanTxt) out.push(sp(cleanTxt));
+  } else if(n.type==="oven"){
+    if(n.lt) out.push(sp(Math.round(n.lt)+" L"));
+    if(cleanTxt) out.push(sp(cleanTxt));
+    if(n.width && Math.round(n.width)!==60 && Math.round(n.width)!==59) out.push(sp(Math.round(n.width)+" cm"));
+  } else if(n.type==="hob"){
+    if(n.hob) out.push(sp(COOK_HOB_LABEL[n.hob]||n.hob));
+    if(n.zones) out.push(sp(n.zones+" zones"));
+    if(n.width) out.push(sp(Math.round(n.width)+" cm"));
+  } else if(n.type==="hood"){
+    if(n.hood) out.push(sp(COOK_HOOD_LABEL[n.hood]||n.hood));
+    if(n.airflow) out.push(sp(Math.round(n.airflow)+" m³/h"));
+    if(n.width) out.push(sp(Math.round(n.width)+" cm"));
+  } else if(n.type==="microwave"){
+    if(n.lt) out.push(sp(Math.round(n.lt)+" L"));
+    if(n.power) out.push(sp(Math.round(n.power)+" W"));
+    if(n.grill) out.push(sp("Grill"));
+    if(n.install) out.push(`<span class="lau-spec load">${n.install==="built-in"?"Built-in":"Freestanding"}</span>`);
+  }
+  if(n.energy) out.push(en(n.energy));
+  return out.join("");
+}
+
+/* Cooking attribute bar — shared by the dashboard and Benchmark (cookingFilter).
+   Only the facets that apply to the selected type are shown. */
+function cookFilterBarHTML(all, typePool){
+  const F=cookingFilter, t=F.type;
+  const cnt=k=>all.filter(p=>cookingNorm(p).type===k).length;
+  const seg=(k,lbl)=>`<button class="${t===k?'on':''}" data-cook-type="${k}">${lbl}</button>`;
+  const sel=(id,cur,opts)=>`<select id="${id}">${opts.map(([v,l])=>`<option value="${v}" ${cur===v?'selected':''}>${l}</option>`).join("")}</select>`;
+  const present=key=>[...new Set(typePool.map(p=>cookingNorm(p)[key]).filter(Boolean))];
+  const labelled=(key,labels,anyTxt)=>[["any",anyTxt]].concat(Object.keys(labels).filter(k=>present(key).includes(k)).map(k=>[k,labels[k]]));
+  const show=types=>t==="any"||types.includes(t);
+  const parts=[];
+  parts.push(`<span class="df-lbl">Retailer</span>`+sel("cookRetailer",F.retailer,[["any","All retailers (best price)"]].concat(["kotsovolos","public","plaisio"].map(s=>[s,SITE_LABEL[s]]))));
+  if(show(["cooker"])) parts.push(sel("cookFuel",F.fuel,labelled("fuel",COOK_FUEL_LABEL,"Any fuel")));
+  if(show(["cooker","hob"])) parts.push(sel("cookHob",F.hob,labelled("hob",COOK_HOB_LABEL,"Any hob type")));
+  if(show(["hood"])) parts.push(sel("cookHood",F.hood,labelled("hood",COOK_HOOD_LABEL,"Any hood type")));
+  if(t!=="microwave") parts.push(sel("cookWidth",F.width,[["any","Any width"]].concat(COOK_WIDTH_BANDS.map(([k,l])=>[k,l]))));
+  if(show(["cooker","oven","microwave"])) parts.push(sel("cookLt",F.lt,[["any","Any capacity"]].concat(COOK_LT_BANDS.map(([k,l])=>[k,l]))));
+  if(show(["cooker","oven"])){
+    const cl=[...new Set(typePool.flatMap(p=>cookingNorm(p).clean))];
+    parts.push(sel("cookClean",F.clean,[["any","Any cleaning"]].concat(Object.keys(COOK_CLEAN_LABEL).filter(k=>cl.includes(k)).map(k=>[k,COOK_CLEAN_LABEL[k]]))));
+  }
+  if(show(["microwave"])) parts.push(sel("cookInstall",F.install,[["any","Built-in or freestanding"],["built-in","Built-in"],["freestanding","Freestanding"]]));
+  const energies=[...new Set(typePool.map(p=>cookingNorm(p).energy).filter(Boolean))].sort((a,b)=>cookEnergyRank(a)-cookEnergyRank(b));
+  const energyChips=energies.map(en=>`<span class="fchip ${F.energy.has(en)?'on':''}" data-cook-energy="${en}">${en}</span>`).join("");
+  const brandsPresent=[...new Set(typePool.map(p=>cap(extractModel(f.name(p)).brand||"")).filter(Boolean))].sort();
+  const brandChips=brandsPresent.map(b=>`<span class="fchip ${F.brands.has(b)?'on':''}" data-cook-brand="${esc(b)}">${esc(b)}</span>`).join("");
+  const colorsPresent=[...new Set(typePool.map(lauColorOf).filter(Boolean))].sort();
+  const colorChips=colorsPresent.map(c=>`<span class="fchip ${F.colors.has(c)?'on':''}" data-cook-color="${esc(c)}">${esc(c)}</span>`).join("");
+  const active=F.brands.size||F.retailer!=="any"||F.energy.size||F.colors.size||F.mine||COOK_TYPE_FACETS.some(k=>F[k]!=="any");
+  return `
+    <div class="l-seg">${seg("any","All")}${seg("cooker","Cookers · "+cnt("cooker"))}${seg("oven","Ovens · "+cnt("oven"))}${seg("hob","Hobs · "+cnt("hob"))}${seg("hood","Hoods · "+cnt("hood"))}${seg("microwave","Microwaves · "+cnt("microwave"))}</div>
+    <div class="dash-filters" style="margin:12px 0 0">
+      ${parts.join("\n      ")}
+      ${energyChips?`<span class="df-lbl">Energy</span><div class="df-chips">${energyChips}</div>`:""}
+      <span class="fchip ${F.mine?'on':''}" data-cook-mine="1">★ My brands</span>
+      ${active?`<button class="df-reset" id="cookReset">Clear</button>`:``}
+    </div>
+    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips||'<span class="df-lbl" style="text-transform:none">none in view</span>'}</div></div>
+    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`;
+}
+
+function renderCooking(){
+  const host = document.getElementById("cookStatStrip");
+  if(!host) return;
+  const setHTML=(id,html)=>{const el=document.getElementById(id); if(el) el.innerHTML=html;};
+  const {all, typePool, cset} = cookSlice();
+  if(all.length===0){
+    ["cookStatStrip","cookingFilters","cMoversDown","cMoversUp"].forEach(id=>setHTML(id,""));
+    setHTML("cookStand", `<div class="l-stand"><div class="badge">–</div><div class="txt"><div class="lbl">No data</div><div class="line">No cooking data yet. Run <code>py local_runner.py --plp</code> with the updated scraper files to pull the catalogue, then refresh.</div></div></div>`);
+    return;
+  }
+  const F = cookingFilter;
+  setHTML("cookingFilters", cookFilterBarHTML(all, typePool));
+  const priced = cset.map(f.price).filter(x=>x>0);
+  const avg = priced.length ? priced.reduce((a,b)=>a+b,0)/priced.length : 0;
+  const cpi = computePriceIndex(cset);
+  setHTML("cookStatStrip",`
+    <div class="l-stat"><div class="v">${cset.length}</div><div class="k">${F.type==="any"?"models tracked":COOKING_TYPE_LABEL[F.type]+"s"}</div></div>
+    <div class="l-stat"><div class="v mine">${cset.filter(isMyBrand).length}</div><div class="k">yours</div></div>
+    <div class="l-stat"><div class="v">${priced.length?fmt(avg):"–"}</div><div class="k">market average</div></div>
+    <div class="l-stat"><div class="v mine">${cpi?cpi.idx.toFixed(1):"–"}</div><div class="k">${cpi?`price index · ${cpi.nMine} yours vs ${cpi.nRivals} rivals · 100 = parity`:"price index — needs yours + rivals in view"}</div><canvas id="cpiSpark" style="width:100%;height:28px;display:block;margin-top:6px"></canvas></div>`);
+  drawSparkline("cpiSpark", cpi ? priceIndexSeries(cset, 30) : null);
+
+  const brows = benchDedupe(cset).sort((a,b)=>f.price(a.p)-f.price(b.p));
+  setHTML("cookStand", benchStandHTML(brows, cookTypeWord(), true));
+
+  const mv = computeMovers(state.history);
+  setHTML("cMoversDown", moverRowsHTML(mv.filter(m=>m.delta<0).slice(0,6)) || miniEmpty());
+  setHTML("cMoversUp",   moverRowsHTML(mv.filter(m=>m.delta>0).slice(0,6)) || miniEmpty());
+
+  if(typeof makeChart==="function"){
+    const cov={kotsovolos:0,public:0,plaisio:0};
+    cset.forEach(p=>{const s=f.site(p); if(s in cov)cov[s]++;});
+    if(cset.length) makeChart("cCoverageChart","bar",{labels:Object.keys(cov).map(s=>SITE_LABEL[s]||s),datasets:[{data:Object.values(cov),backgroundColor:["#FF6A3D","#0B6E6E","#0EA5B7"],borderRadius:8,maxBarThickness:60}]},{plugins:{legend:{display:false}}});
+    else emptyChart("cCoverageChart","No products in view");
+    const cb={}; cset.forEach(p=>{const b=cap(extractModel(f.name(p)).brand||"").trim(); if(b)cb[b]=(cb[b]||0)+1;});
+    const topB=Object.entries(cb).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    if(topB.length) makeChart("cBrandChart","bar",{labels:topB.map(b=>b[0]),datasets:[{data:topB.map(b=>b[1]),backgroundColor:"#0B6E6E",borderRadius:6,maxBarThickness:30}]},{indexAxis:"y",plugins:{legend:{display:false}}});
+    else emptyChart("cBrandChart","No brand data yet");
+    if(priced.length){
+      const bins=[0,150,250,350,500,700,1000,99999], labels=["<150","150-250","250-350","350-500","500-700","700-1k","1k+"];
+      const counts=labels.map(()=>0);
+      priced.forEach(v=>{ for(let i=0;i<bins.length-1;i++){ if(v>=bins[i]&&v<bins[i+1]){counts[i]++;break;} } });
+      makeChart("cPriceChart","bar",{labels,datasets:[{data:counts,backgroundColor:"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}}});
+    } else emptyChart("cPriceChart","No price data yet");
+    const enmix={}; cset.forEach(p=>{const e=cookingNorm(p).energy; if(e)enmix[e]=(enmix[e]||0)+1;});
+    const eL=Object.keys(enmix).sort((a,b)=>cookEnergyRank(a)-cookEnergyRank(b));
+    if(eL.length) makeChart("cEnergyChart","doughnut",{labels:eL,datasets:[{data:eL.map(x=>enmix[x]),backgroundColor:eL.map(x=>L_EC[x[0]]||"#94A3B8")}]},{plugins:{legend:{position:"right"}}});
+    else emptyChart("cEnergyChart","No energy data in view (microwaves carry none)");
+    const bk=["In stock","On order","Last pieces","Display","Out of stock","Unknown"];
+    const av={kotsovolos:[0,0,0,0,0,0],public:[0,0,0,0,0,0],plaisio:[0,0,0,0,0,0]};
+    cset.forEach(p=>{const s=f.site(p); if(!(s in av))return; const i=bk.indexOf(availBucket(f.avail(p))); if(i>=0)av[s][i]++;});
+    if(Object.values(av).some(a=>a.some(x=>x>0))){
+      const bc=["#10B981","#0B6E6E","#F59E0B","#A78BFA","#EF4444","#94A3B8"];
+      makeChart("cAvailChart","bar",{labels:["Kotsovolos","Public","Plaisio"],datasets:bk.map((b,i)=>({label:b,data:["kotsovolos","public","plaisio"].map(s=>av[s][i]),backgroundColor:bc[i]}))},{plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true}}});
+    } else emptyChart("cAvailChart","No availability data yet");
+  }
+  renderPromoSection("cpp", cset);
+}
+
+/* My Brands · Cooking — the laundry parity view with cooking's type segments
+   and the size/spec line under each model. */
+let cbFilter = { type:"any", brand:"ALL" };
+function renderCBrands(){
+  const host = document.getElementById("cbTable"); if(!host) return;
+  const all = (state.cooking||[]);
+  const cnt = t => all.filter(p=>cookingNorm(p).type===t).length;
+  const seg = (k,l)=>`<button class="${cbFilter.type===k?'on':''}" data-cb-type="${k}">${l}</button>`;
+  const pool = all.filter(p=> isMyBrand(p) && f.price(p)!=null && !isClearance(p)
+    && (cbFilter.type==="any" || cookingNorm(p).type===cbFilter.type));
+  const groups = {};
+  for(const p of pool){
+    const {code}=extractModel(f.name(p));
+    const key = code && code.length>=4 ? code : ("U:"+f.name(p).slice(0,24));
+    if(!groups[key]) groups[key]={code:key, brand:brandOf(f.name(p)), name:f.name(p), offers:{}, n:cookingNorm(p)};
+    const s=f.site(p), pr=f.price(p);
+    if(pr!=null && (groups[key].offers[s]==null || pr<groups[key].offers[s])) groups[key].offers[s]=pr;
+    if(!groups[key].brand) groups[key].brand=brandOf(f.name(p));
+  }
+  const allModels = Object.values(groups);
+  const counts = {ALL: allModels.length};
+  MY_BRANDS_COOKING.forEach(b=> counts[b]=allModels.filter(m=>(m.brand||"").toUpperCase().includes(b)).length);
+  const models = cbFilter.brand==="ALL" ? allModels : allModels.filter(m=>(m.brand||"").toUpperCase().includes(cbFilter.brand));
+  const tabs = [["ALL","All my brands"]].concat(MY_BRANDS_COOKING.map(b=>[b,cap(b)]))
+    .filter(([k])=>k==="ALL"||counts[k])
+    .map(([k,label])=>`<button class="brand-tab ${cbFilter.brand===k?'on':''}" data-cb-brand="${k}">${label}<span class="b-cnt">${counts[k]||0}</span></button>`).join("");
+  const tf = document.getElementById("cbType");
+  if(tf) tf.innerHTML = `<div class="l-seg">${seg("any","All")}${["cooker","oven","hob","hood","microwave"].map(k=>seg(k,COOKING_TYPE_LABEL[k]+"s · "+cnt(k))).join("")}</div>`
+    +`<div class="brand-tabs" style="margin:12px 0 0;width:100%">${tabs}</div>`;
+
+  const onMulti = models.filter(m=>Object.keys(m.offers).length>=2);
+  const spreads = onMulti.map(m=>{const v=Object.values(m.offers);return Math.max(...v)-Math.min(...v);});
+  const avgSpread = spreads.length? spreads.reduce((a,b)=>a+b,0)/spreads.length : 0;
+  const eroded = onMulti.filter(m=>{const v=Object.values(m.offers);const mx=Math.max(...v);return mx>0 && (mx-Math.min(...v))/mx>=0.10;}).length;
+  const srpLoaded = Object.keys(state.srp).length>0;
+  const srpCov = srpLoaded ? models.filter(m=>srpOf(m.code)).length : 0;
+  const mapBreaches = srpLoaded ? models.filter(m=>{
+    const s=srpOf(m.code); if(!s||!s.map) return false;
+    return Object.values(m.offers).some(x=>x!=null&&x<s.map-0.005);
+  }).length : 0;
+  const m1 = (label,val,foot,cls)=>`<div class="stat-card ${cls}"><div class="metric-value">${val}</div><div class="metric-label">${label}</div><div class="metric-foot">${foot}</div></div>`;
+  const mEl=document.getElementById("cbMetrics");
+  if(mEl) mEl.innerHTML =
+    m1("My models tracked", models.length, "across the 3 retailers","sc-blue")+
+    m1("On 2+ retailers", onMulti.length, "comparable for parity","sc-aqua")+
+    m1("Avg price spread", spreads.length?"€"+avgSpread.toFixed(0):"–", "lowest vs highest","sc-mint")+
+    m1("Parity breaks", eroded, "≥10% gap between retailers","sc-heat")+
+    m1("SRP coverage", srpLoaded?srpCov+"/"+models.length:"–", srpLoaded?"models with an SRP loaded":"import SRPs on the Export page","sc-blue")+
+    m1("MAP breaches", srpLoaded?mapBreaches:"–", srpLoaded?"retailer advertising below MAP":"activates with SRP/MAP import","sc-heat");
+  const sc = document.getElementById("cbScope");
+  if(sc) sc.textContent = "· " + (cbFilter.type==="any"?"all types":COOKING_TYPE_LABEL[cbFilter.type].toLowerCase()+"s")
+    + (cbFilter.brand!=="ALL" ? " · "+cap(cbFilter.brand) : "");
+  if(!models.length){
+    host.innerHTML = `<div class="empty" style="padding:40px">No ${cbFilter.brand==="ALL"?"":cap(cbFilter.brand)+" "}cooking models in this slice yet.<br><span style="font-size:12px;color:var(--ink-soft)">They'll appear once tracking includes Whirlpool / Indesit / Hotpoint / Beko cooking models.</span></div>`;
+    return;
+  }
+  const head = `<div class="bp-row head"><div>Model</div><div style="text-align:center">Kotsovolos</div><div style="text-align:center">Public</div><div style="text-align:center">Plaisio</div><div style="text-align:right">Spread</div></div>`;
+  const rows = models.sort((a,b)=>{
+    const va=Object.values(a.offers), vb=Object.values(b.offers);
+    const sa=va.length>1?Math.max(...va)-Math.min(...va):-1, sb=vb.length>1?Math.max(...vb)-Math.min(...vb):-1;
+    return sb-sa;
+  }).map(m=>{
+    const v=Object.values(m.offers); const lo=v.length?Math.min(...v):null, hi=v.length?Math.max(...v):null;
+    const sr=srpOf(m.code);
+    const cell=s=>{const x=m.offers[s]; if(x==null)return `<div class="bp-cell na">—</div>`;
+      const c=x===lo&&v.length>1?"low":(x===hi&&v.length>1?"high":"");
+      let sub="";
+      if(sr&&sr.srp){
+        const idx=x/sr.srp*100, breach=sr.map&&x<sr.map-0.005, mg=estMargin(x,sr.srp);
+        const col=breach?"var(--heat)":idx<90?"var(--warn)":"var(--ink-soft)";
+        sub=`<div style="font:600 10px 'JetBrains Mono';color:${col};margin-top:1px" title="SRP ${fmt(sr.srp)}${sr.map?' · MAP '+fmt(sr.map):''}${mg!=null?' · est. retailer margin now ≈ '+mg+'% (vs '+BRAND_SETTINGS.marginPct+'% at SRP)':''}">${idx.toFixed(0)}% SRP${breach?' ⚠':''}</div>`;
+      }
+      return `<div class="bp-cell ${c}">${fmt(x)}${sub}</div>`;};
+    const mapBreach = sr&&sr.map&&v.some(x=>x!=null&&x<sr.map-0.005);
+    let flag="", spread="";
+    if(v.length>1){ const sp=hi-lo, pct=hi>0?sp/hi:0; spread=`€${sp.toFixed(0)}`;
+      flag = pct>=0.10 ? '<span class="bp-flag erosion">parity break</span>'
+           : pct>=0.04 ? '<span class="bp-flag watch">watch</span>'
+           : '<span class="bp-flag parity">in parity</span>';
+    } else { spread="<span style='color:#CBD5E1;font-weight:400'>1 listing</span>"; }
+    if(mapBreach) flag = '<span class="bp-flag erosion">MAP breach</span> ' + flag;
+    const n=m.n;
+    const specLine=[COOKING_TYPE_LABEL[n.type]||"", cookTierLabel(n), n.energy||null].filter(Boolean).join(" · ");
+    return `<div class="bp-row">
+      <div class="bp-name"><b>${esc(cap(m.brand)||"")} ${esc(m.code.startsWith("U:")?short(m.name,26):m.code)}</b><span>${esc(specLine)}</span></div>
+      ${cell("kotsovolos")}${cell("public")}${cell("plaisio")}
+      <div class="bp-spread">${spread}<br>${flag}</div>
+    </div>`;
+  }).join("");
+  host.innerHTML = head+rows;
+}
+
+/* Segments · Cooking — entry price per size tier: width for cookers, hobs and
+   hoods; capacity for ovens and microwaves. */
+function renderCSegments(){
+  const host = document.getElementById("csBody"); if(!host) return;
+  const all = (state.cooking||[]).filter(p=>f.price(p)!=null);
+  if(!all.length){ host.innerHTML = `<div class="card" style="color:var(--ink-soft)">No cooking data yet. Run <code>py local_runner.py --plp</code>.</div>`; return; }
+  const types = [["cooker","Cookers","width"],["oven","Built-in ovens","lt"],["hob","Hobs","width"],["hood","Hoods","width"],["microwave","Microwaves","lt"]];
+  let html = "";
+  for(const [tk,tl,dim] of types){
+    const pool = all.filter(p=>cookingNorm(p).type===tk);
+    if(!pool.length) continue;
+    const bands = dim==="width" ? COOK_WIDTH_BANDS : COOK_LT_BANDS;
+    let rows = "";
+    for(const [bk,lbl] of bands){
+      const seg = pool.filter(p=>cookBand(bands, cookingNorm(p)[dim])===bk);
+      if(!seg.length) continue;
+      const sorted = seg.slice().sort((a,b)=>f.price(a)-f.price(b));
+      const {brand} = extractModel(f.name(sorted[0]));
+      const mineIn = seg.filter(isMyBrand);
+      const myMin = mineIn.length ? Math.min(...mineIn.map(f.price)) : null;
+      rows += `<tr><td><b>${lbl}</b></td><td>${seg.length}</td><td>${fmt(f.price(sorted[0]))}</td>
+        <td>${esc(cap(brand)||"—")}</td>
+        <td>${mineIn.length?`<span style="color:var(--cobalt);font-weight:600">${mineIn.length} ✓</span>`:'<span style="color:var(--ink-soft)">—</span>'}</td>
+        <td>${myMin!=null?fmt(myMin):"—"}</td></tr>`;
+    }
+    const unsized = pool.filter(p=>cookBand(bands, cookingNorm(p)[dim])==null).length;
+    if(rows) html += `<div class="card" style="margin-bottom:16px"><h3>${tl} <span style="font-weight:500;color:var(--ink-soft);font-size:13px">· ${pool.length} models${unsized?` · ${unsized} without a listed ${dim==="width"?"width":"capacity"}`:""}</span></h3>
+      <div style="overflow-x:auto"><table><thead><tr><th>${dim==="width"?"Width":"Capacity"}</th><th>Models</th><th>Entry €</th><th>Held by</th><th>Your brands</th><th>Your entry €</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+  host.innerHTML = html || `<div class="card">No segments to show.</div>`;
+}
+
+function renderCProducts(){
+  const host = document.getElementById("cpTable"); if(!host) return;
+  const q = (document.getElementById("cpSearch")?.value||"").toLowerCase().trim();
+  let rows = (state.cooking||[]).filter(p=>f.price(p)!=null);
+  if(q) rows = rows.filter(p=> f.name(p).toLowerCase().includes(q) || (extractModel(f.name(p)).brand||"").toLowerCase().includes(q));
+  const total = rows.length;
+  rows = rows.sort((a,b)=>f.price(a)-f.price(b)).slice(0,400);
+  host.innerHTML = `<table><thead><tr><th></th><th>Model</th><th>Type</th><th>Retailer</th><th>Key specs</th><th>Energy</th><th>Price</th></tr></thead><tbody>${
+    rows.map(p=>{ const n=cookingNorm(p); const {brand,code}=extractModel(f.name(p)); const url=f.url(p);
+      const nm = `${esc(cap(brand))} ${esc(short(code||f.name(p),22))}`;
+      return `<tr><td>${lauThumb(p).replace('lau-thumb','lp-thumb')}</td><td>${url?`<a class="rl" href="${esc(url)}" target="_blank" rel="noopener">${nm}</a>`:nm}${isMyBrand(p)?' <b style="color:var(--cobalt)">★</b>':''}</td>
+        <td>${esc(COOKING_TYPE_LABEL[n.type]||"")}</td><td>${SITE_LABEL[f.site(p)]||f.site(p)}</td>
+        <td>${esc(cookTierLabel(n)||"—")}</td><td>${esc(n.energy||"—")}</td><td><b>${fmtWas(p)}</b></td></tr>`;
+    }).join("")
+  }</tbody></table><div style="color:var(--ink-soft);font-size:12px;margin-top:8px">${total} product${total!==1?'s':''}${total>400?" · showing cheapest 400, search to narrow":""}</div>`;
+}
+
 function renderAll(){
   safeRender("freshness",renderFreshness);
   safeRender("ticker",renderTicker);
@@ -1898,6 +2359,18 @@ function renderAll(){
     safeRender("l-segments",renderLSegments);
     safeRender("l-compare",renderLCompare);
     safeRender("l-products",renderLProducts);
+    safeRender("history",renderHistory);
+    safeRender("alerts",renderAlerts);
+    safeRender("dealCount",updateDealCount);
+    safeRender("matches",renderMatches);
+    return;
+  }
+  if(state.dept==="cooking"){
+    safeRender("c-dashboard",renderCooking);
+    safeRender("benchmark",renderBenchmark);
+    safeRender("c-brands",renderCBrands);
+    safeRender("c-segments",renderCSegments);
+    safeRender("c-products",renderCProducts);
     safeRender("history",renderHistory);
     safeRender("alerts",renderAlerts);
     safeRender("dealCount",updateDealCount);
@@ -1925,7 +2398,7 @@ function renderFreshness(){
   const el=document.getElementById("freshBadge"); if(!el) return;
   if(state.demo){ el.innerHTML='<span class="fr fr-bad">DEMO DATA</span>'; return; }
   const per={};
-  for(const p of [...(state.products||[]), ...(state.laundry||[])]){
+  for(const p of [...(state.products||[]), ...(state.laundry||[]), ...(state.cooking||[])]){
     const s=f.site(p), t=p.scraped_at;
     if(t && (!per[s]||t>per[s])) per[s]=t;
   }
@@ -1958,12 +2431,11 @@ function renderTicker(){
 
 /* Compute real price movers from history: latest vs previous price per product. */
 function computeMovers(history){
-  const lau = state.dept==="laundry";
-  const lk = laundryKeySet();
+  const ks = deptKeySets();
   const byProd={};
   for(const h of history){
     const nm=h.product||h.name||"";
-    if(lau !== lk.has(histModelKey(nm))) continue;   // match current department
+    if(histDept(histModelKey(nm), ks) !== state.dept) continue;   // match current department
     const id=h.product_id ?? h.product ?? h.name; const pr=num(h.price); const t=h.scraped_at||h.date||"";
     if(id==null||pr==null) continue;
     if(isClearance({name:h.product||h.name||""})) continue;   // skip display/last-piece/outlet
@@ -2220,6 +2692,26 @@ const TECH_RULES_LAUNDRY = [
   ["Half load", /HALF ?LOAD|ΜΙΣΟ ?ΦΟΡΤ/],
   ["Silent", /SILENT|ΑΘΟΡΥΒ|ΣΙΩΠ/],
 ];
+/* cooking specs hold canonical English tokens (e.g. "induction", "pyrolytic"),
+   so these rules read both the tokens and the Greek/English product names */
+const TECH_RULES_COOKING = [
+  ["Induction", /INDUCTION|ΕΠΑΓΩΓ/],
+  ["Pyrolytic", /PYROLYTIC|PYRO|ΠΥΡΟΛ/],
+  ["Hydrolytic", /HYDROLYTIC|AQUA ?CLEAN|ΥΔΡΟΛ/],
+  ["Catalytic", /CATALYTIC|ΚΑΤΑΛΥΤ/],
+  ["Steam", /STEAM|ΑΤΜΟ|ΑΤΜΟΣ/],
+  ["Air fry", /AIR ?FRY|AIRFRY|ΧΩΡΙΣ ΛΑΔΙ/],
+  ["Grill", /GRILL|ΓΚΡΙΛ/],
+  ["WiFi", /WI-?FI\b|WIFI/],
+  ["Smart", /SMART|HOMEWHIZ|THINQ|SMARTTHINGS|HOME ?CONNECT|ΕΞΥΠΝ/],
+  ["Booster", /BOOST|POWER ?BOOST|ΤΑΧΕΙΑΣ ΘΕΡΜ/],
+  ["Flex zone", /FLEX ?ZONE|FLEXI|BRIDGE|COMBI ?ZONE/],
+  ["Hood-in-hob", /ΕΣΤΙΑ ΜΕ ΑΠΟΡΡΟΦ|VENTING|HOB ?HOOD/],
+  ["Telescopic rails", /TELESCOP|ΤΗΛΕΣΚΟΠ/],
+  ["Soft close", /SOFT ?CLOSE/],
+  ["Touch control", /TOUCH ?CONTROL|ΠΛΗΚΤΡΑ ΑΦΗΣ|ΑΦΗΣ/],
+  ["Child lock", /CHILD ?LOCK|ΚΛΕΙΔΩΜ/],
+];
 function techHay(p){
   const specs = f.specs(p) || {};
   const blob = f.name(p) + " " + Object.entries(specs).map(([k,v])=>k+" "+v).join(" ");
@@ -2227,7 +2719,7 @@ function techHay(p){
 }
 function deriveTech(p, dept){
   const H = techHay(p);
-  const rules = dept==="laundry" ? TECH_RULES_LAUNDRY : TECH_RULES_COOLING;
+  const rules = dept==="laundry" ? TECH_RULES_LAUNDRY : dept==="cooking" ? TECH_RULES_COOKING : TECH_RULES_COOLING;
   const out = [];
   for(const [label,re] of rules){ if(re.test(H)) out.push(label); }
   // honour the runner's explicit pillar fields where present
@@ -2306,6 +2798,23 @@ function benchDetailHTML(row, dept){
     add("Load type", n.loader==="top"?"Top-load":n.loader==="front"?"Front-load":"");
     add("Dimensions", n.dims);
     add("Colour", lauColorOf(p));
+  } else if(dept==="cooking"){
+    const n=cookingNorm(p);
+    add("Type", COOKING_TYPE_LABEL[n.type]||"");
+    add("Fuel", COOK_FUEL_LABEL[n.fuel]||"");
+    add("Hob type", COOK_HOB_LABEL[n.hob]||"");
+    add("Cooking zones", n.zones);
+    add("Oven capacity", n.lt?Math.round(n.lt)+" L":"");
+    add("Cleaning", n.clean.map(c=>COOK_CLEAN_LABEL[c]||c).join(", "));
+    add("Hood type", COOK_HOOD_LABEL[n.hood]||"");
+    add("Max airflow", n.airflow?Math.round(n.airflow)+" m³/h":"");
+    add("Power", n.power?Math.round(n.power)+" W":"");
+    add("Installation", n.install==="built-in"?"Built-in":n.install==="freestanding"?"Freestanding":"");
+    add("Grill", n.grill?"Yes":"");
+    add("Width", n.width?Math.round(n.width)+" cm":"");
+    add("Energy", n.energy);
+    add("Dimensions", n.dims);
+    add("Colour", lauColorOf(p));
   } else {
     const n=p.__norm||(p.__norm=normalize(p));
     add("Energy", n.energy);
@@ -2325,8 +2834,13 @@ function benchDetailHTML(row, dept){
   if(p.mpn) add("MPN", p.mpn);
   if(p.sku) add("Retailer SKU", p.sku);
   // every raw scraped spec that actually has a value (absence of data ≠ absence of the feature)
+  // cooking specs are canonical tokens already shown (translated) above
+  const shown = dept==="cooking" ? new Set(["Τύπος εστίας","Καύσιμο","Χωρητικότητα (lt)","Εστίες","Καθαρισμός",
+    "Τύπος απορροφητήρα","Απορροφητικότητα (m3/h)","Ισχύς (W)","Κατασκευή","Grill","Πλάτος (cm)",
+    "Ενεργειακή κλάση","Διαστάσεις","Χρώμα"]) : null;
   for(const [k,v] of Object.entries(specs)){
     if(k.startsWith("__")||k.startsWith("pillar_")) continue;
+    if(shown && shown.has(k)) continue;
     if(v==null||String(v).trim()==="") continue;
     if(kv.length>=40) break;
     kv.push([k, String(v)]);
@@ -2337,7 +2851,9 @@ function benchDetailHTML(row, dept){
 
 function benchRowHTML(row, i, dept){
   const p=row.p, mine=isMyBrand(p), {brand,code}=extractModel(f.name(p)), url=f.url(p);
-  const chips = dept==="laundry" ? lauSpecs(laundryNorm(p)) : coolSpecChips(p.__norm||(p.__norm=normalize(p)));
+  const chips = dept==="laundry" ? lauSpecs(laundryNorm(p))
+              : dept==="cooking" ? cookSpecs(cookingNorm(p))
+              : coolSpecChips(p.__norm||(p.__norm=normalize(p)));
   const tech = deriveTech(p, dept);
   const nm=`${esc(cap(brand)||"")} ${esc(short(code||f.name(p),26))}`;
   const nameHTML=url?`<a href="${esc(url)}" target="_blank" rel="noopener" title="Open on ${SITE_LABEL[f.site(p)]||f.site(p)}">${nm} <span class="rl-arrow">↗</span></a>`:nm;
@@ -2346,7 +2862,7 @@ function benchRowHTML(row, i, dept){
     : (SITE_LABEL[f.site(p)]||f.site(p));
   return `<div class="bench-item"><div class="lau-row ${mine?'mine':''}" data-bx="1">
     <div class="lau-rank">${i+1}</div>
-    ${lauThumbCell(p, dept==="laundry"?"t_drum":"e_snow")}
+    ${lauThumbCell(p, dept==="laundry"?"t_drum":dept==="cooking"?"cooking":"e_snow")}
     <div class="lau-body">
       <div class="lau-nm">${nameHTML}${mine?'<span class="lau-yours">YOURS</span>':''}</div>
       <div class="lau-specs">${chips}</div>
@@ -2392,12 +2908,24 @@ function lauFilterBarHTML(all, typePool){
 function renderBenchmark(){
   const host=document.getElementById("benchBody"); if(!host) return;
   const setHTML=(id,html)=>{const el=document.getElementById(id); if(el) el.innerHTML=html;};
-  const lau = state.dept==="laundry";
+  const lau = state.dept==="laundry", cook = state.dept==="cooking";
   const title=document.getElementById("benchTitle");
-  if(title) title.textContent = lau ? "Benchmark · Laundry" : "Benchmark · Cooling";
+  if(title) title.textContent = lau ? "Benchmark · Laundry" : cook ? "Benchmark · Cooking" : "Benchmark · Cooling";
 
   let rows, dedup, typeWord, barHTML;
-  if(lau){
+  if(cook){
+    const {all, typePool, cset} = cookSlice();
+    if(!all.length){
+      ["benchFilters","benchStand","benchSummary"].forEach(id=>setHTML(id,""));
+      host.innerHTML=`<div style="padding:40px 16px;text-align:center;color:var(--ink-soft);font:600 14px 'Hanken Grotesk'">No cooking data yet. Run <code>py local_runner.py --plp</code>, then refresh.</div>`;
+      return;
+    }
+    barHTML = cookFilterBarHTML(all, typePool);
+    dedup = cookingFilter.retailer==="any";
+    rows = dedup ? benchDedupe(cset)
+                 : cset.filter(p=>f.price(p)!=null).map(p=>({p, others:[], groupSize:1}));
+    typeWord = cookTypeWord();
+  } else if(lau){
     const all=(state.laundry||[]);
     if(!all.length){
       ["benchFilters","benchStand","benchSummary"].forEach(id=>setHTML(id,""));
@@ -2448,7 +2976,7 @@ function renderBenchmark(){
   const mineN=rows.filter(r=>isMyBrand(r.p)).length;
   setHTML("benchStand", benchStandHTML(rows, typeWord, false));
   setHTML("benchSummary", `${rows.length} ${dedup?"models · best price across retailers":"listings"} · ${mineN} yours`);
-  host.innerHTML = (rows.slice(0,200).map((r,i)=>benchRowHTML(r,i,lau?"laundry":"cooling")).join("")
+  host.innerHTML = (rows.slice(0,200).map((r,i)=>benchRowHTML(r,i,state.dept)).join("")
     + (rows.length>200?`<div style="text-align:center;padding:10px;font-size:12px;color:var(--ink-soft)">+${rows.length-200} more — tighten a filter</div>`:""))
     || `<div style="padding:30px;text-align:center;color:var(--ink-soft)">No models match — clear a filter.</div>`;
 }
@@ -3112,15 +3640,20 @@ let histState = { brand:"all", q:"", mode:"retailer", picks:[] };  // picks = ar
 /* group history rows by model key, keeping per-retailer + per-day prices */
 function histModelKey(name){ const {brand,code}=extractModel(name); return (brand||"?")+":"+(code||name.slice(0,20)); }
 function laundryKeySet(){ return new Set((state.laundry||[]).map(p=>histModelKey(f.name(p)))); }
+/* history rows carry only a product name, so the department is resolved by
+   model key against each department's catalogue */
+function deptKeySets(){
+  return {laundry: laundryKeySet(), cooking: new Set((state.cooking||[]).map(p=>histModelKey(f.name(p))))};
+}
+function histDept(key, ks){ return ks.cooking.has(key) ? "cooking" : ks.laundry.has(key) ? "laundry" : "cooling"; }
 function buildHistoryModels(){
-  const lau = state.dept==="laundry";
-  const lk = laundryKeySet();
+  const ks = deptKeySets();
   const models={};
   state.history.forEach(h=>{
     const name=h.product||h.name||h.product_name; if(!name) return;
     const pr=num(h.price); if(pr==null) return;
     const key=histModelKey(name);
-    if(lau !== lk.has(key)) return;   // laundry view -> laundry only; cooling -> exclude laundry
+    if(histDept(key, ks) !== state.dept) return;   // each department sees only its own models
     const site=normSite(h.site||h.source);
     const day=(h.scraped_at||h.date||"").slice(0,10); if(!day) return;
     const m=models[key]||(models[key]={key, name, brand:extractModel(name).brand||"", code:extractModel(name).code||"", sites:{}, byDay:{}});
@@ -3350,10 +3883,55 @@ function computeLaundryThreats(){
    advertised price below the model's MAP; without a MAP, only deep erosion
    (>10% under SRP, matching the parity-break threshold) is flagged so normal
    street pricing under RRP doesn't spam the list. */
+/* Cooking threats: same type and comparable tier (fuel/hob/hood type + width,
+   or install + capacity for ovens and microwaves), priced at/below one of
+   your models. A disruption is cheaper AND not worse on energy or capacity
+   (litres, or airflow for hoods) AND strictly better on one of them. */
+function computeCookingThreats(){
+  const PW=0.25;
+  const all=(state.cooking||[]).filter(p=>f.price(p)!=null);
+  const norm=p=>{const n=cookingNorm(p); return {p,n,type:n.type,tier:cookTier(n),
+    cap:(n.type==="hood"?n.airflow:n.lt), e:cookEnergyRank(n.energy)};};
+  const mine=all.filter(isMyBrand).map(norm);
+  const rivals=all.filter(p=>!isMyBrand(p)).map(norm);
+  const threats=[];
+  for(const me of mine){
+    const myPrice=f.price(me.p), floor=myPrice*(1-PW);
+    const capTol = me.type==="hood" ? 40 : 2;   // m³/h vs litres
+    for(const r of rivals){
+      if(f.url(r.p)===f.url(me.p)) continue;
+      if(r.type!==me.type || r.tier!==me.tier) continue;
+      const rp=f.price(r.p);
+      if(rp==null || rp>myPrice) continue;
+      if(rp < myPrice*0.35) continue;
+      const haveE=(me.n.energy && r.n.energy);
+      const worseClass=(haveE && r.e>me.e);
+      if(worseClass && rp<floor) continue;
+      const betterClass=(haveE && r.e<me.e);
+      const moreCap=(me.cap!=null && r.cap!=null && r.cap>me.cap+capTol);
+      const classNotWorse=!haveE || r.e<=me.e;
+      const capNotWorse=!(me.cap!=null && r.cap!=null) || r.cap>=me.cap-capTol;
+      let sev="standard", score=(myPrice-rp);
+      if(classNotWorse && capNotWorse && (betterClass||moreCap)){
+        sev="high"; score += 1000 + (betterClass?(me.e-r.e)*30:0) + (moreCap?(r.cap-me.cap):0);
+      }
+      threats.push({
+        mine:f.name(me.p), myPrice, mySite:f.site(me.p), myE:me.n.energy, myType:me.type,
+        tier:cookTierLabel(me.n), width:me.n.width, capUnit:(me.type==="hood"?"m³/h":"L"),
+        myCap:me.cap, rivalCap:r.cap, moreLitres:moreCap,
+        rival:f.name(r.p), rivalPrice:rp, rivalSite:f.site(r.p), rivalE:r.n.energy,
+        gap:+(myPrice-rp).toFixed(2), betterClass, sev, score,
+        key:f.url(me.p)+"|"+f.url(r.p),
+      });
+    }
+  }
+  return threats.sort((a,b)=>b.score-a.score);
+}
+
 function computeMapViolations(){
   if(!Object.keys(state.srp).length) return [];
   const out=[];
-  const pool=[...state.products, ...(state.laundry||[])]
+  const pool=[...state.products, ...(state.laundry||[]), ...(state.cooking||[])]
     .filter(p=>isMyBrand(p) && f.price(p)!=null && !isClearance(p));
   for(const p of pool){
     const {code}=extractModel(f.name(p));
@@ -3369,9 +3947,9 @@ function computeMapViolations(){
 }
 
 function renderAlerts(){
-  const lau = state.dept==="laundry";
+  const lau = state.dept==="laundry", cook = state.dept==="cooking";
   const showAll = (document.getElementById("alertShowAll")||{}).checked;
-  const threats = lau ? computeLaundryThreats() : computeThreats();
+  const threats = lau ? computeLaundryThreats() : cook ? computeCookingThreats() : computeThreats();
   // group: my product -> rival model -> {offers per retailer, edge}
   const byMine = {};
   for(const t of threats){
@@ -3379,7 +3957,7 @@ function renderAlerts(){
     const rk=rivalModelKey(t.rival);
     byMine[mk]=byMine[mk]||{mine:t.mine,myPrice:t.myPrice,mySite:t.mySite,myE:t.myE,
                             width:t.width,height:t.height,cat:t.cat,install:t.install,
-                            myKg:t.myKg,myType:t.myType,tier:t.tier,rivals:{}};
+                            myKg:t.myKg,myType:t.myType,tier:t.tier,capUnit:t.capUnit||"L",rivals:{}};
     const g=byMine[mk].rivals;
     if(!g[rk]) g[rk]={name:t.rival,offers:[],betterClass:false,moreLitres:false,moreKg:false,bestPrice:Infinity,rivalE:t.rivalE,capGain:0,kgGain:0,isDisruption:false};
     g[rk].offers.push({site:t.rivalSite,price:t.rivalPrice});
@@ -3405,15 +3983,17 @@ function renderAlerts(){
     if(!shown.length) return null;
     const dim = lau
       ? `${grp.myKg?grp.myKg+"kg":"?"}${grp.tier&&grp.tier!=="?"?" · "+grp.tier+" tier":""}`
+      : cook ? (grp.tier||"?")
       : `${grp.width?Math.round(grp.width)+"cm":"?"} × ${grp.height?(grp.height>200?">2m":Math.round(grp.height)+"cm"):"?"}`;
     const seg = lau
       ? (LAUNDRY_TYPE_LABEL[grp.myType]||"Laundry")
+      : cook ? (COOKING_TYPE_LABEL[grp.myType]||"Cooking")
       : `${SUBCAT_LABEL[grp.cat]||grp.cat||""}${grp.install==="builtin"?" · Built-in":" · Free-standing"}`;
     const rivalHtml = shown.map(r=>{
       const edge=[];
       if(r.betterClass) edge.push(`<span class="ab-edge">better class</span> (${r.rivalE} vs ${grp.myE})`);
       if(lau && r.moreKg) edge.push(`<span class="ab-edge">+${r.kgGain}kg</span>`);
-      if(!lau && r.moreLitres) edge.push(`<span class="ab-edge">+${r.capGain}L</span>`);
+      if(!lau && r.moreLitres) edge.push(`<span class="ab-edge">+${r.capGain}${cook&&grp.capUnit!=="L"?" "+grp.capUnit:"L"}</span>`);
       const stores=r.offers.map(o=>`${SITE_LABEL[o.site]||o.site} ${fmt(o.price)}`).join(" · ");
       return `<div class="ab-rival ${r.disruption?'disrupt':''}">
         <div class="ab-rival-main"><b>${esc(short(r.name,40))}</b> ${edge.length?`<span class="ab-edges">${edge.join(" · ")}</span>`:""}</div>
@@ -3480,7 +4060,7 @@ function applyTheme(t){
   // apply class immediately (button text set once DOM is ready)
   document.documentElement.dataset.theme = saved==="dark" ? "dark" : "";
 })();
-const ICONS={'benchmark':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"11\" width=\"5.4\" height=\"10\" rx=\"1.6\"/><rect class=\"body\" x=\"9.3\" y=\"6.5\" width=\"5.4\" height=\"14.5\" rx=\"1.6\"/><rect class=\"body\" x=\"15.6\" y=\"14\" width=\"5.4\" height=\"7\" rx=\"1.6\"/><circle class=\"acc\" cx=\"12\" cy=\"3.4\" r=\"2\"/></svg>",'dashboard':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"8\" height=\"8\" rx=\"2\"/><rect class=\"body\" x=\"13\" y=\"3\" width=\"8\" height=\"5\" rx=\"2\"/><rect class=\"body\" x=\"13\" y=\"10.5\" width=\"8\" height=\"10.5\" rx=\"2\"/><rect class=\"body\" x=\"3\" y=\"13\" width=\"8\" height=\"8\" rx=\"2\"/></svg>",'brands':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M3.5 12.6V5.6a2 2 0 0 1 2-2h7l8.4 8.4a1 1 0 0 1 0 1.4l-6.6 6.6a1 1 0 0 1-1.4 0z\"/><circle class=\"detf\" cx=\"8.2\" cy=\"8.2\" r=\"1.7\"/></svg>",'segments':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><circle class=\"body\" cx=\"12\" cy=\"12\" r=\"9\"/><path class=\"det\" d=\"M12 4v8h8\"/></svg>",'compare':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"4\" width=\"7\" height=\"16\" rx=\"2\"/><rect class=\"acc\" x=\"14\" y=\"9\" width=\"7\" height=\"11\" rx=\"2\"/></svg>",'mysku':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M12 2.6l2.7 5.5 6 .9-4.3 4.2 1 6L12 18.4 6.6 21.2l1-6L3.3 11l6-.9z\"/></svg>",'products':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2.6\"/><path class=\"det\" d=\"M7 8h10M7 12h10M7 16h6\"/></svg>",'history':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2.6\"/><path class=\"det\" d=\"M6.5 14.5l3.2-3.2 2.6 2.6 5.2-6\"/></svg>",'alerts':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M6 9a6 6 0 0 1 12 0c0 6 2.4 8 2.4 8H3.6S6 15 6 9\"/><path class=\"det\" d=\"M10.2 20.4a2 2 0 0 0 3.6 0\"/><circle class=\"acc\" cx=\"17.6\" cy=\"6\" r=\"2.7\"/></svg>",'exports':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"13\" width=\"18\" height=\"8\" rx=\"2.2\"/><path class=\"bodys\" d=\"M12 3.5v8M9 9l3 3 3-3\"/></svg>",'about':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><circle class=\"body\" cx=\"12\" cy=\"12\" r=\"9\"/><circle class=\"detf\" cx=\"12\" cy=\"8.3\" r=\"1.35\"/><path class=\"det\" d=\"M12 11.4v5.2\"/></svg>",'cooling':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"6\" y=\"2.5\" width=\"12\" height=\"19\" rx=\"2.8\"/><path class=\"det\" d=\"M6.5 9.6h11M9 5.2v1.9M9 12.2v2.6\"/></svg>",'laundry':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>",'deal':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"acc\" d=\"M13 2.4L4.4 13.6H11l-1 8 8.6-11.2H12z\"/></svg>",'e_snow':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"6\" y=\"2.5\" width=\"12\" height=\"19\" rx=\"2.8\"/><path class=\"det\" d=\"M6.5 9.6h11M9 5.2v1.9M9 12.2v2.6\"/></svg>",'e_drum':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>",'t_drum':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>"};
+const ICONS={'benchmark':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"11\" width=\"5.4\" height=\"10\" rx=\"1.6\"/><rect class=\"body\" x=\"9.3\" y=\"6.5\" width=\"5.4\" height=\"14.5\" rx=\"1.6\"/><rect class=\"body\" x=\"15.6\" y=\"14\" width=\"5.4\" height=\"7\" rx=\"1.6\"/><circle class=\"acc\" cx=\"12\" cy=\"3.4\" r=\"2\"/></svg>",'dashboard':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"8\" height=\"8\" rx=\"2\"/><rect class=\"body\" x=\"13\" y=\"3\" width=\"8\" height=\"5\" rx=\"2\"/><rect class=\"body\" x=\"13\" y=\"10.5\" width=\"8\" height=\"10.5\" rx=\"2\"/><rect class=\"body\" x=\"3\" y=\"13\" width=\"8\" height=\"8\" rx=\"2\"/></svg>",'brands':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M3.5 12.6V5.6a2 2 0 0 1 2-2h7l8.4 8.4a1 1 0 0 1 0 1.4l-6.6 6.6a1 1 0 0 1-1.4 0z\"/><circle class=\"detf\" cx=\"8.2\" cy=\"8.2\" r=\"1.7\"/></svg>",'segments':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><circle class=\"body\" cx=\"12\" cy=\"12\" r=\"9\"/><path class=\"det\" d=\"M12 4v8h8\"/></svg>",'compare':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"4\" width=\"7\" height=\"16\" rx=\"2\"/><rect class=\"acc\" x=\"14\" y=\"9\" width=\"7\" height=\"11\" rx=\"2\"/></svg>",'mysku':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M12 2.6l2.7 5.5 6 .9-4.3 4.2 1 6L12 18.4 6.6 21.2l1-6L3.3 11l6-.9z\"/></svg>",'products':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2.6\"/><path class=\"det\" d=\"M7 8h10M7 12h10M7 16h6\"/></svg>",'history':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2.6\"/><path class=\"det\" d=\"M6.5 14.5l3.2-3.2 2.6 2.6 5.2-6\"/></svg>",'alerts':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M6 9a6 6 0 0 1 12 0c0 6 2.4 8 2.4 8H3.6S6 15 6 9\"/><path class=\"det\" d=\"M10.2 20.4a2 2 0 0 0 3.6 0\"/><circle class=\"acc\" cx=\"17.6\" cy=\"6\" r=\"2.7\"/></svg>",'exports':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"13\" width=\"18\" height=\"8\" rx=\"2.2\"/><path class=\"bodys\" d=\"M12 3.5v8M9 9l3 3 3-3\"/></svg>",'about':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><circle class=\"body\" cx=\"12\" cy=\"12\" r=\"9\"/><circle class=\"detf\" cx=\"12\" cy=\"8.3\" r=\"1.35\"/><path class=\"det\" d=\"M12 11.4v5.2\"/></svg>",'cooling':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"6\" y=\"2.5\" width=\"12\" height=\"19\" rx=\"2.8\"/><path class=\"det\" d=\"M6.5 9.6h11M9 5.2v1.9M9 12.2v2.6\"/></svg>",'laundry':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>",'deal':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"acc\" d=\"M13 2.4L4.4 13.6H11l-1 8 8.6-11.2H12z\"/></svg>",'e_snow':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"6\" y=\"2.5\" width=\"12\" height=\"19\" rx=\"2.8\"/><path class=\"det\" d=\"M6.5 9.6h11M9 5.2v1.9M9 12.2v2.6\"/></svg>",'e_drum':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>",'t_drum':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>",'cooking':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><path class=\"det\" d=\"M4.5 8.2h15\"/><circle class=\"detf\" cx=\"8.2\" cy=\"5.6\" r=\"1.1\"/><circle class=\"detf\" cx=\"11.8\" cy=\"5.6\" r=\"1.1\"/><rect class=\"det\" x=\"7.4\" y=\"11.4\" width=\"9.2\" height=\"6.4\" rx=\"1.3\"/></svg>"};
 function paintIcons(r){(r||document).querySelectorAll("[data-ico]").forEach(e=>{if(ICONS[e.dataset.ico])e.innerHTML=ICONS[e.dataset.ico];});}
 document.addEventListener("DOMContentLoaded",()=>{
   paintIcons();
@@ -3886,6 +4466,11 @@ on("lbType","click",e=>{
   const t=e.target.closest("[data-lb-brand]"); if(t){ lbFilter.brand=t.dataset.lbBrand; return renderLBrands(); }
 });
 on("lpSearch","input",()=>renderLProducts());
+on("cbType","click",e=>{
+  const b=e.target.closest("[data-cb-type]"); if(b){ cbFilter.type=b.dataset.cbType; return renderCBrands(); }
+  const t=e.target.closest("[data-cb-brand]"); if(t){ cbFilter.brand=t.dataset.cbBrand; return renderCBrands(); }
+});
+on("cpSearch","input",()=>renderCProducts());
 /* Attribute-bar handlers — ONE set, bound to both the Benchmark bar and the
    laundry dashboard bar. Laundry controls mutate laundryFilter and refresh
    the laundry dashboard + benchmark; cooling controls mutate the shared
@@ -3893,7 +4478,18 @@ on("lpSearch","input",()=>renderLProducts());
    made anywhere is applied everywhere that shows the same state. */
 function _lauRefresh(){ safeRender("l-dashboard",renderLaundry); safeRender("benchmark",renderBenchmark); }
 function _coolRefresh(){ safeRender("dashboard",renderDashboard); safeRender("benchmark",renderBenchmark); }
+function _cookRefresh(){ safeRender("c-dashboard",renderCooking); safeRender("benchmark",renderBenchmark); }
+function _toggle(set, v){ set.has(v)?set.delete(v):set.add(v); }
 function _attrBarClick(e){
+  // cooking controls
+  const ct=e.target.closest("[data-cook-type]");
+  if(ct){ cookingFilter.type=ct.dataset.cookType; COOK_TYPE_FACETS.forEach(k=>cookingFilter[k]="any"); cookingFilter.energy.clear(); return _cookRefresh(); }
+  const ce=e.target.closest("[data-cook-energy]"); if(ce){ _toggle(cookingFilter.energy, ce.dataset.cookEnergy); return _cookRefresh(); }
+  const cbr=e.target.closest("[data-cook-brand]"); if(cbr){ _toggle(cookingFilter.brands, cbr.dataset.cookBrand); return _cookRefresh(); }
+  const cco=e.target.closest("[data-cook-color]"); if(cco){ _toggle(cookingFilter.colors, cco.dataset.cookColor); return _cookRefresh(); }
+  if(e.target.closest("[data-cook-mine]")){ cookingFilter.mine=!cookingFilter.mine; return _cookRefresh(); }
+  if(e.target.id==="cookReset"){ COOK_TYPE_FACETS.forEach(k=>cookingFilter[k]="any"); cookingFilter.retailer="any";
+    cookingFilter.brands.clear(); cookingFilter.energy.clear(); cookingFilter.colors.clear(); cookingFilter.mine=false; return _cookRefresh(); }
   // laundry controls
   const t=e.target.closest("[data-lau-type]"); if(t){ laundryFilter.type=t.dataset.lauType; return _lauRefresh(); }
   const en=e.target.closest("[data-lau-energy]"); if(en){ const v=en.dataset.lauEnergy; laundryFilter.energy.has(v)?laundryFilter.energy.delete(v):laundryFilter.energy.add(v); return _lauRefresh(); }
@@ -3912,14 +4508,17 @@ function _attrBarClick(e){
   }
   if(e.target.id==="benchReset"){ dashFilter.sub="any";dashFilter.retailer="any";dashFilter.cap="any";dashFilter.width="any";dashFilter.height="any";dashFilter.energy.clear();dashFilter.brands.clear(); return _coolRefresh(); }
 }
+const COOK_SELECTS = {cookRetailer:"retailer", cookFuel:"fuel", cookHob:"hob", cookHood:"hood",
+                      cookWidth:"width", cookLt:"lt", cookClean:"clean", cookInstall:"install"};
 function _attrBarChange(e){
+  if(COOK_SELECTS[e.target.id]){ cookingFilter[COOK_SELECTS[e.target.id]]=e.target.value; return _cookRefresh(); }
   if(e.target.id==="lauRetailer"){ laundryFilter.retailer=e.target.value; return _lauRefresh(); }
   if(e.target.id==="lauKg"){ laundryFilter.kg=e.target.value; return _lauRefresh(); }
   if(e.target.id==="lauRpm"){ laundryFilter.rpm=e.target.value; return _lauRefresh(); }
   if(e.target.id==="lauLoader"){ laundryFilter.loader=e.target.value; return _lauRefresh(); }
   const sel=e.target.closest("select[data-bd]"); if(sel){ dashFilter[sel.dataset.bd]=sel.value; return _coolRefresh(); }
 }
-["benchFilters","laundryFilters"].forEach(id=>{
+["benchFilters","laundryFilters","cookingFilters"].forEach(id=>{
   const el=document.getElementById(id); if(!el) return;
   el.addEventListener("click", _attrBarClick);
   el.addEventListener("change", _attrBarChange);
@@ -3941,6 +4540,11 @@ on("menuToggle","click",()=>{
 });
 /* global search jumps to Explore and filters there */
 on("globalSearch","input",e=>{
+  // cooking has no explorer yet: search its Products table instead
+  if(state.dept==="cooking"){
+    const box=document.getElementById("cpSearch"); if(box) box.value=e.target.value||"";
+    showTab("products"); return;
+  }
   expFilters.q=(e.target.value||"").toUpperCase();
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.page==="compare"));
   document.querySelectorAll(".page").forEach(p=>p.classList.toggle("visible",p.id==="page-compare"));
@@ -4006,6 +4610,7 @@ on("alertShowAll","change",renderAlerts);
 /* promo window selectors (both departments share the window) */
 on("ppWindow","change",e=>{ promoWin=+e.target.value||30; loadPromoStats(); });
 on("lppWindow","change",e=>{ promoWin=+e.target.value||30; loadPromoStats(); });
+on("cppWindow","change",e=>{ promoWin=+e.target.value||30; loadPromoStats(); });
 on("dashFilters","change",e=>{
   const sel=e.target.closest("select[data-dash]"); if(!sel)return;
   dashFilter[sel.dataset.dash]=sel.value; renderDashboard();
@@ -4179,7 +4784,7 @@ function parseSrpCsv(text){
 }
 function _catalogueCodes(){
   const set=new Set();
-  for(const p of [...state.products, ...(state.laundry||[])]){
+  for(const p of [...state.products, ...(state.laundry||[]), ...(state.cooking||[])]){
     const c=normCode(extractModel(f.name(p)).code);
     if(c && c.length>=4) set.add(c);
   }
@@ -4262,7 +4867,7 @@ function renderMatches(){
     `<button class="chip ${matchFilter===k?'on':''}" data-mchip="${k}">${l}<span class="cnt">${counts[k]||0}</span></button>`).join("");
 
   const byId={};
-  [...state.products, ...(state.laundry||[])].forEach(p=>{ byId[String(f.id(p))]=p; });
+  [...state.products, ...(state.laundry||[]), ...(state.cooking||[])].forEach(p=>{ byId[String(f.id(p))]=p; });
   const groups=(matchData.groups||[]).filter(g=>g.status===matchFilter);
   host.innerHTML = groups.slice(0,60).map(g=>{
     // collapse same-site-SKU twins in the display (a URL-change duplicate is
