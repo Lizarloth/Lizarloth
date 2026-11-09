@@ -33,7 +33,7 @@ COOKING_COLS = ["site", "category", "department", "sku_id", "brand", "name",
                 "price", "list_price", "energy", "hob_type", "fuel", "oven_lt",
                 "zones", "cleaning", "hood_type", "airflow", "power_w",
                 "install", "grill", "width_cm", "color", "dimensions",
-                "image", "url"]
+                "tech_tags", "program_tags", "image", "url"]
 
 
 def fold(s):

@@ -26,6 +26,7 @@ import requests
 
 import cooking
 import dishwashing
+import features
 
 API = "https://www.kotsovolos.gr/api/ext/getProductsByCategory"
 SITE_BASE = "https://www.kotsovolos.gr/"
@@ -354,6 +355,8 @@ def parse_entry(entry, cat_name, dept="cooling"):
         "image": img,
         "url": url,
     }
+    # technology + program tags from the flags/free-text attributes (all departments)
+    base.update(features.extract(attrs_all, dept))
 
     if dept == "cooking":
         g = _g

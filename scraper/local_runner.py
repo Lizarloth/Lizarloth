@@ -1028,6 +1028,17 @@ _DEPT_SPEC_LABELS = {
 
 
 def _plp_row_to_result(row, canonical_subcat):
+    """Fetcher row -> backend result, plus the technology / program tags
+    (scraper/features.py) for any department that carries them. Stored as
+    hidden __tech / __progs specs ("A|B|C") the dashboard turns into chips."""
+    res = _plp_row_to_result_core(row, canonical_subcat)
+    for key, spec in (("tech_tags", "__tech"), ("program_tags", "__progs")):
+        if row.get(key):
+            res["specs"][spec] = row[key]
+    return res
+
+
+def _plp_row_to_result_core(row, canonical_subcat):
     """Map a standalone-fetcher row into the backend result schema. Flat spec
     fields become a specs{} dict (Greek labels). Laundry rows carry kg/rpm/
     programs/etc. and are tagged department=laundry so the dashboard keeps them

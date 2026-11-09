@@ -32,7 +32,7 @@ DISH_SUBCATS = ("dw_free_60", "dw_free_45", "dw_bi_60", "dw_bi_45", "dw_compact"
 DISH_COLS = ["site", "category", "department", "sku_id", "brand", "name",
              "price", "list_price", "install", "integration", "settings",
              "width_cm", "energy", "noise_db", "programs", "wifi", "half_load",
-             "autodose", "color", "dimensions", "image", "url"]
+             "autodose", "color", "dimensions", "tech_tags", "program_tags", "image", "url"]
 
 _YES = re.compile(r"ΔΙΑΘΕΤ|ΥΠΟΣΤΗΡΙΖ|^ΝΑΙ|YES|WIFI|WI-FI|BLUETOOTH")
 _NO = re.compile(r"ΔΕΝ |ΔΕ ΔΙΑΘ|^ΟΧΙ|^NO\b")

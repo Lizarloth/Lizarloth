@@ -385,6 +385,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 /* technology chips (derived per SKU) */
 .tech-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
 .tech-chip{font:600 10.5px 'Hanken Grotesk';color:var(--cobalt);background:var(--cobalt-soft);border:1px solid var(--line);border-radius:6px;padding:2px 7px;white-space:nowrap}
+.tech-chip.prog{color:var(--teal);background:var(--teal-soft)}   /* programs, set apart from technologies */
 
 /* Match review */
 .mr-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
@@ -745,7 +746,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-10-V1</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-10-T1</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 
@@ -1851,7 +1852,7 @@ async function _loadAll_old(){
 function safeRender(name, fn){ try{ fn(); }catch(err){ console.error("Render failed:", name, err); } }
 
 /* ===================== LAUNDRY DEPARTMENT ===================== */
-const laundryFilter = { type:"any", brands:new Set(), retailer:"any", energy:new Set(), kg:"any", rpm:"any", loader:"any", colors:new Set(), mine:false };
+const laundryFilter = { type:"any", brands:new Set(), retailer:"any", energy:new Set(), kg:"any", rpm:"any", loader:"any", colors:new Set(), mine:false, tech:new Set() };
 
 /* Laundry facet test against laundryFilter — module-level so the Benchmark
    page reuses the exact same slice logic the dashboard ladder used. */
@@ -1865,6 +1866,7 @@ function lauFacetMatch(p, n){
   if(F.rpm!=="any"){ const [lo,hi]=_LRPM[F.rpm]; if(n.rpm==null||n.rpm<lo||n.rpm>hi) return false; }
   if(F.loader!=="any" && n.loader!==F.loader) return false;
   if(F.colors.size){ const c=lauColorOf(p); if(!c || !F.colors.has(c)) return false; }
+  if(!techMatch(p, "laundry", F)) return false;
   return true;
 }
 
@@ -2201,7 +2203,7 @@ function renderLProducts(){
    laundryFilter. Type-specific facets reset when the type changes so no
    hidden filter keeps narrowing the view. */
 const cookingFilter = { type:"any", brands:new Set(), retailer:"any", hob:"any", fuel:"any", width:"any",
-                        lt:"any", clean:"any", hood:"any", install:"any", energy:new Set(), colors:new Set(), mine:false };
+                        lt:"any", clean:"any", hood:"any", install:"any", energy:new Set(), colors:new Set(), mine:false, tech:new Set() };
 const COOK_TYPE_FACETS = ["hob","fuel","width","lt","clean","hood","install"];
 function cookFacetMatch(p, n){
   const F = cookingFilter;
@@ -2217,6 +2219,7 @@ function cookFacetMatch(p, n){
   if(F.hood!=="any" && n.hood!==F.hood) return false;
   if(F.install!=="any" && n.install!==F.install) return false;
   if(F.colors.size){ const c=lauColorOf(p); if(!c || !F.colors.has(c)) return false; }
+  if(!techMatch(p, "cooking", F)) return false;
   return true;
 }
 function cookSlice(){
@@ -2287,7 +2290,7 @@ function cookFilterBarHTML(all, typePool){
   const brandChips=brandsPresent.map(b=>`<span class="fchip ${F.brands.has(b)?'on':''}" data-cook-brand="${esc(b)}">${esc(b)}</span>`).join("");
   const colorsPresent=[...new Set(typePool.map(lauColorOf).filter(Boolean))].sort();
   const colorChips=colorsPresent.map(c=>`<span class="fchip ${F.colors.has(c)?'on':''}" data-cook-color="${esc(c)}">${esc(c)}</span>`).join("");
-  const active=F.brands.size||F.retailer!=="any"||F.energy.size||F.colors.size||F.mine||COOK_TYPE_FACETS.some(k=>F[k]!=="any");
+  const active=F.brands.size||F.retailer!=="any"||F.energy.size||F.colors.size||F.mine||F.tech.size||COOK_TYPE_FACETS.some(k=>F[k]!=="any");
   return `
     <div class="l-seg">${seg("any","All")}${seg("cooker","Cookers · "+cnt("cooker"))}${seg("oven","Ovens · "+cnt("oven"))}${seg("hob","Hobs · "+cnt("hob"))}${seg("hood","Hoods · "+cnt("hood"))}${seg("microwave","Microwaves · "+cnt("microwave"))}</div>
     <div class="dash-filters" style="margin:12px 0 0">
@@ -2296,9 +2299,9 @@ function cookFilterBarHTML(all, typePool){
       <span class="fchip ${F.mine?'on':''}" data-cook-mine="1">★ My brands</span>
       ${active?`<button class="df-reset" id="cookReset">Clear</button>`:``}
     </div>
-    ${moreFiltersHTML("lau", F.brands.size+F.colors.size,
+    ${moreFiltersHTML("cook", F.brands.size+F.colors.size,
       `<div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips||'<span class="df-lbl" style="text-transform:none">none in view</span>'}</div></div>
-      <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`)}`;
+      <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`, typePool)}`;
 }
 
 /* ===================== DISHWASHING DEPARTMENT =====================
@@ -2334,7 +2337,7 @@ function dishTierLabel(n){
   return [n.settings?n.settings+" settings":"", DISH_INTEG_LABEL[n.integration]||"", n.noise?n.noise+" dB":""].filter(Boolean).join(" · ");
 }
 const dishFilter = { type:"any", brands:new Set(), retailer:"any", settings:"any", integration:"any", noise:"any",
-                     energy:new Set(), colors:new Set(), mine:false, wifi:false };
+                     energy:new Set(), colors:new Set(), mine:false, wifi:false, tech:new Set() };
 function dishFacetMatch(p, n){
   const F = dishFilter;
   if(F.mine && !isMyBrand(p)) return false;
@@ -2346,6 +2349,7 @@ function dishFacetMatch(p, n){
   if(F.noise!=="any" && cookBand(DISH_NOISE_BANDS, n.noise)!==F.noise) return false;
   if(F.wifi && !n.wifi) return false;
   if(F.colors.size){ const c=lauColorOf(p); if(!c || !F.colors.has(c)) return false; }
+  if(!techMatch(p, "dishwashing", F)) return false;
   return true;
 }
 function dishSpecs(n){
@@ -2377,7 +2381,7 @@ function dishFilterBarHTML(all, typePool){
   const brandChips=brandsPresent.map(b=>`<span class="fchip ${F.brands.has(b)?'on':''}" data-dish-brand="${esc(b)}">${esc(b)}</span>`).join("");
   const colorsPresent=[...new Set(typePool.map(lauColorOf).filter(Boolean))].sort();
   const colorChips=colorsPresent.map(c=>`<span class="fchip ${F.colors.has(c)?'on':''}" data-dish-color="${esc(c)}">${esc(c)}</span>`).join("");
-  const active=F.brands.size||F.retailer!=="any"||F.settings!=="any"||F.integration!=="any"||F.noise!=="any"||F.energy.size||F.colors.size||F.mine||F.wifi;
+  const active=F.brands.size||F.retailer!=="any"||F.settings!=="any"||F.integration!=="any"||F.noise!=="any"||F.energy.size||F.colors.size||F.mine||F.wifi||F.tech.size;
   return `
     <div class="l-seg">${seg("any","All")}${["dw_free_60","dw_free_45","dw_bi_60","dw_bi_45","dw_compact"].map(k=>seg(k,DISH_TYPE_LABEL[k]+" · "+cnt(k))).join("")}</div>
     <div class="dash-filters" style="margin:12px 0 0">
@@ -2387,9 +2391,9 @@ function dishFilterBarHTML(all, typePool){
       <span class="fchip ${F.mine?'on':''}" data-dish-mine="1">★ My brands</span>
       ${active?`<button class="df-reset" id="dishReset">Clear</button>`:``}
     </div>
-    ${moreFiltersHTML("cook", F.brands.size+F.colors.size,
+    ${moreFiltersHTML("dish", F.brands.size+F.colors.size,
       `<div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips||'<span class="df-lbl" style="text-transform:none">none in view</span>'}</div></div>
-      <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`)}`;
+      <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`, typePool)}`;
 }
 /* Dishwasher threats: same type and place-settings band, priced at/below one
    of your models; a disruption is cheaper, not worse on energy or settings,
@@ -3041,17 +3045,45 @@ const TECH_RULES_DISH = [
   ["Auto-dose", /ΑΥΤΟΜΑΤΗ ΔΟΣΟΛΟΓ|AUTO ?DOS|AUTODOS/],
   ["Half load", /ΜΙΣΟ ΦΟΡΤΙΟ|HALF ?LOAD|ΜΙΣΗΣ ΠΛΥΣΗΣ/],
   ["Auto-open drying", /AUTO ?OPEN|AUTODOOR|EXTRA ?DRY|ΑΥΤΟΜΑΤΟ ΑΝΟΙΓΜΑ/],
-  ["Zeolite", /ZEOLITH|ZEOLITE|ΖΕΟΛΙΘ/],
+  ["Zeolite drying", /ZEOLITH|ZEOLITE|ΖΕΟΛΙΘ/],
   ["Third rack", /3RD ?RACK|THIRD ?RACK|CUTLERY ?TRAY|ΣΥΡΤΑΡΙ ΜΑΧΑΙΡΟΠ|3Ο ?ΚΑΛΑΘΙ|3 ΚΑΛΑΘΙΑ/],
   ["Steam", /STEAM|ΑΤΜΟ/],
   ["Inverter", /INVERTER|ΙΝΒΕΡΤΕΡ/],
-  ["Aqua stop", /AQUA ?STOP|AQUASTOP/],
+  ["Aqua Stop", /AQUA ?STOP|AQUASTOP/],
 ];
 function techHay(p){
   const specs = f.specs(p) || {};
   const blob = f.name(p) + " " + Object.entries(specs).map(([k,v])=>k+" "+v).join(" ");
   return blob.toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
 }
+/* Retailer-supplied technology / program tags (runner: scraper/features.py,
+   stored as __tech / __progs "A|B"). Only Kotsovolos ships them, so a
+   product also inherits the tags of the same model code at the other
+   retailers in its department. */
+const _TAG_INDEX = new WeakMap();
+function _tagIndex(list){
+  let ix = _TAG_INDEX.get(list);
+  if(ix && ix.n===list.length) return ix;
+  ix = {n:list.length, tech:new Map(), progs:new Map()};
+  for(const p of list){
+    const s=f.specs(p)||{}; const code=normCode(extractModel(f.name(p)).code);
+    if(!code || code.length<4) continue;
+    for(const [k,m] of [["__tech",ix.tech],["__progs",ix.progs]]){
+      if(!s[k]) continue;
+      const set=m.get(code)||new Set(); s[k].split("|").filter(Boolean).forEach(t=>set.add(t)); m.set(code,set);
+    }
+  }
+  _TAG_INDEX.set(list, ix);
+  return ix;
+}
+function deptListOf(dept){ return {cooling:state.products, laundry:state.laundry, cooking:state.cooking, dishwashing:state.dishwashing}[dept] || []; }
+function retailerTags(p, dept, kind){
+  const own = ((f.specs(p)||{})[kind==="tech"?"__tech":"__progs"]||"").split("|").filter(Boolean);
+  const code = normCode(extractModel(f.name(p)).code);
+  const sib = code && code.length>=4 ? (_tagIndex(deptListOf(dept))[kind].get(code)||[]) : [];
+  return [...new Set([...own, ...sib])];
+}
+function derivePrograms(p, dept){ return retailerTags(p, dept, "progs"); }
 function deriveTech(p, dept){
   const H = techHay(p);
   const rules = dept==="laundry" ? TECH_RULES_LAUNDRY : dept==="cooking" ? TECH_RULES_COOKING
@@ -3062,6 +3094,9 @@ function deriveTech(p, dept){
   const s = f.specs(p) || {};
   if(s.pillar_water_supply && !out.includes("Water dispenser")) out.push(s.pillar_water_supply);
   if(s.pillar_dispenser==="Water + Ice"){ if(!out.includes("Water dispenser")) out.push("Water dispenser"); if(!out.includes("Ice maker")) out.push("Ice maker"); }
+  // retailer tags (own + same model elsewhere), de-duplicated case-insensitively
+  const seen = new Set(out.map(t=>t.toLowerCase()));
+  for(const t of retailerTags(p, dept, "tech")){ if(!seen.has(t.toLowerCase())){ seen.add(t.toLowerCase()); out.push(t); } }
   return [...new Set(out)];
 }
 function techChipsHTML(list){ return list.map(t=>`<span class="tech-chip">${esc(t)}</span>`).join(""); }
@@ -3112,6 +3147,10 @@ function benchDetailHTML(row, dept){
   if(tech.length){
     secs.push(`<div class="bd-sec"><div class="bd-k">Technologies</div><div class="tech-row">${techChipsHTML(tech)}</div></div>`);
   }
+  const progs=derivePrograms(p, dept);
+  if(progs.length){
+    secs.push(`<div class="bd-sec"><div class="bd-k">Programs</div><div class="tech-row">${progs.map(t=>`<span class="tech-chip prog">${esc(t)}</span>`).join("")}</div></div>`);
+  }
   if(row.others && row.others.length){
     const offers=[row.p, ...row.others].map(x=>({s:SITE_LABEL[f.site(x)]||f.site(x), v:f.price(x)})).sort((a,b)=>a.v-b.v);
     const spread=offers[offers.length-1].v-offers[0].v;
@@ -3129,7 +3168,7 @@ function benchDetailHTML(row, dept){
     add("Spin", n.rpm?n.rpm+" rpm":"");
     add("Energy", n.energy);
     add("Dry energy", n.dry_energy);
-    add("Programs", n.programs);
+    add("Number of programs", n.programs);
     add("Heat pump", n.heat_pump);
     add("Load type", n.loader==="top"?"Top-load":n.loader==="front"?"Front-load":"");
     add("Dimensions", n.dims);
@@ -3159,7 +3198,7 @@ function benchDetailHTML(row, dept){
     add("Width", n.width?Math.round(n.width)+" cm":"");
     add("Energy", n.energy);
     add("Noise", n.noise?n.noise+" dB":"");
-    add("Programs", n.programs);
+    add("Number of programs", n.programs);
     add("WiFi", n.wifi?"Yes":"");
     add("Half load", n.half?"Yes":"");
     add("Auto-dosing", n.autodose?"Yes":"");
@@ -3229,9 +3268,31 @@ function benchRowHTML(row, i, dept){
    numbers aren't pushed below the fold. Bars re-render on every click, so the
    open/closed state is remembered per bar. */
 const MF_OPEN = new Set();
-function moreFiltersHTML(key, nActive, inner){
+/* which department + filter state each bar's Technology row belongs to */
+function techFilterFor(key){
+  return {lau:["laundry",laundryFilter], cook:["cooking",cookingFilter], dish:["dishwashing",dishFilter],
+          coolbench:["cooling",dashFilter], cooldash:["cooling",dashFilter]}[key];
+}
+/* product must have every selected technology */
+function techMatch(p, dept, F){
+  if(!F.tech || !F.tech.size) return true;
+  const have = new Set(deriveTech(p, dept).map(t=>t.toLowerCase()));
+  for(const t of F.tech) if(!have.has(t.toLowerCase())) return false;
+  return true;
+}
+function techRowHTML(pool, dept, F){
+  const freq = new Map();
+  for(const p of pool) for(const t of deriveTech(p, dept)) freq.set(t, (freq.get(t)||0)+1);
+  for(const t of F.tech) if(!freq.has(t)) freq.set(t, 0);   // keep selected chips visible
+  const chips = [...freq.entries()].sort((a,b)=>b[1]-a[1]).slice(0,36)
+    .map(([t,n])=>`<span class="fchip ${F.tech.has(t)?'on':''}" data-tech="${esc(t)}" title="${n} in view">${esc(t)}</span>`).join("");
+  return `<div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Technology</span><div class="df-chips">${chips||'<span class="df-lbl" style="text-transform:none">none captured yet</span>'}</div></div>`;
+}
+function moreFiltersHTML(key, nActive, inner, pool){
+  const [dept, F] = techFilterFor(key);
+  const n = nActive + F.tech.size;
   return `<details class="more-filters" data-mf="${key}" ${MF_OPEN.has(key)?"open":""}>
-    <summary>More filters · brands, colour${nActive?` <span class="mf-n">${nActive}</span>`:""}</summary>${inner}</details>`;
+    <summary>More filters · brands, colour, technology${n?` <span class="mf-n">${n}</span>`:""}</summary>${inner}${techRowHTML(pool||deptListOf(dept), dept, F)}</details>`;
 }
 document.addEventListener("toggle", e=>{
   const d=e.target; if(!(d instanceof HTMLElement) || !d.dataset || !d.dataset.mf) return;
@@ -3254,7 +3315,7 @@ function lauFilterBarHTML(all, typePool){
   const energyChips=["A","B","C","D","E","F","G"].map(en=>`<span class="fchip ${F.energy.has(en)?'on':''}" data-lau-energy="${en}">${en}</span>`).join("");
   const colorsPresent=[...new Set(typePool.map(lauColorOf).filter(Boolean))].sort();
   const colorChips=colorsPresent.map(c=>`<span class="fchip ${F.colors.has(c)?'on':''}" data-lau-color="${esc(c)}">${esc(c)}</span>`).join("");
-  const active=F.brands.size||F.retailer!=="any"||F.energy.size||F.kg!=="any"||F.rpm!=="any"||F.loader!=="any"||F.colors.size||F.mine;
+  const active=F.brands.size||F.retailer!=="any"||F.energy.size||F.kg!=="any"||F.rpm!=="any"||F.loader!=="any"||F.colors.size||F.mine||F.tech.size;
   return `
     <div class="l-seg">${seg("any","All")}${seg("washing_machine","Washers · "+cnt("washing_machine"))}${seg("washer_dryer","Washer-dryers · "+cnt("washer_dryer"))}${seg("dryer","Dryers · "+cnt("dryer"))}</div>
     <div class="dash-filters" style="margin:12px 0 0">
@@ -3266,9 +3327,9 @@ function lauFilterBarHTML(all, typePool){
       <span class="fchip ${F.mine?'on':''}" data-lau-mine="1">★ My brands</span>
       ${active?`<button class="df-reset" id="lauReset">Clear</button>`:``}
     </div>
-    ${moreFiltersHTML("dish", F.brands.size+F.colors.size,
+    ${moreFiltersHTML("lau", F.brands.size+F.colors.size,
       `<div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips||'<span class="df-lbl" style="text-transform:none">none in view</span>'}</div></div>
-      <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`)}`;
+      <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`, typePool)}`;
 }
 
 function renderBenchmark(){
@@ -3319,7 +3380,7 @@ function renderBenchmark(){
     const mineOn=MY_BRANDS.every(b=>D.brands.has(cap(b)));
     const mineChip=`<span class="fchip ${mineOn?'on':''}" data-bbrand="__mine">★ My brands</span>`;
     const brandChips=brandsPresent.map(b=>`<span class="fchip ${D.brands.has(b)?'on':''}" data-bbrand="${esc(b)}">${esc(b)}</span>`).join("");
-    const active=D.sub!=="any"||D.retailer!=="any"||D.energy.size||D.width!=="any"||D.height!=="any"||D.cap!=="any"||D.brands.size;
+    const active=D.sub!=="any"||D.retailer!=="any"||D.energy.size||D.width!=="any"||D.height!=="any"||D.cap!=="any"||D.brands.size||D.tech.size;
     barHTML=`
     <div class="dash-filters" style="margin:0">
       <span class="df-lbl">Filter</span>
@@ -3332,7 +3393,7 @@ function renderBenchmark(){
       ${mineChip}
       ${active?'<button class="df-reset" id="benchReset">Clear</button>':''}
     </div>
-    ${moreFiltersHTML("coolbench", D.brands.size, `<div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips}</div></div>`)}`;
+    ${moreFiltersHTML("coolbench", D.brands.size, `<div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips}</div></div>`, state.products)}`;
     const list=state.products.filter(dashMatch);   // same slice logic as the dashboard
     dedup = D.retailer==="any";
     rows = dedup ? benchDedupe(list)
@@ -3349,7 +3410,7 @@ function renderBenchmark(){
     || `<div style="padding:30px;text-align:center;color:var(--ink-soft)">No models match — clear a filter.</div>`;
 }
 
-const dashFilter = { sub:"any", retailer:"any", cap:"any", energy:new Set(), width:"any", height:"any", color:new Set(), colorMode:"include", trim:"off", brands:new Set() };
+const dashFilter = { sub:"any", retailer:"any", cap:"any", energy:new Set(), width:"any", height:"any", color:new Set(), colorMode:"include", trim:"off", brands:new Set(), tech:new Set() };
 function renderDashFilters(){
   const el=document.getElementById("dashFilters"); if(!el) return;
   const subsPresent=[...new Set(state.products.map(categorize))];
@@ -3368,7 +3429,7 @@ function renderDashFilters(){
   const energyChips=["A","B","C","D","E","F","G"].map(e=>`<span class="fchip ${dashFilter.energy.has(e)?'on':''}" data-dchip="${e}">${e}</span>`).join("");
   const colorsPresent=[...new Set(state.products.map(p=>(p.__norm||(p.__norm=normalize(p))).color).filter(Boolean))].sort();
   const colorChips = colorsPresent.length? colorsPresent.map(c=>`<span class="fchip ${dashFilter.color.has(c)?(dashFilter.colorMode==='exclude'?'ex':'on'):''}" data-dcolor="${esc(c)}">${esc(c)}</span>`).join("") : '<span style="font-size:11px;color:var(--ink-soft)">colour fills in after the next update</span>';
-  const active = dashFilter.sub!=="any"||dashFilter.retailer!=="any"||dashFilter.energy.size||dashFilter.width!=="any"||dashFilter.height!=="any"||dashFilter.cap!=="any"||dashFilter.color.size||dashFilter.trim!=="off"||dashFilter.brands.size;
+  const active = dashFilter.sub!=="any"||dashFilter.retailer!=="any"||dashFilter.energy.size||dashFilter.width!=="any"||dashFilter.height!=="any"||dashFilter.cap!=="any"||dashFilter.color.size||dashFilter.trim!=="off"||dashFilter.brands.size||dashFilter.tech.size;
   el.innerHTML = `<span class="df-lbl">Filter</span>
     <select data-dash="sub">${subOpts}</select>
     <select data-dash="retailer">${retOpts}</select>
@@ -3401,6 +3462,7 @@ function dashMatch(p){
     if(dashFilter.colorMode==="include" && !hit) return false;
     if(dashFilter.colorMode==="exclude" && hit) return false;
   }
+  if(!techMatch(p, "cooling", dashFilter)) return false;
   return true;
 }
 function renderDashboard(){
@@ -4861,6 +4923,13 @@ function _cookRefresh(){ safeRender("c-dashboard",renderCooking); safeRender("be
 function _dishRefresh(){ safeRender("d-dashboard",renderDish); safeRender("benchmark",renderBenchmark); }
 function _toggle(set, v){ set.has(v)?set.delete(v):set.add(v); }
 function _attrBarClick(e){
+  // technology chips (any department's bar)
+  const tc=e.target.closest("[data-tech]");
+  if(tc){
+    const F={cooling:dashFilter, laundry:laundryFilter, cooking:cookingFilter, dishwashing:dishFilter}[state.dept];
+    _toggle(F.tech, tc.dataset.tech);
+    return ({cooling:_coolRefresh, laundry:_lauRefresh, cooking:_cookRefresh, dishwashing:_dishRefresh}[state.dept])();
+  }
   // dishwashing controls
   const dt=e.target.closest("[data-dish-type]");
   if(dt){ dishFilter.type=dt.dataset.dishType; dishFilter.settings="any"; dishFilter.integration="any"; return _dishRefresh(); }
@@ -4870,7 +4939,7 @@ function _attrBarClick(e){
   if(e.target.closest("[data-dish-wifi]")){ dishFilter.wifi=!dishFilter.wifi; return _dishRefresh(); }
   if(e.target.closest("[data-dish-mine]")){ dishFilter.mine=!dishFilter.mine; return _dishRefresh(); }
   if(e.target.id==="dishReset"){ Object.assign(dishFilter,{retailer:"any",settings:"any",integration:"any",noise:"any",mine:false,wifi:false});
-    dishFilter.brands.clear(); dishFilter.energy.clear(); dishFilter.colors.clear(); return _dishRefresh(); }
+    dishFilter.brands.clear(); dishFilter.energy.clear(); dishFilter.colors.clear(); dishFilter.tech.clear(); return _dishRefresh(); }
   // cooking controls
   const ct=e.target.closest("[data-cook-type]");
   if(ct){ cookingFilter.type=ct.dataset.cookType; COOK_TYPE_FACETS.forEach(k=>cookingFilter[k]="any"); cookingFilter.energy.clear(); return _cookRefresh(); }
@@ -4879,14 +4948,14 @@ function _attrBarClick(e){
   const cco=e.target.closest("[data-cook-color]"); if(cco){ _toggle(cookingFilter.colors, cco.dataset.cookColor); return _cookRefresh(); }
   if(e.target.closest("[data-cook-mine]")){ cookingFilter.mine=!cookingFilter.mine; return _cookRefresh(); }
   if(e.target.id==="cookReset"){ COOK_TYPE_FACETS.forEach(k=>cookingFilter[k]="any"); cookingFilter.retailer="any";
-    cookingFilter.brands.clear(); cookingFilter.energy.clear(); cookingFilter.colors.clear(); cookingFilter.mine=false; return _cookRefresh(); }
+    cookingFilter.brands.clear(); cookingFilter.energy.clear(); cookingFilter.colors.clear(); cookingFilter.mine=false; cookingFilter.tech.clear(); return _cookRefresh(); }
   // laundry controls
   const t=e.target.closest("[data-lau-type]"); if(t){ laundryFilter.type=t.dataset.lauType; return _lauRefresh(); }
   const en=e.target.closest("[data-lau-energy]"); if(en){ const v=en.dataset.lauEnergy; laundryFilter.energy.has(v)?laundryFilter.energy.delete(v):laundryFilter.energy.add(v); return _lauRefresh(); }
   const br=e.target.closest("[data-lau-brand]"); if(br){ const v=br.dataset.lauBrand; laundryFilter.brands.has(v)?laundryFilter.brands.delete(v):laundryFilter.brands.add(v); return _lauRefresh(); }
   const co=e.target.closest("[data-lau-color]"); if(co){ const v=co.dataset.lauColor; laundryFilter.colors.has(v)?laundryFilter.colors.delete(v):laundryFilter.colors.add(v); return _lauRefresh(); }
   const m=e.target.closest("[data-lau-mine]"); if(m){ laundryFilter.mine=!laundryFilter.mine; return _lauRefresh(); }
-  if(e.target.id==="lauReset"){ laundryFilter.type="any";laundryFilter.brands.clear();laundryFilter.retailer="any";laundryFilter.energy.clear();laundryFilter.kg="any";laundryFilter.rpm="any";laundryFilter.loader="any";laundryFilter.colors.clear();laundryFilter.mine=false; return _lauRefresh(); }
+  if(e.target.id==="lauReset"){ laundryFilter.type="any";laundryFilter.brands.clear();laundryFilter.retailer="any";laundryFilter.energy.clear();laundryFilter.kg="any";laundryFilter.rpm="any";laundryFilter.loader="any";laundryFilter.colors.clear();laundryFilter.mine=false;laundryFilter.tech.clear(); return _lauRefresh(); }
   // cooling controls (shared dashFilter)
   const ec=e.target.closest("[data-bchip]"); if(ec){ const v=ec.dataset.bchip; dashFilter.energy.has(v)?dashFilter.energy.delete(v):dashFilter.energy.add(v); return _coolRefresh(); }
   const bb=e.target.closest("[data-bbrand]");
@@ -4896,7 +4965,7 @@ function _attrBarClick(e){
     else { dashFilter.brands.has(v)?dashFilter.brands.delete(v):dashFilter.brands.add(v); }
     return _coolRefresh();
   }
-  if(e.target.id==="benchReset"){ dashFilter.sub="any";dashFilter.retailer="any";dashFilter.cap="any";dashFilter.width="any";dashFilter.height="any";dashFilter.energy.clear();dashFilter.brands.clear(); return _coolRefresh(); }
+  if(e.target.id==="benchReset"){ dashFilter.sub="any";dashFilter.retailer="any";dashFilter.cap="any";dashFilter.width="any";dashFilter.height="any";dashFilter.energy.clear();dashFilter.brands.clear();dashFilter.tech.clear(); return _coolRefresh(); }
 }
 const COOK_SELECTS = {cookRetailer:"retailer", cookFuel:"fuel", cookHob:"hob", cookHood:"hood",
                       cookWidth:"width", cookLt:"lt", cookClean:"clean", cookInstall:"install"};
