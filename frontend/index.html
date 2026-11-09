@@ -147,7 +147,6 @@ nav button.active{background:var(--cobalt);color:#fff}
 [data-theme="dark"] .fresh .fr-ok{background:#0E2A1F;color:#5BBF8F}
 [data-theme="dark"] .fresh .fr-warn{background:#2E2113;color:#E0A155}
 [data-theme="dark"] .fresh .fr-bad{background:#301715;color:#E8765C}
-@media(max-width:1100px){.fresh{display:none}}
 
 /* ---------- ticker ---------- */
 .ticker{border-bottom:1px solid var(--line);background:var(--frost);overflow:hidden;white-space:nowrap}
@@ -647,6 +646,74 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 .seg-chip .sc-k{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);font-weight:600}
 .seg-chip .sc-v{font:700 18px 'Bricolage Grotesque';color:var(--ink);margin:3px 0}
 .seg-chip .sc-s{font-size:11.5px;color:var(--ink-soft)}
+
+/* ===== Navigation & look-and-feel pass (2026-11) ===== */
+/* Cooling hero now matches the light department hero used by the others */
+.hero{background:var(--frost);color:var(--ink);border:1px solid var(--line);box-shadow:var(--shadow);position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--cobalt),var(--teal))}
+.hero-eyebrow{font:600 10.5px 'JetBrains Mono';letter-spacing:.14em;color:var(--teal)}
+.hero-title{color:var(--ink);font-size:27px;letter-spacing:-.5px}
+.hero-sub{color:var(--ink-soft)}
+.hero-num{color:var(--cobalt)}
+.hero-lbl{color:var(--ink-soft)}
+
+/* metric cards: two even columns until there is room for all five
+   (5 × 220px + gaps + page padding + the 248px sidebar ≈ 1480px) */
+@media(max-width:1480px){
+  .metrics{grid-template-columns:repeat(2,1fr)}
+  .metrics>:last-child:nth-child(odd){grid-column:1/-1}
+}
+
+/* filter groups: a label always stays with its controls */
+.df-grp{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.more-filters{margin:10px 0 0;width:100%}
+.more-filters>summary{cursor:pointer;list-style:none;display:inline-flex;align-items:center;gap:6px;
+  font:600 12px 'Hanken Grotesk';color:var(--cobalt);padding:5px 11px;border:1px dashed var(--line);border-radius:99px;background:var(--frost)}
+.more-filters>summary::-webkit-details-marker{display:none}
+.more-filters>summary::before{content:"+";font-weight:700}
+.more-filters[open]>summary::before{content:"−"}
+.more-filters .mf-n{background:var(--cobalt);color:#fff;border-radius:99px;padding:0 7px;font-size:11px}
+
+/* sidebar: current department + tap-outside backdrop on small screens */
+.side-dept{margin:0 8px 6px;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.06);
+  font:600 12.5px 'Hanken Grotesk';color:#fff;display:flex;align-items:center;gap:8px}
+.side-dept small{font:600 10px 'Hanken Grotesk';letter-spacing:.1em;text-transform:uppercase;color:#64748B}
+.side-backdrop{display:none}
+@media(max-width:880px){
+  .sidebar.open ~ .side-backdrop{display:block;position:fixed;inset:0;z-index:55;background:rgba(12,20,20,.45)}
+}
+
+/* freshness: compact coloured dots instead of disappearing on smaller screens */
+@media(max-width:1100px){
+  .fresh{display:flex}
+  .fresh .fr{font-size:0;width:10px;height:10px;padding:0;border-radius:99px}
+  .fresh .fr-ok{background:#10B981} .fresh .fr-warn{background:#F59E0B} .fresh .fr-bad{background:#EF4444}
+}
+
+/* phones: two-row top bar, nothing wider than the screen */
+.dept-toggle{max-width:100%;overflow-x:auto;scrollbar-width:none}
+.dept-toggle::-webkit-scrollbar{display:none}
+/* tablets and phones: department pills get their own row */
+@media(max-width:900px){
+  .topbar{flex-wrap:wrap;gap:8px;padding:10px 14px}
+  .dept-toggle{order:10;flex:1 1 100%;justify-content:flex-start}
+  .topbar .search{flex:1 1 60px;min-width:0}
+  .topbar .search input{padding-left:32px}
+  .topbar .spacer{display:none}
+}
+@media(max-width:760px){
+  .avatar{display:none}
+  .run-btn{padding:9px 11px}
+  .run-btn .rb-txt{display:none}
+  main{padding:18px 16px 80px}
+  .loadbar{margin:-18px -16px 15px}   /* matches the narrower phone padding */
+  .sec-head{flex-wrap:wrap}
+  .sec-head .meta{white-space:normal}
+  .l-statstrip{flex-wrap:wrap}
+  .l-stat{flex:1 1 50%;border-bottom:1px solid var(--line-soft)}
+  .hero{padding:20px}
+  .hero-num{font-size:40px}
+}
 </style>
 </head>
 <body>
@@ -660,6 +727,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     </svg></div>
     <div><span class="bwm dark" style="font-size:20px"><span class="x1">Pric</span><span class="s"><span class="x1">e</span><svg viewBox="0 0 30 8" preserveAspectRatio="none" aria-hidden="true"><path d="M1 7 L29 2" stroke="#C77D33" stroke-width="2.6" stroke-linecap="round"/></svg></span><span class="x2">dge</span></span><small>price intelligence · GR</small></div>
   </div>
+  <div class="side-dept"><small>Department</small> <span id="sideDept">Cooling</span></div>
   <nav id="nav">
     <div class="side-sec">Overview</div>
     <button data-page="dashboard" class="active"><span class="ico" data-ico="dashboard"></span> Dashboard</button>
@@ -677,8 +745,9 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-10-D1</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-10-V1</span></div>
 </aside>
+<div class="side-backdrop" id="sideBackdrop"></div>
 
 <div class="shell">
 <div class="topbar">
@@ -694,7 +763,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
   <div class="fresh" id="freshBadge" title="Data freshness — most recent scrape per retailer"></div>
   <button class="icon-btn" id="themeToggle" title="Toggle dark mode"><svg class="ic" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg></button>
   <button class="icon-btn" id="notifBtn" title="Alerts"><span class="ico" data-ico="alerts"></span><span class="badge" id="notifBadge" style="display:none">0</span></button>
-  <button class="run-btn" id="dealRadar"><span class="ico" data-ico="deal"></span> Deal Radar<span class="dr-count" id="dealCount"></span></button>
+  <button class="run-btn" id="dealRadar" title="Deal Radar"><span class="ico" data-ico="deal"></span><span class="rb-txt"> Deal Radar</span><span class="dr-count" id="dealCount"></span></button>
   <div class="avatar" title="Account">P</div>
 </div>
 
@@ -1828,9 +1897,13 @@ function applyDeptNav(){
     b.style.display = deptHides(b.dataset.page) ? "none" : "";
   });
 }
+const DEPT_NAME = {cooling:"Cooling", laundry:"Laundry", cooking:"Cooking", dishwashing:"Dishwashing"};
+/* the current department's own product list */
+function deptList(){ return {cooling:state.products, laundry:state.laundry, cooking:state.cooking, dishwashing:state.dishwashing}[state.dept] || []; }
 function setDept(d){
   state.dept = d;
   document.querySelectorAll(".dept-pill").forEach(b=>b.classList.toggle("on", b.dataset.dept===d));
+  const sd=document.getElementById("sideDept"); if(sd) sd.textContent = DEPT_NAME[d]||d;
   applyDeptNav();
   // keep the user on the same tab, unless it doesn't exist in this dept -> Dashboard
   const active = document.querySelector("#nav [data-page].active");
@@ -2219,12 +2292,13 @@ function cookFilterBarHTML(all, typePool){
     <div class="l-seg">${seg("any","All")}${seg("cooker","Cookers · "+cnt("cooker"))}${seg("oven","Ovens · "+cnt("oven"))}${seg("hob","Hobs · "+cnt("hob"))}${seg("hood","Hoods · "+cnt("hood"))}${seg("microwave","Microwaves · "+cnt("microwave"))}</div>
     <div class="dash-filters" style="margin:12px 0 0">
       ${parts.join("\n      ")}
-      ${energyChips?`<span class="df-lbl">Energy</span><div class="df-chips">${energyChips}</div>`:""}
+      ${energyChips?`<span class="df-grp"><span class="df-lbl">Energy</span><div class="df-chips">${energyChips}</div></span>`:""}
       <span class="fchip ${F.mine?'on':''}" data-cook-mine="1">★ My brands</span>
       ${active?`<button class="df-reset" id="cookReset">Clear</button>`:``}
     </div>
-    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips||'<span class="df-lbl" style="text-transform:none">none in view</span>'}</div></div>
-    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`;
+    ${moreFiltersHTML("lau", F.brands.size+F.colors.size,
+      `<div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips||'<span class="df-lbl" style="text-transform:none">none in view</span>'}</div></div>
+      <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`)}`;
 }
 
 /* ===================== DISHWASHING DEPARTMENT =====================
@@ -2308,13 +2382,14 @@ function dishFilterBarHTML(all, typePool){
     <div class="l-seg">${seg("any","All")}${["dw_free_60","dw_free_45","dw_bi_60","dw_bi_45","dw_compact"].map(k=>seg(k,DISH_TYPE_LABEL[k]+" · "+cnt(k))).join("")}</div>
     <div class="dash-filters" style="margin:12px 0 0">
       ${parts.join("\n      ")}
-      ${energyChips?`<span class="df-lbl">Energy</span><div class="df-chips">${energyChips}</div>`:""}
+      ${energyChips?`<span class="df-grp"><span class="df-lbl">Energy</span><div class="df-chips">${energyChips}</div></span>`:""}
       <span class="fchip ${F.wifi?'on':''}" data-dish-wifi="1">WiFi</span>
       <span class="fchip ${F.mine?'on':''}" data-dish-mine="1">★ My brands</span>
       ${active?`<button class="df-reset" id="dishReset">Clear</button>`:``}
     </div>
-    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips||'<span class="df-lbl" style="text-transform:none">none in view</span>'}</div></div>
-    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`;
+    ${moreFiltersHTML("cook", F.brands.size+F.colors.size,
+      `<div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips||'<span class="df-lbl" style="text-transform:none">none in view</span>'}</div></div>
+      <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`)}`;
 }
 /* Dishwasher threats: same type and place-settings band, priced at/below one
    of your models; a disruption is cheaper, not worse on energy or settings,
@@ -2657,16 +2732,21 @@ function renderFreshness(){
   }).join("");
 }
 
+/* ticker label: "Brand MODELCODE" instead of the retailer's full shouting name */
+function tickLabel(name){
+  const {brand, code} = extractModel(name||"");
+  return (brand && code) ? `${cap(brand)} ${code}` : short(cleanName(name), 30);
+}
 function renderTicker(){
-  const movers = computeMovers(state.history).slice(0,12);
+  const movers = computeMovers(state.history).slice(0,12);   // current department only
   let items;
   if(movers.length){
     items = movers.map(m=>{
       const cls=m.delta<0?"down":"up", sign=m.delta<0?"▼":"▲";
-      return `<span class="tick">${esc(short(m.name,32))} <strong>${fmt(m.price)}</strong> <span class="${cls}">${sign} ${fmt(Math.abs(m.delta))}</span></span>`;
+      return `<span class="tick">${esc(tickLabel(m.name))} <strong>${fmt(m.price)}</strong> <span class="${cls}">${sign} ${fmt(Math.abs(m.delta))}</span></span>`;
     }).join("");
   } else {
-    items = state.products.slice(0,12).map(p=>`<span class="tick">${esc(short(f.name(p),34))} <strong>${fmt(f.price(p))}</strong></span>`).join("")
+    items = deptList().slice(0,12).map(p=>`<span class="tick">${esc(tickLabel(f.name(p)))} <strong>${fmt(f.price(p))}</strong></span>`).join("")
       || `<span class="tick">Add products to start tracking prices…</span>`;
   }
   document.getElementById("ticker").innerHTML = items+items;
@@ -3145,6 +3225,19 @@ function benchRowHTML(row, i, dept){
   </div><div class="bench-det" hidden>${benchDetailHTML(row, dept)}</div></div>`;
 }
 
+/* Long chip lists (brands, colours) sit behind a "More filters" toggle so the
+   numbers aren't pushed below the fold. Bars re-render on every click, so the
+   open/closed state is remembered per bar. */
+const MF_OPEN = new Set();
+function moreFiltersHTML(key, nActive, inner){
+  return `<details class="more-filters" data-mf="${key}" ${MF_OPEN.has(key)?"open":""}>
+    <summary>More filters · brands, colour${nActive?` <span class="mf-n">${nActive}</span>`:""}</summary>${inner}</details>`;
+}
+document.addEventListener("toggle", e=>{
+  const d=e.target; if(!(d instanceof HTMLElement) || !d.dataset || !d.dataset.mf) return;
+  d.open ? MF_OPEN.add(d.dataset.mf) : MF_OPEN.delete(d.dataset.mf);
+}, true);
+
 /* Laundry attribute bar — ONE builder shared by the dashboard and the
    Benchmark page, both driven by the same laundryFilter state, so a
    selection made on either page is already applied on the other. */
@@ -3169,12 +3262,13 @@ function lauFilterBarHTML(all, typePool){
       <select id="lauKg">${kgOpts}</select>
       <select id="lauRpm">${rpmOpts}</select>
       <select id="lauLoader">${loaderOpts}</select>
-      <span class="df-lbl">Energy</span><div class="df-chips">${energyChips}</div>
+      <span class="df-grp"><span class="df-lbl">Energy</span><div class="df-chips">${energyChips}</div></span>
       <span class="fchip ${F.mine?'on':''}" data-lau-mine="1">★ My brands</span>
       ${active?`<button class="df-reset" id="lauReset">Clear</button>`:``}
     </div>
-    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips||'<span class="df-lbl" style="text-transform:none">none in view</span>'}</div></div>
-    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`;
+    ${moreFiltersHTML("dish", F.brands.size+F.colors.size,
+      `<div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips||'<span class="df-lbl" style="text-transform:none">none in view</span>'}</div></div>
+      <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour</span><div class="df-chips">${colorChips||'<span class="df-lbl" style="text-transform:none">colour fills in after the next update</span>'}</div></div>`)}`;
 }
 
 function renderBenchmark(){
@@ -3223,7 +3317,8 @@ function renderBenchmark(){
     const energyChips=["A","B","C","D","E","F","G"].map(en=>`<span class="fchip ${D.energy.has(en)?'on':''}" data-bchip="${en}">${en}</span>`).join("");
     const brandsPresent=[...new Set(state.products.map(p=>cap(extractModel(f.name(p)).brand||"")).filter(Boolean))].sort();
     const mineOn=MY_BRANDS.every(b=>D.brands.has(cap(b)));
-    const brandChips=`<span class="fchip ${mineOn?'on':''}" data-bbrand="__mine">★ My brands</span>`+brandsPresent.map(b=>`<span class="fchip ${D.brands.has(b)?'on':''}" data-bbrand="${esc(b)}">${esc(b)}</span>`).join("");
+    const mineChip=`<span class="fchip ${mineOn?'on':''}" data-bbrand="__mine">★ My brands</span>`;
+    const brandChips=brandsPresent.map(b=>`<span class="fchip ${D.brands.has(b)?'on':''}" data-bbrand="${esc(b)}">${esc(b)}</span>`).join("");
     const active=D.sub!=="any"||D.retailer!=="any"||D.energy.size||D.width!=="any"||D.height!=="any"||D.cap!=="any"||D.brands.size;
     barHTML=`
     <div class="dash-filters" style="margin:0">
@@ -3233,10 +3328,11 @@ function renderBenchmark(){
       <select data-bd="cap">${capOpts}</select>
       <select data-bd="width">${widthOpts}</select>
       <select data-bd="height">${heightOpts}</select>
-      <span class="df-lbl">Energy</span><div class="df-chips">${energyChips}</div>
+      <span class="df-grp"><span class="df-lbl">Energy</span><div class="df-chips">${energyChips}</div></span>
+      ${mineChip}
       ${active?'<button class="df-reset" id="benchReset">Clear</button>':''}
     </div>
-    <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips}</div></div>`;
+    ${moreFiltersHTML("coolbench", D.brands.size, `<div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brands</span><div class="df-chips">${brandChips}</div></div>`)}`;
     const list=state.products.filter(dashMatch);   // same slice logic as the dashboard
     dedup = D.retailer==="any";
     rows = dedup ? benchDedupe(list)
@@ -3263,8 +3359,8 @@ function renderDashFilters(){
     ["kotsovolos","public","plaisio"].map(s=>`<option value="${s}" ${dashFilter.retailer===s?'selected':''}>${SITE_LABEL[s]}</option>`).join("");
   const brandsPresent=[...new Set(state.products.map(p=>cap(extractModel(f.name(p)).brand||"")).filter(Boolean))].sort();
   const mineOn = MY_BRANDS.every(b=>dashFilter.brands.has(cap(b)));
-  const brandChips = `<span class="fchip ${mineOn?'on':''}" data-dbrand="__mine">★ My brands</span>`
-    + brandsPresent.map(b=>`<span class="fchip ${dashFilter.brands.has(b)?'on':''}" data-dbrand="${esc(b)}">${esc(b)}</span>`).join("");
+  const mineChip = `<span class="fchip ${mineOn?'on':''}" data-dbrand="__mine">★ My brands</span>`;
+  const brandChips = brandsPresent.map(b=>`<span class="fchip ${dashFilter.brands.has(b)?'on':''}" data-dbrand="${esc(b)}">${esc(b)}</span>`).join("");
   const widthOpts=`<option value="any">Any width</option>`+WIDTH_BANDS.map(([lo,hi,t])=>`<option value="${t}" ${dashFilter.width===t?'selected':''}>${t}</option>`).join("");
   const heightOpts=`<option value="any">Any height</option>`+HEIGHT_BANDS.map(([lo,hi,t])=>`<option value="${t}" ${dashFilter.height===t?'selected':''}>${t}</option>`).join("");
   const capOpts=`<option value="any">Any capacity</option>`+CAP_BANDS.map(([lo,hi,t])=>`<option value="${t}" ${dashFilter.cap===t?'selected':''}>${t}</option>`).join("");
@@ -3279,11 +3375,13 @@ function renderDashFilters(){
     <select data-dash="cap">${capOpts}</select>
     <select data-dash="width">${widthOpts}</select>
     <select data-dash="height">${heightOpts}</select>
-    <span class="df-lbl">Brand</span><div class="df-chips">${brandChips}</div>
-    <span class="df-lbl">Energy</span><div class="df-chips">${energyChips}</div>
-    <span class="df-lbl">Colour ${dashFilter.color.size?`· <a href="#" id="dashColorMode" style="color:var(--cobalt);text-decoration:none">${dashFilter.colorMode==='exclude'?'excluding':'including'}</a>`:""}</span><div class="df-chips">${colorChips}</div>
-    <span class="df-lbl">Outliers</span><select data-dash="trim">${trimOpts}</select>
-    ${active?'<button class="df-reset" id="dashReset">Clear</button>':''}`;
+    <span class="df-grp"><span class="df-lbl">Energy</span><div class="df-chips">${energyChips}</div></span>
+    <span class="df-grp"><span class="df-lbl">Outliers</span><select data-dash="trim">${trimOpts}</select></span>
+    ${mineChip}
+    ${active?'<button class="df-reset" id="dashReset">Clear</button>':''}
+    ${moreFiltersHTML("cooldash", dashFilter.brands.size+dashFilter.color.size,
+      `<div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Brand</span><div class="df-chips">${brandChips}</div></div>
+      <div class="dash-filters" style="margin:8px 0 0"><span class="df-lbl">Colour ${dashFilter.color.size?`· <a href="#" id="dashColorMode" style="color:var(--cobalt);text-decoration:none">${dashFilter.colorMode==='exclude'?'excluding':'including'}</a>`:""}</span><div class="df-chips">${colorChips}</div></div>`)}`;
 }
 function dashMatch(p){
   if(isClearance(p)) return false;
@@ -4305,7 +4403,10 @@ function renderAlerts(){
 
   const totalHi = cards.filter(c=>c.sevHi).length;
   const badge=document.getElementById("notifBadge");
-  if(badge){ const n=cards.length+mapViol.length; badge.textContent=n>99?"99+":n; badge.style.display=n?"grid":"none"; }
+  // badge = what needs action: models facing a disruption + policy violations
+  // (plain undercuts stay on the Alerts page, they aren't worth a red badge)
+  if(badge){ const n=totalHi+mapViol.length; badge.textContent=n>99?"99+":n; badge.style.display=n?"grid":"none";
+    badge.title=`${totalHi} of your models face a disruption${mapViol.length?` · ${mapViol.length} MAP/SRP violations`:""}`; }
 
   document.getElementById("alertGroups").innerHTML = mapHtml + (cards.map(c=>c.html).join("")
     || (mapViol.length ? "" : `<div class="empty" style="padding:40px"><div class="big"><svg class="ic2" viewBox="0 0 24 24"><path class="body" d="M6 9a6 6 0 0 1 12 0c0 6 2.4 8 2.4 8H3.6S6 15 6 9"/><path class="det" d="M10.2 20.4a2 2 0 0 0 3.6 0"/><circle class="acc" cx="17.6" cy="6" r="2.7"/></svg></div>No ${showAll?"":"disruption-level "}threats right now.<br><span style="font-size:12px;color:var(--ink-soft)">${showAll?"You'll be alerted when a same-segment rival is priced at or below one of your "+(lau?"laundry ":"")+"products.":"Tick 'show standard undercuts' to see lower-priority price gaps."}</span></div>`));
@@ -4829,6 +4930,7 @@ document.addEventListener("click",e=>{
 on("menuToggle","click",()=>{
   const sb=document.getElementById("sidebar"); if(sb) sb.classList.toggle("open");
 });
+on("sideBackdrop","click",()=>{ const sb=document.getElementById("sidebar"); if(sb) sb.classList.remove("open"); });
 /* global search jumps to Explore and filters there */
 on("globalSearch","input",e=>{
   // cooking/dishwashing have no explorer yet: search their Products table instead
