@@ -757,7 +757,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-11-S2</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-11-S3</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 
@@ -1630,25 +1630,39 @@ function isRealProduct(p){
   if(!brand && (!code || code.length < 3)) return false;
   return true;
 }
+// Words that mark the END of the model code (descriptions, units, features).
+const MODEL_STOP = new Set(["LT","L","CM","ML","KG","DB","W","KWH","NO","FROST","TOTAL","LOW","FULL",
+  "EASY","STATIC","INOX","WHITE","BLACK","SILVER","INVERTER","CLASS","ENERGY","GALA","ED","EU",
+  "PEAK","BIOFRESH","GRANDCRU","SELECTION","VINIDOR","COLLECTION","FRESH","PRO","PLUS","SMART"]);
+// Latin words that can open a name but are never a brand (fallback brand guess)
+const NOT_A_BRAND = new Set(["MINI","BAR","MINIBAR","COMBI","SIDE","BY","FRENCH","DOOR","DUAL","LED",
+  "WIFI","NEW","SET","TOP","FRONT","BUILT","IN","INOX","NO","FROST","SMART","PRO","PLUS"]);
 function extractModel(name){
-  if(!name) return {brand:"", code:""};
+  if(!name) return {brand:"", code:"", series:[], label:""};
   const up = deGreek(name.toUpperCase());
-  const brand = BRANDS.find(b => up.includes(b)) || "";
+  let brand = BRANDS.find(b => up.includes(b)) || "", shown = "";
+  // Brand not on the list (e.g. "IndelB Breeze T40 DX"): take the first Latin
+  // word of the name, kept only if a model code follows it.
+  if(!brand){
+    const w = deGreek(name).split(/\s+/).find(x => /^[A-Za-z][A-Za-z&-]{2,11}$/.test(x));
+    if(w && !NOT_A_BRAND.has(w.toUpperCase())){ brand = w.toUpperCase(); shown = /[a-z]/.test(w) ? w : cap(w); }
+  }
   // Work on the slice AFTER the brand name (the model code follows the brand).
-  let rest = up;
-  if(brand){ const i=up.indexOf(brand); rest = up.slice(i+brand.length); }
+  let r = modelTokens(brand ? up.slice(up.indexOf(brand)+brand.length) : up);
+  if(shown && r.code.length<3){ shown = ""; brand = ""; r = modelTokens(up); }
+  const label = [shown || cap(brand), ...r.series.map(cap), r.code].filter(Boolean).join(" ");
+  return {brand: brand.replace(" ",""), code: r.code, series: r.series, label};
+}
+/* model code + marketing name ("BREEZE", "BESPOKE") from the part of a name after the brand */
+function modelTokens(rest){
   const tokens = rest.replace(/[^\p{L}\p{N} ]/gu," ").split(/\s+/).filter(Boolean);
-  // Words that mark the END of the model code (descriptions, units, features).
-  const STOP = new Set(["LT","L","CM","ML","KG","DB","W","KWH","NO","FROST","TOTAL","LOW","FULL",
-    "EASY","STATIC","INOX","WHITE","BLACK","SILVER","INVERTER","CLASS","ENERGY","GALA","ED","EU",
-    "PEAK","BIOFRESH","GRANDCRU","SELECTION","VINIDOR","COLLECTION","FRESH","PRO","PLUS","SMART"]);
   const GREEK = /[\u0370-\u03ff\u1f00-\u1fff]/;   // any Greek letter => description begins
   const isUnitNum = (t,next)=> /^\d{2,4}$/.test(t) && (!next || ["LT","L","CM","ML","KG","DB","W","KWH"].includes(next) || GREEK.test(next||""));
-  const codeTokens=[];
+  const codeTokens=[], series=[];
   for(let i=0;i<tokens.length;i++){
     const t=tokens[i], next=tokens[i+1];
     if(GREEK.test(t)) break;                 // hit Greek description → stop
-    if(STOP.has(t)) break;                    // hit a feature/unit word → stop
+    if(MODEL_STOP.has(t)) break;                    // hit a feature/unit word → stop
     if(/^\d{2,4}$/.test(t) && isUnitNum(t,next)) break;  // a standalone capacity/size number → stop
     // keep tokens that are part of a code: contain a digit, OR a short letter cluster
     // adjacent to a digit token (model prefixes like WSBLI 5231, K 7348)
@@ -1658,12 +1672,16 @@ function extractModel(name){
       codeTokens.push(t);
     } else {
       if(codeTokens.length) break;            // code run ended
+      if(/^[A-Z]{2,}$/.test(t) && series.length<3) series.push(t);   // marketing name
     }
     if(codeTokens.length>=6) break;           // safety cap
   }
-  let code = codeTokens.join("").replace(/[^A-Z0-9]/g,"");
-  // trim a trailing pure-number group that is clearly capacity (3 digits) if code still long enough
-  return {brand: brand.replace(" ",""), code};
+  return {code: codeTokens.join("").replace(/[^A-Z0-9]/g,""), series: codeTokens.length ? series : []};
+}
+/* display title for one listing: "Brand Series CODE", else the tidied name */
+function modelTitle(name, max){
+  const m = extractModel(name||"");
+  return (m.brand && m.code) ? short(m.label, max) : short(cleanName(name), max);
 }
 function buildMatches(products){
   const groups = new Map();
@@ -1671,7 +1689,7 @@ function buildMatches(products){
     const {brand, code} = extractModel(f.name(p));
     if(!code || code.length<4) continue;
     const key = code;
-    if(!groups.has(key)) groups.set(key,{code, brand, offers:{}, wasBySite:{}, specs:{}, specsBySite:{}, normBySite:{}, names:[]});
+    if(!groups.has(key)) groups.set(key,{code, brand, label:extractModel(f.name(p)).label, offers:{}, wasBySite:{}, specs:{}, specsBySite:{}, normBySite:{}, names:[]});
     const g = groups.get(key);
     if(brand && !g.brand) g.brand = brand;
     const site = f.site(p);
@@ -2182,7 +2200,7 @@ function renderLBrands(){
     const specLine=[ (LAUNDRY_TYPE_LABEL[n.type]||"").split(" ")[0], kgTxt,
       n.rpm?n.rpm+" rpm":null, n.energy||null ].filter(Boolean).join(" · ");
     return `<div class="bp-row">
-      <div class="bp-name"><b>${esc(cap(m.brand)||"")} ${esc(m.code.startsWith("U:")?short(m.name,26):m.code)}</b><span>${esc(specLine)}</span></div>
+      <div class="bp-name"><b>${esc(m.code.startsWith("U:")?short(m.name,26):(m.label||((cap(m.brand)||"")+" "+m.code).trim()))}</b><span>${esc(specLine)}</span></div>
       ${cell("kotsovolos")}${cell("public")}${cell("plaisio")}
       <div class="bp-spread">${spread}<br>${flag}</div>
     </div>`;
@@ -2229,7 +2247,7 @@ function renderLProducts(){
   rows = rows.sort((a,b)=>f.price(a)-f.price(b)).slice(0,400);
   host.innerHTML = `<table><thead><tr><th></th><th>Model</th><th>Type</th><th>Retailer</th><th>kg</th><th>Energy</th><th>rpm</th><th>Price</th></tr></thead><tbody>${
     rows.map(p=>{ const n=laundryNorm(p); const {brand,code}=extractModel(f.name(p)); const url=f.url(p);
-      const nm = `${esc(cap(brand))} ${esc(short(code||f.name(p),22))}`;
+      const nm = esc(modelTitle(f.name(p),30));
       return `<tr><td>${lauThumb(p).replace('lau-thumb','lp-thumb')}</td><td>${url?`<a class="rl" href="${esc(url)}" target="_blank" rel="noopener">${nm}</a>`:nm}${isMyBrand(p)?' <b style="color:var(--cobalt)">★</b>':''}</td>
         <td>${esc((LAUNDRY_TYPE_LABEL[n.type]||"").split(" ")[0])}</td><td>${SITE_LABEL[f.site(p)]||f.site(p)}</td>
         <td>${n.wash_kg||n.dry_kg||"—"}</td><td>${esc(n.energy||"—")}</td><td>${n.rpm||"—"}</td><td><b>${fmtWas(p)}</b></td></tr>`;
@@ -2636,7 +2654,7 @@ function renderSecBrands(D){
     const n=m.n;
     const specLine=[D.typeLabel[n.type]||"", D.tierLabel(n), n.energy||null].filter(Boolean).join(" · ");
     return `<div class="bp-row">
-      <div class="bp-name"><b>${esc(cap(m.brand)||"")} ${esc(m.code.startsWith("U:")?short(m.name,26):m.code)}</b><span>${esc(specLine)}</span></div>
+      <div class="bp-name"><b>${esc(m.code.startsWith("U:")?short(m.name,26):(m.label||((cap(m.brand)||"")+" "+m.code).trim()))}</b><span>${esc(specLine)}</span></div>
       ${cell("kotsovolos")}${cell("public")}${cell("plaisio")}
       <div class="bp-spread">${spread}<br>${flag}</div>
     </div>`;
@@ -2687,7 +2705,7 @@ function renderSecProducts(D){
   rows = rows.sort((a,b)=>f.price(a)-f.price(b)).slice(0,400);
   host.innerHTML = `<table><thead><tr><th></th><th>Model</th><th>Type</th><th>Retailer</th><th>Key specs</th><th>Energy</th><th>Price</th></tr></thead><tbody>${
     rows.map(p=>{ const n=D.norm(p); const {brand,code}=extractModel(f.name(p)); const url=f.url(p);
-      const nm = `${esc(cap(brand))} ${esc(short(code||f.name(p),22))}`;
+      const nm = esc(modelTitle(f.name(p),30));
       return `<tr><td>${lauThumb(p).replace('lau-thumb','lp-thumb')}</td><td>${url?`<a class="rl" href="${esc(url)}" target="_blank" rel="noopener">${nm}</a>`:nm}${isMyBrand(p)?' <b style="color:var(--cobalt)">★</b>':''}</td>
         <td>${esc(D.typeLabel[n.type]||"")}</td><td>${SITE_LABEL[f.site(p)]||f.site(p)}</td>
         <td>${esc(D.tierLabel(n)||"—")}</td><td>${esc(n.energy||"—")}</td><td><b>${fmtWas(p)}</b></td></tr>`;
@@ -2773,7 +2791,7 @@ function renderFreshness(){
 /* ticker label: "Brand MODELCODE" instead of the retailer's full shouting name */
 function tickLabel(name){
   const {brand, code} = extractModel(name||"");
-  return (brand && code) ? `${cap(brand)} ${code}` : short(cleanName(name), 30);
+  return modelTitle(name, 30);
 }
 function renderTicker(){
   const movers = computeMovers(state.history).slice(0,12);   // current department only
@@ -3167,7 +3185,7 @@ function benchStandHTML(rows, typeWord, withLink){
   }
   const best=rows[myIdx].p, {brand,code}=extractModel(f.name(best));
   const gap=f.price(best)-floor, rank=myIdx+1;
-  const nm=`${cap(brand)||""} ${short(code||f.name(best),18)}`.trim();
+  const nm=modelTitle(f.name(best),26);
   const tail = gap<=0
     ? `holds the <span class="good">floor</span> at ${fmt(floor)}.`
     : `sits <span class="good">#${rank} of ${rows.length}</span> ${esc(typeWord)} · <b>${fmt(gap)}</b> above the floor (${fmt(floor)})`;
@@ -3280,7 +3298,7 @@ function benchRowHTML(row, i, dept){
               : SEC_DEPTS[dept] ? SEC_DEPTS[dept].specs(SEC_DEPTS[dept].norm(p))
               : coolSpecChips(p.__norm||(p.__norm=normalize(p)));
   const tech = deriveTech(p, dept);
-  const nm=`${esc(cap(brand)||"")} ${esc(short(code||f.name(p),26))}`;
+  const nm=esc(modelTitle(f.name(p),36));
   const nameHTML=url?`<a href="${esc(url)}" target="_blank" rel="noopener" title="Open on ${SITE_LABEL[f.site(p)]||f.site(p)}">${nm} <span class="rl-arrow">↗</span></a>`:nm;
   const retail = row.groupSize>1
     ? `Best: ${SITE_LABEL[f.site(p)]||f.site(p)} · ${row.groupSize} retailer offers`
@@ -3722,7 +3740,7 @@ function renderStockWatch(prefix, list){
     rows.push({p,b,days:since?_daysSince(since):0,capped,mine:isMyBrand(p)});
   }
   const line=r=>{ const {brand,code}=extractModel(f.name(r.p)); const url=f.url(r.p);
-    const nm=`${esc(cap(brand)||"")} ${esc(short(code||f.name(r.p),20))}`;
+    const nm=esc(modelTitle(f.name(r.p),28));
     const dur=r.days>0?`${r.capped?"≥ ":""}${r.days} day${r.days>1?"s":""}`:"today";
     return `<div class="mini-row"><span class="pill ${SITE_PILL[f.site(r.p)]||"na"}">${SITE_LABEL[f.site(r.p)]||f.site(r.p)}</span>
       <span class="mini-name" title="${esc(f.name(r.p))}">${url?`<a class="rl" href="${esc(url)}" target="_blank" rel="noopener">${nm}</a>`:nm}</span>
@@ -3746,7 +3764,7 @@ function renderStockWatch(prefix, list){
     const disc=g.days>=DISCONTINUED_DAYS;
     const elsewhere=[...(liveCodes[c]||[])].filter(s=>s!==g.p.site).map(s=>SITE_LABEL[s]);
     return `<div class="mini-row"><span class="pill ${SITE_PILL[g.p.site]||"na"}">${SITE_LABEL[g.p.site]||g.p.site}</span>
-      <span class="mini-name" title="${esc(g.p.name||"")} · last seen at ${fmt(g.p.last_price)}">${esc(cap(brand)||"")} ${esc(short(code||g.p.name||"",20))}${elsewhere.length?` <span class="sw-else">still at ${elsewhere.join(", ")}</span>`:""}</span>
+      <span class="mini-name" title="${esc(g.p.name||"")} · last seen at ${fmt(g.p.last_price)}">${esc(modelTitle(g.p.name||"",28))}${elsewhere.length?` <span class="sw-else">still at ${elsewhere.join(", ")}</span>`:""}</span>
       <span class="sw-st" style="background:${disc?"#6B7280":"#D97706"}">${disc?"Likely discontinued":"Unlisted"}</span><span class="sw-d">${g.days} day${g.days!==1?"s":""}</span></div>`; };
   const goneMine=gone.filter(g=>isMyBrand(g.p)).sort((a,b)=>a.days-b.days);
   const goneRivals=gone.filter(g=>!isMyBrand(g.p) && g.days<=7).sort((a,b)=>a.days-b.days);
@@ -4007,7 +4025,7 @@ function renderBrands(){
     } else { spread="<span style='color:#CBD5E1;font-weight:400'>1 listing</span>"; }
     if(mapBreach) flag = '<span class="bp-flag erosion">MAP breach</span> ' + flag;
     return `<div class="bp-row">
-      <div class="bp-name"><b>${esc(cap(m.brand)||"")} ${esc(m.code.startsWith("U:")?short(m.name,26):m.code)}</b><span>${m.code.startsWith("U:")?"":esc(m.code)}</span></div>
+      <div class="bp-name"><b>${esc(m.code.startsWith("U:")?short(m.name,26):(m.label||((cap(m.brand)||"")+" "+m.code).trim()))}</b><span>${m.code.startsWith("U:")?"":esc(m.code)}</span></div>
       ${cell("kotsovolos")}${cell("public")}${cell("plaisio")}
       <div class="bp-spread">${spread}<br>${flag}</div>
     </div>`;
@@ -4102,7 +4120,7 @@ function renderCompare(){
     return `<div class="er-row ${mine?'mine':''}">
       <div class="er-rank">${i+1}</div>
       ${n.image?`<img class="er-img zoomable" src="${esc(n.image)}" data-full="${esc(n.image)}" loading="lazy" alt="${esc(((cap(brand)||'')+' '+(code||'')).trim()||short(f.name(p),60))}">`:`<div class="er-img ph">${ICONS.e_snow}</div>`}
-      <div class="er-name">${f.url(p)?`<a class="rl" href="${esc(f.url(p))}" target="_blank" rel="noopener" title="Open on ${SITE_LABEL[f.site(p)]||f.site(p)} to confirm">`:""}<b>${esc(cap(brand)||"")} ${esc(short(code||f.name(p),24))}</b>${f.url(p)?` <span class="rl-arrow">↗</span></a>`:""}${mine?'<span class="mine-tag">MINE</span>':''}<br><span>${esc(n.color||"")}${n.width?" · "+Math.round(n.width)+"cm":""}${n.height?" × "+(n.height>200?">2m":Math.round(n.height)+"cm"):""}</span></div>
+      <div class="er-name">${f.url(p)?`<a class="rl" href="${esc(f.url(p))}" target="_blank" rel="noopener" title="Open on ${SITE_LABEL[f.site(p)]||f.site(p)} to confirm">`:""}<b>${esc(modelTitle(f.name(p),32))}</b>${f.url(p)?` <span class="rl-arrow">↗</span></a>`:""}${mine?'<span class="mine-tag">MINE</span>':''}<br><span>${esc(n.color||"")}${n.width?" · "+Math.round(n.width)+"cm":""}${n.height?" × "+(n.height>200?">2m":Math.round(n.height)+"cm"):""}</span></div>
       <div class="er-price">${fmt(f.price(p))}</div>
       <div class="er-energy">${eb}</div>
       <div class="er-cap">${n.capacity?Math.round(n.capacity)+"L":"—"}</div>
@@ -4194,7 +4212,7 @@ function renderLCompare(){
     return `<div class="er-row ${mine?'mine':''}">
       <div class="er-rank">${i+1}</div>
       ${img?`<img class="er-img zoomable" src="${esc(img)}" data-full="${esc(img)}" loading="lazy" alt="${esc(((cap(brand)||'')+' '+(code||'')).trim()||short(f.name(p),60))}">`:`<div class="er-img ph">${ICONS.e_drum}</div>`}
-      <div class="er-name">${url?`<a class="rl" href="${esc(url)}" target="_blank" rel="noopener">`:""}<b>${esc(cap(brand)||"")} ${esc(short(code||f.name(p),24))}</b>${url?` <span class="rl-arrow">↗</span></a>`:""}${mine?'<span class="mine-tag">MINE</span>':''}<br><span>${esc(sub)}</span></div>
+      <div class="er-name">${url?`<a class="rl" href="${esc(url)}" target="_blank" rel="noopener">`:""}<b>${esc(modelTitle(f.name(p),32))}</b>${url?` <span class="rl-arrow">↗</span></a>`:""}${mine?'<span class="mine-tag">MINE</span>':''}<br><span>${esc(sub)}</span></div>
       <div class="er-price">${fmtWas(p)}</div>
       <div class="er-energy">${eb}</div>
       <div class="er-cap">${(n.wash_kg||n.dry_kg)?(n.wash_kg||n.dry_kg)+"kg":"—"}</div>
@@ -5712,7 +5730,7 @@ function setCount(id,target){
 }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function short(s,n){ s=String(s==null?"":s); return s.length>n?s.slice(0,n-1)+"…":s; }
-function cap(s){ return s? s[0]+s.slice(1).toLowerCase():""; }
+function cap(s){ return !s?"":String(s).split(" ").map(w=>w.length<=3&&w===w.toUpperCase()&&s.length<=3?w:w.charAt(0)+w.slice(1).toLowerCase()).join(" "); }
 function q(s){ s=String(s==null?"":s); return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s; }
 
 setInterval(loadAll, 120000); /* refresh every 2 min */
