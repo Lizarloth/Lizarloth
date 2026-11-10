@@ -187,8 +187,8 @@ main{max-width:1240px;margin:0 auto;padding:28px 28px 80px}
 .metric-foot{font-size:12px;color:var(--ink-soft);margin-top:3px}
 .metric-foot .down{color:var(--mint);font-weight:600}
 .metric-foot .up{color:var(--heat);font-weight:600}
-.two-col{grid-template-columns:1fr 1fr}
-@media(max-width:900px){.two-col{grid-template-columns:1fr}}
+.two-col{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media(max-width:900px){.two-col{grid-template-columns:minmax(0,1fr)}}
 .card h3{font-size:15.5px;margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .dot{width:8px;height:8px;border-radius:99px;background:var(--aqua);display:inline-block}
 
@@ -215,7 +215,8 @@ main{max-width:1240px;margin:0 auto;padding:28px 28px 80px}
 .mini-list{display:flex;flex-direction:column;gap:2px}
 .mini-row{display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--soft-bg)}
 .mini-row:last-child{border-bottom:0}
-.mini-name{flex:1;font-size:13px;color:var(--ink)}
+.mini-name{flex:1;min-width:0;overflow-wrap:break-word;font-size:13px;color:var(--ink)}
+@media(max-width:480px){.mini-row{gap:7px;padding:8px 2px}.mini-row .sw-d{min-width:0!important;font-size:10.5px}}
 .mini-price{font:700 13.5px 'Bricolage Grotesque';color:var(--ink)}
 
 /* chart containers — fixed height stops Chart.js from growing unbounded */
@@ -757,7 +758,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-11-S3</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-11-S4</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 
@@ -839,6 +840,13 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
         <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that ran out or started clearing in the last 7 days · your opening</div><div id="coolStockRivals" class="mini-list"></div></div>
       </div>
     </div>
+    <div class="card" style="margin-top:18px">
+      <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="coolLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+      <div class="grid two-col">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rival launches · SKU newer than anything the retailer had listed</div><div id="coolLaunchRivals" class="mini-list"></div></div>
+        <div><div id="coolLaunchMine" class="mini-list"></div></div>
+      </div>
+    </div>
 
     <div class="card" style="margin-top:18px">
       <h3><span class="dot" style="background:var(--heat)"></span>Promo pressure <span id="ppSummary" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span>
@@ -904,6 +912,13 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       <div class="grid two-col">
         <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Your models without ready stock · longest first</div><div id="lauStockMine" class="mini-list"></div></div>
         <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that ran out or started clearing in the last 7 days · your opening</div><div id="lauStockRivals" class="mini-list"></div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="lauLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+      <div class="grid two-col">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rival launches · SKU newer than anything the retailer had listed</div><div id="lauLaunchRivals" class="mini-list"></div></div>
+        <div><div id="lauLaunchMine" class="mini-list"></div></div>
       </div>
     </div>
 
@@ -1003,6 +1018,13 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
         <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that ran out or started clearing in the last 7 days · your opening</div><div id="cookStockRivals" class="mini-list"></div></div>
       </div>
     </div>
+    <div class="card" style="margin-top:18px">
+      <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="cookLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+      <div class="grid two-col">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rival launches · SKU newer than anything the retailer had listed</div><div id="cookLaunchRivals" class="mini-list"></div></div>
+        <div><div id="cookLaunchMine" class="mini-list"></div></div>
+      </div>
+    </div>
 
     <div class="grid two-col" style="margin-top:18px">
       <div class="card">
@@ -1086,6 +1108,13 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       <div class="grid two-col">
         <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Your models without ready stock · longest first</div><div id="dishStockMine" class="mini-list"></div></div>
         <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that ran out or started clearing in the last 7 days · your opening</div><div id="dishStockRivals" class="mini-list"></div></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="dishLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+      <div class="grid two-col">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rival launches · SKU newer than anything the retailer had listed</div><div id="dishLaunchRivals" class="mini-list"></div></div>
+        <div><div id="dishLaunchMine" class="mini-list"></div></div>
       </div>
     </div>
     <div class="grid two-col" style="margin-top:18px">
@@ -1862,6 +1891,11 @@ async function loadAll(){
       setSrp(rows);
       safeRender("brands",renderBrands); safeRender("alerts",renderAlerts);
       safeRender("srpStatus",renderSrpStatus);
+    }).catch(()=>{});
+    // new listings, split into launches vs relistings by SKU number (older backends: skip)
+    api("/api/products/launches?days=30").then(rows=>{
+      state.launches = Array.isArray(rows) ? rows : [];
+      renderAll();
     }).catch(()=>{});
     // products that dropped out of the listings (older backends: skip)
     api("/api/products/delisted?days=180").then(rows=>{
@@ -3775,6 +3809,74 @@ function renderStockWatch(prefix, list){
       + sub(`No longer listed — ${DISCONTINUED_DAYS}+ days gone = likely discontinued`, goneMine.length) + (goneMine.slice(0,8).map(goneLine).join("") || miniEmpty())
     : miniEmpty();
   rivEl.innerHTML  = (rivals.slice(0,12).map(line).join("") + goneRivals.slice(0,6).map(goneLine).join("")) || miniEmpty();
+  renderLaunches(prefix, dept, list);
+}
+
+/* New at competitors. Every retailer numbers its products from one counter
+   that only goes up, so a new listing whose SKU is above everything the
+   retailer had listed before is a launch; a lower SKU is an existing product
+   back in range (the server splits them: /api/products/launches). Colour or
+   trim variants of one family listed the same day collapse into one line.
+   Until launches have been recorded, the card falls back to the newest SKU
+   numbers in the current listings. */
+const LAUNCH_CAT = {cooker:"Cooker", oven:"Oven", hob:"Hob", hood:"Hood", microwave:"Microwave",
+  washing_machine:"Washer", washer_dryer:"Washer-dryer", dryer:"Dryer", fridge_freezer:"Fridge-freezer",
+  two_door:"Two-door", multi_door:"Multi-door", freezer:"Freezer", mini_bar:"Mini bar",
+  preservation:"Wine / preservation", ...DISH_TYPE_LABEL};
+function deptOf(p){ return isLaundry(p) ? "laundry" : isCooking(p) ? "cooking" : isDish(p) ? "dishwashing" : "cooling"; }
+function launchFamilies(rows){
+  const fam=new Map();
+  for(const r of rows){
+    const m=extractModel(r.name||"");
+    const day=String(r.first_seen||"").slice(0,10);
+    const fam6=normCode(m.code).slice(0,6) || String(r.name||"").toUpperCase().replace(/[\d\/]+.*$/,"").trim();
+    const k=[r.site, m.brand||r.name, fam6||r.id, day].join("|");
+    if(!fam.has(k)) fam.set(k, {r, n:[]}); else fam.get(k).n.push(r);
+  }
+  return [...fam.values()];
+}
+function renderLaunches(prefix, dept, list){
+  const rivEl=document.getElementById(prefix+"LaunchRivals"), mineEl=document.getElementById(prefix+"LaunchMine"),
+        sumEl=document.getElementById(prefix+"LaunchSum");
+  if(!rivEl) return;
+  const rows=(state.launches||[]).filter(r=>deptOf(r)===dept);
+  const isMine=r=>isMyBrand({name:r.name, specs:r.specs||{}, category:r.category});
+  const line=(g, tag)=>{ const r=g.r, url=r.url, nm=esc(modelTitle(r.name,28));
+    const d=r.first_seen?_daysSince(r.first_seen):null;
+    const more=g.n.length?` <span class="sw-else" title="${esc(g.n.map(x=>x.name).join("\n"))}">+${g.n.length} variant${g.n.length>1?"s":""}</span>`:"";
+    const cat=LAUNCH_CAT[r.category]?` <span class="sw-else" style="color:var(--ink-soft)">${esc(LAUNCH_CAT[r.category])}</span>`:"";
+    return `<div class="mini-row"><span class="pill ${SITE_PILL[r.site]||"na"}">${SITE_LABEL[r.site]||r.site}</span>
+      <span class="mini-name" title="${esc(r.name)} · SKU ${esc(r.sku||"")}">${url?`<a class="rl" href="${esc(url)}" target="_blank" rel="noopener">${nm}</a>`:nm}${more}${cat}</span>
+      <span class="sw-d" style="min-width:64px">${fmt(r.price)}</span>
+      <span class="sw-d">${tag!=null?tag:(d==null?"":d===0?"today":d+" d ago")}</span></div>`; };
+  const sub=(t,n)=>`<div class="sw-sub">${t}${n?` <b>${n}</b>`:""}</div>`;
+  const launches=launchFamilies(rows.filter(r=>r.kind==="launch"));
+  const rivalL=launches.filter(g=>!isMine(g.r)), mineL=launches.filter(g=>isMine(g.r));
+  const back=launchFamilies(rows.filter(r=>r.kind==="relisted" && !isMine(r)));
+  const week=rivalL.filter(g=>g.r.first_seen && _daysSince(g.r.first_seen)<=7).length;
+  if(sumEl) sumEl.textContent = state.launches==null ? "" :
+    `· ${rivalL.length} rival launch${rivalL.length!==1?"es":""} in 30 days${week?` · ${week} this week`:""}`;
+  if(rivalL.length){
+    rivEl.innerHTML = rivalL.slice(0,12).map(g=>line(g)).join("");
+  } else {
+    // no launches recorded yet: show the newest SKU numbers in today's listings
+    const bySite={};
+    for(const p of allProducts()){ const n=parseInt(p.sku,10); if(n>0) (bySite[f.site(p)]=bySite[f.site(p)]||[]).push(n); }
+    for(const k in bySite) bySite[k].sort((a,b)=>a-b);
+    const pct=p=>{ const n=parseInt(p.sku,10), v=bySite[f.site(p)]; if(!(n>0)||!v) return 0;
+      let lo=0,hi=v.length; while(lo<hi){ const m=(lo+hi)>>1; if(v[m]<n) lo=m+1; else hi=m; } return lo/v.length; };
+    const newest=list.filter(p=>!isMyBrand(p)).map(p=>({p,q:pct(p)})).filter(x=>x.q>=0.97)
+                     .sort((a,b)=>b.q-a.q).slice(0,10)
+                     .map(x=>({r:{name:f.name(x.p), url:f.url(x.p), site:f.site(x.p), category:x.p.category,
+                                   sku:x.p.sku, price:f.price(x.p)}, n:[], q:x.q}));
+    rivEl.innerHTML = newest.length
+      ? `<div class="sw-sub">No launches recorded yet · newest SKU numbers listed now</div>`
+        + newest.map(g=>line(g, "top "+Math.max(1,Math.round((1-g.q)*100))+"%")).join("")
+      : miniEmpty();
+  }
+  const none='<div class="mini-row" style="color:var(--ink-soft);font-size:12.5px">None in the last 30 days</div>';
+  mineEl.innerHTML = sub("Your brands' launches", mineL.length) + (mineL.slice(0,6).map(g=>line(g)).join("") || none)
+    + sub("Back in range · older SKU, not a launch", back.length) + (back.slice(0,6).map(g=>line(g)).join("") || none);
 }
 
 let brandFilter = "ALL";

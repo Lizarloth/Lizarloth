@@ -392,6 +392,90 @@ def list_delisted(days: int = 180, db: Session = Depends(get_db)):
     return out
 
 
+@app.get("/api/products/launches")
+def list_launches(days: int = 30, db: Session = Depends(get_db)):
+    """Listings that appeared in the last `days`, split into real launches and
+    relistings by the retailer's own SKU number.
+
+    Each retailer numbers products from one ever-increasing counter (shared
+    across all categories), so a new listing whose SKU is above every SKU we
+    had seen at that retailer before that day is new to the retailer: a
+    launch. One with an older number is an existing product back in range.
+    A SKU is dated by its earliest row (a URL change makes a new row, not a
+    new product). Rows first seen on the day a (site, category) started being
+    tracked are the onboarding baseline and never count as either."""
+    from collections import defaultdict
+    days = max(1, min(days, 365))
+    first = {}                   # (site, sku) -> (first datetime, sku int)
+    cat_start = {}               # (site, category) -> first tracked date
+    for site, sku, cat, fs, ca in db.query(Product.site, Product.retailer_sku, Product.category,
+                                           Product.first_seen, Product.created_at).all():
+        when = fs or ca
+        if not when:
+            continue
+        k = (site, cat)
+        if k not in cat_start or when.date() < cat_start[k]:
+            cat_start[k] = when.date()
+        if sku and str(sku).isdigit():
+            key = (site, str(sku))
+            if key not in first or when < first[key][0]:
+                first[key] = (when, int(sku))
+    # frontier before each day: highest SKU first seen on an earlier day, per site
+    by_site = defaultdict(list)
+    for (site, _), (when, n) in first.items():
+        by_site[site].append((when.date(), n))
+    frontier = {}                # site -> sorted [(day, max SKU seen before that day)]
+    for site, v in by_site.items():
+        v.sort()
+        steps, best, i = [], None, 0
+        while i < len(v):
+            day = v[i][0]
+            steps.append((day, best))
+            while i < len(v) and v[i][0] == day:
+                best = v[i][1] if best is None else max(best, v[i][1])
+                i += 1
+        frontier[site] = dict(steps)
+
+    since = datetime.utcnow() - timedelta(days=days)
+    cands = (db.query(Product).filter(Product.active == True, Product.retailer_sku != None).all())
+    picked = []
+    for p in cands:
+        key = (p.site, str(p.retailer_sku))
+        if key not in first:
+            continue
+        when, n = first[key]
+        if when < since or when.date() <= cat_start.get((p.site, p.category), when.date()):
+            continue
+        before = frontier.get(p.site, {}).get(when.date())
+        if before is None:
+            continue
+        picked.append((p, when, n, "launch" if n > before else "relisted", before))
+    if not picked:
+        return []
+    ids = [p.id for p, *_ in picked]
+    latest_at = (db.query(PriceHistory.product_id, func.max(PriceHistory.scraped_at).label("mx"))
+                 .filter(PriceHistory.product_id.in_(ids))
+                 .group_by(PriceHistory.product_id).subquery())
+    latest = {h.product_id: h for h in db.query(PriceHistory).join(
+        latest_at, (PriceHistory.product_id == latest_at.c.product_id)
+        & (PriceHistory.scraped_at == latest_at.c.mx)).all()}
+    out = []
+    for p, when, n, kind, before in sorted(picked, key=lambda x: x[1], reverse=True):
+        h = latest.get(p.id)
+        specs = {}
+        try:
+            specs = (json.loads(h.raw_data or "{}").get("specs") or {}) if h else {}
+        except Exception:
+            pass
+        out.append({"id": p.id, "name": p.name, "url": p.url, "site": p.site,
+                    "category": p.category, "sku": p.retailer_sku, "kind": kind,
+                    "first_seen": when.isoformat(), "frontier": before,
+                    "price": h.price if h else None, "old_price": h.old_price if h else None,
+                    "availability": h.availability if h else None,
+                    "specs": {"__dept": specs.get("__dept")} if specs.get("__dept") else {}})
+    return out
+
+
 @app.post("/api/products")
 def add_product(payload: ProductCreate, db: Session = Depends(get_db)):
     site = detect_site(payload.url)
