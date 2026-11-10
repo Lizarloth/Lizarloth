@@ -108,6 +108,27 @@ load, auto-dosing. `--due` / `--only` schedule it as one unit, `dishwasher`.
 Inspect with `python public_plp.py dishwashing` (likewise for the other two
 fetchers).
 
+### Stock status (`--check-stock`)
+
+The category listings don't carry reliable stock: Public's quantity fields
+are constant and Kotsovolos's `buyable` is always true, so both are stored as
+*not reported* — only Public's "Αγορά μόνο από κατάστημα" ribbon and
+Plaisio's card stock line come from the listing. `--check-stock` (with
+`--plp`) then reads the real status for **your models plus their 4
+nearest-priced rivals** in each subcategory: Public from its product JSON
+(`/public/v2/sku/{id}`, ~18 KB), Kotsovolos from the product page's stock chip
+(~1 MB). `scraper/stock.py` maps every retailer's wording to one status —
+InStock, LastPieces, OnOrder, StoreOnly, Display, Partner, OutOfStock — and
+`POST /api/ingest/stock` writes it onto today's reading (no extra price row),
+so the history doubles as stock history for the dashboards' *Stock watch*.
+
+```bash
+python local_runner.py --plp --enrich-prices --check-stock --due --max-minutes 60
+```
+
+The runner PC needs `stock.py` and `features.py` next to the other scraper
+files.
+
 Set `PRICEDGE_API_KEY` on the runner PC (same value as Railway's `API_KEY`)
 so `--quick` mode can read `/api/products` through the auth layer.
 

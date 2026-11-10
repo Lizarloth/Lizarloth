@@ -29,6 +29,7 @@ from selenium.webdriver.support import expected_conditions as EC
 
 import cooking
 import dishwashing
+import stock
 
 BASE = "https://www.plaisio.gr"
 
@@ -97,7 +98,20 @@ document.querySelectorAll('a[href*="/product/"]').forEach(a => {
     el = el.parentElement;
   }
 });
-return {total: il.numberOfItems || null, items: items, specMap: specMap};
+// each card's stock line ("Διαθέσιμο", "Εξαντλήθηκε", "Κατόπιν παραγγελίας"...)
+const availMap = {};
+document.querySelectorAll('a[href*="/product/"]').forEach(a => {
+  const m = (a.getAttribute('href') || "").match(/_(\d{4,})(?:$|[?#/])/);
+  if (!m || availMap[m[1]] !== undefined) return;
+  let el = a;
+  for (let i = 0; i < 10 && el; i++) {
+    const lines = (el.innerText || "").split("\n").map(s => s.trim());
+    const hit = lines.find(s => /^(Διαθέσιμο|Μη διαθέσιμο|Εξαντλήθηκε|Κατόπιν παραγγελίας|Προπαραγγελία|Τελευταία τεμάχια|Διαθέσιμο σε \d|Άμεσα διαθέσιμο)/i.test(s));
+    if (hit) { availMap[m[1]] = hit; break; }
+    el = el.parentElement;
+  }
+});
+return {total: il.numberOfItems || null, items: items, specMap: specMap, availMap: availMap};
 """
 
 
@@ -327,7 +341,7 @@ def mine_dish_card(text, name):
         programs=g("Αριθμός προγραμμάτων"), noise=g("Επίπεδο θορύβου"))
 
 
-def parse_items(items, cat_name, dept="cooling", spec_map=None):
+def parse_items(items, cat_name, dept="cooling", spec_map=None, avail_map=None):
     spec_map = spec_map or {}
     out = []
     for it in items:
@@ -362,7 +376,9 @@ def parse_items(items, cat_name, dept="cooling", spec_map=None):
             "brand": brand,
             "name": name,
             "price": price_to_float(offers.get("price")),
-            "availability": (offers.get("availability", "") or "").split("/")[-1],
+            # the card's own stock line first, then the schema.org value
+            "availability": (stock.normalize((avail_map or {}).get(sku, ""))
+                             or stock.normalize(offers.get("availability", ""))),
             "image": img,
             "url": it.get("url", ""),
         }
@@ -422,7 +438,8 @@ def collect_category(driver, cat_path, cat_name, debug=True, dept="cooling"):
         data = wait_for_itemlist(driver)
         if total is None and data.get("total"):
             total = data["total"]
-        rows = parse_items(data.get("items", []), cat_name, dept=dept, spec_map=data.get("specMap"))
+        rows = parse_items(data.get("items", []), cat_name, dept=dept, spec_map=data.get("specMap"),
+                           avail_map=data.get("availMap"))
         first_sku = rows[0]["sku_id"] if rows else "-"
         new = [r for r in rows if r["sku_id"] not in merged]
         for r in new:

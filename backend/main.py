@@ -507,6 +507,34 @@ def ingest_reprice(payload: RepricePayload, request: Request, db: Session = Depe
     return {"repriced": updated}
 
 
+@app.post("/api/ingest/stock")
+def ingest_stock(payload: RepricePayload, request: Request, db: Session = Depends(get_db)):
+    """Record a product-page stock check (runner --check-stock). Sets the
+    availability on today's latest price-history row IN PLACE, so a stock
+    check never adds a price reading; skipped if the product has no reading
+    today (the next catalogue sweep carries it). Items: {url, availability}."""
+    token = os.getenv("INGEST_TOKEN", "")
+    if not token or request.headers.get("X-Ingest-Token") != token:
+        raise HTTPException(401, "Invalid or missing X-Ingest-Token")
+    today = datetime.utcnow().date()
+    updated = skipped = 0
+    for it in payload.items:
+        status = (it.get("availability") or "").strip()
+        product = db.query(Product).filter(Product.url == it.get("url")).first() if it.get("url") else None
+        if not status or not product:
+            skipped += 1
+            continue
+        latest = _latest_history(db, product.id)
+        if latest and latest.scraped_at and latest.scraped_at.date() == today:
+            latest.availability = status
+            updated += 1
+        else:
+            skipped += 1
+    db.commit()
+    print(f"📦 Stock: {updated} availability updates ({skipped} skipped)")
+    return {"stock_updated": updated, "skipped": skipped}
+
+
 @app.get("/api/ingest/missing-ids")
 def ingest_missing_ids(request: Request, site: Optional[str] = None,
                        limit: int = 300, db: Session = Depends(get_db)):

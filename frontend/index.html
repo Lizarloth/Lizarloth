@@ -648,6 +648,10 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 .seg-chip .sc-v{font:700 18px 'Bricolage Grotesque';color:var(--ink);margin:3px 0}
 .seg-chip .sc-s{font-size:11.5px;color:var(--ink-soft)}
 
+/* stock watch rows */
+.sw-st{font:700 10px 'Hanken Grotesk';color:#fff;border-radius:6px;padding:2px 7px;white-space:nowrap}
+.sw-d{font:600 11px 'JetBrains Mono';color:var(--ink-soft);white-space:nowrap;min-width:58px;text-align:right}
+
 /* ===== Navigation & look-and-feel pass (2026-11) ===== */
 /* Cooling hero now matches the light department hero used by the others */
 .hero{background:var(--frost);color:var(--ink);border:1px solid var(--line);box-shadow:var(--shadow);position:relative;overflow:hidden}
@@ -746,7 +750,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-10-T1</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-11-S1</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 
@@ -818,8 +822,15 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     </div>
 
     <div class="card" style="margin-top:18px">
-      <h3><span class="dot" style="background:var(--heat)"></span>Availability mix by retailer</h3>
+      <h3><span class="dot" style="background:var(--heat)"></span>Availability by retailer</h3>
       <div class="chart-box short"><canvas id="availChart"></canvas></div>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <h3><span class="dot" style="background:var(--heat)"></span>Stock watch <span id="coolStockSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+      <div class="grid two-col">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Your models not buyable online · longest first</div><div id="coolStockMine" class="mini-list"></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that dropped out in the last 7 days · your opening</div><div id="coolStockRivals" class="mini-list"></div></div>
+      </div>
     </div>
 
     <div class="card" style="margin-top:18px">
@@ -880,6 +891,13 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
         <div class="card"><h3>Energy class mix</h3><div class="chart-box"><canvas id="lEnergyChart"></canvas></div></div>
       </div>
       <div class="card" style="margin-top:16px"><h3>Availability by retailer</h3><div class="chart-box short"><canvas id="lAvailChart"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <h3><span class="dot" style="background:var(--heat)"></span>Stock watch <span id="lauStockSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+      <div class="grid two-col">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Your models not buyable online · longest first</div><div id="lauStockMine" class="mini-list"></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that dropped out in the last 7 days · your opening</div><div id="lauStockRivals" class="mini-list"></div></div>
+      </div>
     </div>
 
     <div class="grid two-col" style="margin-top:18px">
@@ -971,6 +989,13 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       </div>
       <div class="card" style="margin-top:16px"><h3>Availability by retailer</h3><div class="chart-box short"><canvas id="cAvailChart"></canvas></div></div>
     </div>
+    <div class="card" style="margin-top:18px">
+      <h3><span class="dot" style="background:var(--heat)"></span>Stock watch <span id="cookStockSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+      <div class="grid two-col">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Your models not buyable online · longest first</div><div id="cookStockMine" class="mini-list"></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that dropped out in the last 7 days · your opening</div><div id="cookStockRivals" class="mini-list"></div></div>
+      </div>
+    </div>
 
     <div class="grid two-col" style="margin-top:18px">
       <div class="card">
@@ -1048,6 +1073,13 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
         <div class="card"><h3>Energy class mix</h3><div class="chart-box"><canvas id="dEnergyChart"></canvas></div></div>
       </div>
       <div class="card" style="margin-top:16px"><h3>Availability by retailer</h3><div class="chart-box short"><canvas id="dAvailChart"></canvas></div></div>
+    </div>
+    <div class="card" style="margin-top:18px">
+      <h3><span class="dot" style="background:var(--heat)"></span>Stock watch <span id="dishStockSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+      <div class="grid two-col">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Your models not buyable online · longest first</div><div id="dishStockMine" class="mini-list"></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that dropped out in the last 7 days · your opening</div><div id="dishStockRivals" class="mini-list"></div></div>
+      </div>
     </div>
     <div class="grid two-col" style="margin-top:18px">
       <div class="card"><h3><span class="dot" style="background:var(--mint)"></span>Biggest drops</h3><div id="dMoversDown" class="mini-list"></div></div>
@@ -2032,17 +2064,12 @@ function renderLaundry(){
     const eL=["A","B","C","D","E","F","G"].filter(x=>enmix[x]);
     if(eL.length) makeChart("lEnergyChart","doughnut",{labels:eL,datasets:[{data:eL.map(x=>enmix[x]),backgroundColor:eL.map(x=>L_EC[x]||"#94A3B8")}]},{plugins:{legend:{position:"right"}}});
     else emptyChart("lEnergyChart","No energy data yet");
-    const bk=["In stock","On order","Last pieces","Display","Out of stock","Unknown"];
-    const av={kotsovolos:[0,0,0,0,0,0],public:[0,0,0,0,0,0],plaisio:[0,0,0,0,0,0]};
-    cset.forEach(p=>{const s=f.site(p); if(!(s in av))return; const i=bk.indexOf(availBucket(f.avail(p))); if(i>=0)av[s][i]++;});
-    if(Object.values(av).some(a=>a.some(x=>x>0))){
-      const bc=["#10B981","#0B6E6E","#F59E0B","#A78BFA","#EF4444","#94A3B8"];
-      makeChart("lAvailChart","bar",{labels:["Kotsovolos","Public","Plaisio"],datasets:bk.map((b,i)=>({label:b,data:["kotsovolos","public","plaisio"].map(s=>av[s][i]),backgroundColor:bc[i]}))},{plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true}}});
-    } else emptyChart("lAvailChart","No availability data yet");
+    renderAvailChart("lAvailChart", cset);
   }
 
   // ── promo pressure (respects the active laundry filters) ─────────────
   renderPromoSection("lpp", cset);
+  renderStockWatch("lau", cset);
 }
 let lbFilter = { type:"any", brand:"ALL" };
 
@@ -2513,15 +2540,10 @@ function renderSecDashboard(D){
     const eL=Object.keys(enmix).sort((a,b)=>cookEnergyRank(a)-cookEnergyRank(b));
     if(eL.length) makeChart(I.energy,"doughnut",{labels:eL,datasets:[{data:eL.map(x=>enmix[x]),backgroundColor:eL.map(x=>L_EC[x[0]]||"#94A3B8")}]},{plugins:{legend:{position:"right"}}});
     else emptyChart(I.energy,"No energy data in view");
-    const bk=["In stock","On order","Last pieces","Display","Out of stock","Unknown"];
-    const av={kotsovolos:[0,0,0,0,0,0],public:[0,0,0,0,0,0],plaisio:[0,0,0,0,0,0]};
-    cset.forEach(p=>{const s=f.site(p); if(!(s in av))return; const i=bk.indexOf(availBucket(f.avail(p))); if(i>=0)av[s][i]++;});
-    if(Object.values(av).some(a=>a.some(x=>x>0))){
-      const bcol=["#10B981","#0B6E6E","#F59E0B","#A78BFA","#EF4444","#94A3B8"];
-      makeChart(I.avail,"bar",{labels:["Kotsovolos","Public","Plaisio"],datasets:bk.map((b,i)=>({label:b,data:["kotsovolos","public","plaisio"].map(s=>av[s][i]),backgroundColor:bcol[i]}))},{plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true}}});
-    } else emptyChart(I.avail,"No availability data yet");
+    renderAvailChart(I.avail, cset);
   }
   renderPromoSection(I.pp, cset);
+  renderStockWatch(D.key==="cooking"?"cook":"dish", cset);
 }
 
 /* My Brands — the laundry parity view with the department's type segments
@@ -3546,15 +3568,9 @@ function renderDashboard(){
     makeChart("energyChart","doughnut",{labels:eLabels,datasets:[{data:eLabels.map(x=>en[x]),backgroundColor:eLabels.map(x=>ENERGY_COLOR[x])}]},{plugins:{legend:{position:"right"}}});
   } else emptyChart("energyChart","Energy class fills in after the next price update");
 
-  // ── availability mix (stacked) ────────────────────────────
-  const buckets=["In stock","On order","Last pieces","Display","Out of stock","Unknown"];
-  const av={kotsovolos:[0,0,0,0,0,0],public:[0,0,0,0,0,0],plaisio:[0,0,0,0,0,0]};
-  prods.forEach(p=>{ const s=f.site(p); if(!(s in av))return; const b=availBucket(f.avail(p)); const i=buckets.indexOf(b); if(i>=0)av[s][i]++; });
-  const anyAvail = Object.values(av).some(arr=>arr.some(x=>x>0));
-  if(anyAvail){
-    const bcol=["#10B981","#0B6E6E","#F59E0B","#A78BFA","#EF4444","#94A3B8"];
-    makeChart("availChart","bar",{labels:["Kotsovolos","Public","Plaisio"],datasets:buckets.map((b,i)=>({label:b,data:["kotsovolos","public","plaisio"].map(s=>av[s][i]),backgroundColor:bcol[i]}))},{plugins:{legend:{position:"bottom"}},scales:{x:{stacked:true},y:{stacked:true}}});
-  } else emptyChart("availChart","No availability data yet");
+  // ── availability + stock watch ────────────────────────────
+  renderAvailChart("availChart", prods);
+  renderStockWatch("cool", prods);
 
   // ── where you stand (deduped, rank consistent with Benchmark) ────────
   const dsEl=document.getElementById("dashStand");
@@ -3588,16 +3604,101 @@ function miniEmpty(){ return '<div class="empty" style="padding:24px"><div class
    as "Unknown" instead of silently counted as in-stock — so a retailer
    changing their availability wording surfaces as a parsing gap, not as
    phantom stock. */
+/* Stock status buckets. The runner stores canonical codes (scraper/stock.py:
+   InStock, LastPieces, OnOrder, StoreOnly, Display, Partner, OutOfStock;
+   "" = not reported); older rows may still hold retailer wording. */
+const AVAIL_CODE = {InStock:"In stock", LastPieces:"Last pieces", OnOrder:"On order", StoreOnly:"Store only",
+                    Display:"Display unit", Partner:"Marketplace partner", OutOfStock:"Out of stock"};
 function availBucket(a){
-  const s=(a||"").toLowerCase();
-  if(!s) return "Unknown";
-  if(s.includes("instock")||s.includes("άμεσα")||s.includes("διαθέσιμο άμεσα")) return "In stock";
-  if(s.includes("κατόπιν")||s.includes("παραγγελία")) return "On order";
-  if(s.includes("τελευταία")) return "Last pieces";
-  if(s.includes("εκθεσιακό")||s.includes("display")) return "Display";
-  if(s.includes("outofstock")||s.includes("εξαντλήθηκε")) return "Out of stock";
-  if(s.includes("instoreonly")) return "On order";
-  return "Unknown";
+  const raw=(a||"").trim();
+  if(!raw) return "Not reported";
+  if(AVAIL_CODE[raw]) return AVAIL_CODE[raw];
+  const s=raw.toLowerCase();
+  if(s.includes("instoreonly")||s.includes("μόνο από κατάστημα")) return "Store only";
+  if(s.includes("εκθεσιακό")||s==="display") return "Display unit";
+  if(s.includes("ελευταία")) return "Last pieces";
+  if(s.includes("κατόπιν")||s.includes("παραγγελία")||s.includes("preorder")) return "On order";
+  if(s.includes("outofstock")||s.includes("εξαντλήθηκε")||s.includes("μη διαθέσιμο")) return "Out of stock";
+  if(s.includes("instock")||s.includes("άμεσα")||s.includes("διαθέσιμο")) return "In stock";
+  return "Not reported";
+}
+const AVAIL_ORDER = ["In stock","Last pieces","On order","Marketplace partner","Store only","Display unit","Out of stock"];
+const AVAIL_COLOR = {"In stock":"#10B981","Last pieces":"#F59E0B","On order":"#0EA5B7","Marketplace partner":"#64748B",
+                     "Store only":"#A78BFA","Display unit":"#C084FC","Out of stock":"#EF4444"};
+/* not buyable online right now (On order is buyable, just slower) */
+const AVAIL_UNAVAILABLE = new Set(["Out of stock","Store only","Display unit"]);
+
+/* Availability by retailer: one 100% bar per retailer over the products whose
+   status is known, labelled with how many that is — so "not reported" never
+   masquerades as a status. Shared by all four dashboards. */
+function renderAvailChart(id, list){
+  const sites=["kotsovolos","public","plaisio"];
+  const cnt={}, tot={}, rep={};
+  sites.forEach(s=>{ cnt[s]={}; tot[s]=0; rep[s]=0; });
+  list.forEach(p=>{
+    const s=f.site(p); if(!(s in cnt)) return;
+    tot[s]++;
+    const b=availBucket(f.avail(p)); if(b==="Not reported") return;
+    rep[s]++; cnt[s][b]=(cnt[s][b]||0)+1;
+  });
+  const shown=sites.filter(s=>tot[s]>0);
+  if(!shown.some(s=>rep[s]>0)){ emptyChart(id,"Stock status not reported yet — fills in with the runner's --check-stock"); return; }
+  const buckets=AVAIL_ORDER.filter(b=>shown.some(s=>cnt[s][b]));
+  const labels=shown.map(s=>`${SITE_LABEL[s]} · ${rep[s]} of ${tot[s]} checked`);
+  if(charts[id]) charts[id].destroy();
+  const txt=getCSS("--ink-soft")||"#64748B";
+  charts[id]=new Chart(document.getElementById(id),{type:"bar",
+    data:{labels, datasets:buckets.map(b=>({label:b, backgroundColor:AVAIL_COLOR[b], borderWidth:0, maxBarThickness:26,
+      data:shown.map(s=>rep[s]?+(100*(cnt[s][b]||0)/rep[s]).toFixed(1):0), counts:shown.map(s=>cnt[s][b]||0)}))},
+    options:{indexAxis:"y", responsive:true, maintainAspectRatio:false,
+      scales:{x:{stacked:true,max:100,grid:{color:getCSS("--grid")},ticks:{callback:v=>v+"%",font:{family:"JetBrains Mono",size:10},color:txt}},
+              y:{stacked:true,grid:{display:false},ticks:{font:{family:"Hanken Grotesk",size:11},color:txt}}},
+      plugins:{legend:{position:"bottom",labels:{font:{family:"Hanken Grotesk",size:11},color:txt,usePointStyle:true,boxHeight:6}},
+        tooltip:{backgroundColor:"rgba(40,34,24,.95)",padding:10,cornerRadius:8,
+          callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.x}% (${c.dataset.counts[c.dataIndex]} of ${rep[shown[c.dataIndex]]} checked)`}}}}});
+}
+
+/* Stock watch: which of your models can't be bought online right now (and for
+   how long), and which rivals just dropped out — from the availability saved
+   with every price reading. */
+function stockStreaks(){
+  // product id -> readings sorted oldest→newest [{d, b}]
+  const by={};
+  for(const h of state.history||[]){
+    if(h.product_id==null || !h.availability) continue;
+    (by[h.product_id]=by[h.product_id]||[]).push({d:h.scraped_at||"", b:availBucket(h.availability)});
+  }
+  for(const k in by) by[k].sort((a,b)=>a.d<b.d?-1:1);
+  return by;
+}
+function _daysSince(t){ const ms=Date.now()-new Date(/Z$|[+-]\d\d:?\d\d$/.test(t)?t:t+"Z").getTime(); return Math.max(0, Math.floor(ms/864e5)); }
+function renderStockWatch(prefix, list){
+  const mineEl=document.getElementById(prefix+"StockMine"), rivEl=document.getElementById(prefix+"StockRivals"), sumEl=document.getElementById(prefix+"StockSum");
+  if(!mineEl) return;
+  const hist=stockStreaks();
+  const SEV={"Out of stock":0,"Store only":1,"Display unit":2,"On order":3};
+  const rows=[];
+  for(const p of list){
+    const b=availBucket(f.avail(p));
+    if(!(b in SEV)) continue;
+    // start of the current run of this status, from saved readings
+    const hs=hist[f.id(p)]||[]; let since=null, capped=false;
+    for(let i=hs.length-1;i>=0;i--){ if(hs[i].b===b) since=hs[i].d; else break; }
+    if(since && hs.length && hs[0].b===b) capped=true;   // history doesn't reach the start
+    rows.push({p,b,days:since?_daysSince(since):0,capped,mine:isMyBrand(p)});
+  }
+  const line=r=>{ const {brand,code}=extractModel(f.name(r.p)); const url=f.url(r.p);
+    const nm=`${esc(cap(brand)||"")} ${esc(short(code||f.name(r.p),20))}`;
+    const dur=r.days>0?`${r.capped?"≥ ":""}${r.days} day${r.days>1?"s":""}`:"today";
+    return `<div class="mini-row"><span class="pill ${SITE_PILL[f.site(r.p)]||"na"}">${SITE_LABEL[f.site(r.p)]||f.site(r.p)}</span>
+      <span class="mini-name" title="${esc(f.name(r.p))}">${url?`<a class="rl" href="${esc(url)}" target="_blank" rel="noopener">${nm}</a>`:nm}</span>
+      <span class="sw-st" style="background:${AVAIL_COLOR[r.b]}">${r.b}</span><span class="sw-d">${dur}</span></div>`; };
+  const mine=rows.filter(r=>r.mine).sort((a,b)=>(SEV[a.b]-SEV[b.b])||(b.days-a.days));
+  const rivals=rows.filter(r=>!r.mine && AVAIL_UNAVAILABLE.has(r.b) && r.days<=7).sort((a,b)=>(a.days-b.days)||(SEV[a.b]-SEV[b.b]));
+  const checkedMine=list.filter(p=>isMyBrand(p) && availBucket(f.avail(p))!=="Not reported").length;
+  if(sumEl) sumEl.textContent = checkedMine ? `· ${checkedMine} of your listings checked` : "· runs with the runner's --check-stock";
+  mineEl.innerHTML = mine.slice(0,12).map(line).join("") || miniEmpty();
+  rivEl.innerHTML  = rivals.slice(0,12).map(line).join("") || miniEmpty();
 }
 
 let brandFilter = "ALL";

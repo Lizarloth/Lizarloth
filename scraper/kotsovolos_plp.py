@@ -337,9 +337,11 @@ def parse_entry(entry, cat_name, dept="cooling"):
                 return attrs_all[nm]
         return ""
 
-    # availability: 'buyable' is WebSphere's purchasable flag for the listing
-    buyable = str(entry.get("buyable", "")).lower()
-    avail = "InStock" if buyable == "true" else ("OutOfStock" if buyable == "false" else "")
+    # availability: the listing has no reliable stock signal ('buyable' is
+    # always true and the stock-amount / lifecycle fields don't match what the
+    # product page shows), so it stays unreported here. The runner's
+    # --check-stock reads the page's stock chip for your models + rivals.
+    avail = ""
 
     base = {
         "site": "kotsovolos",

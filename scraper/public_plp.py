@@ -29,6 +29,7 @@ import requests
 
 import cooking
 import dishwashing
+import stock
 
 BASE = "https://www.public.gr/category/"
 
@@ -331,9 +332,8 @@ def parse_products(data, spec_map=SPEC_MAP, dept="cooling"):
                         for rb in (sku.get("ribbons") or [])]
         unbeatable = any("απαιχτη" in _strip(str(t)) for t in ribbon_texts)
 
-        # availability: explicit field if the API exposes one; otherwise derive
-        # it — a priced row on the purchase listing is buyable, and the
-        # "Αγορά μόνο από κατάστημα" ribbon downgrades it to in-store-only.
+        # availability: an explicit field if the API ever sends one (canonical
+        # status via stock.normalize), else the store-only ribbon below.
         avail = ""
         for k in ("stockLevelStatus", "availability", "stockStatus",
                   "inventoryStatus", "availabilityStatus"):
@@ -341,16 +341,18 @@ def parse_products(data, spec_map=SPEC_MAP, dept="cooling"):
             if isinstance(v, dict):
                 v = v.get("status") or v.get("value") or v.get("code")
             if v:
-                avail = str(v)
+                avail = stock.normalize(v)
                 break
+        # The listing carries no real stock data (quantity fields are constant),
+        # only the "Αγορά μόνο από κατάστημα" ribbon. Everything else stays
+        # unreported; the runner's --check-stock reads the true status from
+        # the product JSON for your models and their rivals.
         if not avail:
             rb = sku.get("ribbons")
             txts = " ".join(str((x.get("text") or x.get("name") or x) if isinstance(x, dict) else x)
                             for x in rb) if isinstance(rb, list) else ""
             if "ΚΑΤΑΣΤΗΜΑ" in _strip(txts).upper():
-                avail = "InStoreOnly"
-            elif price is not None:
-                avail = "InStock"
+                avail = "StoreOnly"
 
         row = {
             "site": "public",
