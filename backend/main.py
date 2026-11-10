@@ -355,6 +355,43 @@ def list_products(db: Session = Depends(get_db)):
     return out
 
 
+@app.get("/api/products/delisted")
+def list_delisted(days: int = 180, db: Session = Depends(get_db)):
+    """Products that dropped out of the retailers' listings (retired by the
+    post-sweep cleanup) within the last `days`, with when they were last seen.
+    Same-SKU duplicate rows (a URL change, not a delisting) are excluded: a
+    retired row whose (site, retailer_sku) still has an active twin is skipped.
+    The dashboard reads short absences as 'unlisted' and long ones (45+ days)
+    as 'likely discontinued' — unlike 'out of stock', which only ever comes
+    from a product that is still listed."""
+    since = datetime.utcnow() - timedelta(days=max(1, min(days, 730)))
+    active_keys = {(s, k) for s, k in db.query(Product.site, Product.retailer_sku)
+                   .filter(Product.active == True, Product.retailer_sku != None).all() if k}
+    latest_at = (db.query(PriceHistory.product_id, func.max(PriceHistory.scraped_at).label("mx"))
+                 .group_by(PriceHistory.product_id).subquery())
+    rows = (db.query(Product, PriceHistory)
+            .join(latest_at, latest_at.c.product_id == Product.id)
+            .join(PriceHistory, (PriceHistory.product_id == Product.id)
+                  & (PriceHistory.scraped_at == latest_at.c.mx))
+            .filter(Product.active == False, latest_at.c.mx >= since).all())
+    out, seen = [], set()
+    for p, h in rows:
+        if p.id in seen or (p.site, p.retailer_sku) in active_keys:
+            continue
+        seen.add(p.id)
+        dept = None
+        try:
+            dept = (json.loads(h.raw_data or "{}").get("specs") or {}).get("__dept")
+        except Exception:
+            pass
+        out.append({"id": p.id, "name": p.name, "url": p.url, "site": p.site,
+                    "category": p.category, "sku": p.retailer_sku,
+                    "last_price": h.price, "last_availability": h.availability,
+                    "last_seen": h.scraped_at.isoformat() if h.scraped_at else None,
+                    "specs": {"__dept": dept} if dept else {}})
+    return out
+
+
 @app.post("/api/products")
 def add_product(payload: ProductCreate, db: Session = Depends(get_db)):
     site = detect_site(payload.url)
@@ -773,7 +810,10 @@ _M_BRANDS = ["WHIRLPOOL","SAMSUNG","LG","BOSCH","SIEMENS","PITSOS","DELONGHI","D
     "BEKO","HISENSE","TOSHIBA","SHARP","CANDY","LIEBHERR","MIELE","INVENTOR","MORRIS","UNITED",
     "CROWN","MIDEA","HAIER","TCL","DAVOLINE","ELECTROLUX","INDESIT","HOTPOINT","GORENJE","TEKA",
     "FINLUX","PHILCO","FRANKE","NEFF","SMEG","BERTAZZONI","KENDRIX","OMNYS","PROFI COOK","PROFICOOK",
-    "LA SOMMELIERE","JURO PRO","JURO-PRO","ESKIMO","ROBIN","CARAD","TELEFUNKEN","NASCO","KARAMCO"]
+    "LA SOMMELIERE","JURO PRO","JURO-PRO","ESKIMO","ROBIN","CARAD","TELEFUNKEN","NASCO","KARAMCO",
+    # cooking + dishwashing brands (kept in sync with the dashboard's BRANDS)
+    "ELICA","FABER","LA GERMANIA","PYRAMIS","CECOTEC","KÜPPERSBUSCH","KUPPERSBUSCH","HOOVER","BRANDT",
+    "ZANUSSI","SINGER","ROHNSON","IZZY","ESTIA"]
 _M_LOOKALIKE = str.maketrans("ΑΒΕΖΗΙΚΜΝΟΡΤΥΧ", "ABEZHIKMNOPTYX")
 _M_STOP = {"LT","L","CM","ML","KG","DB","W","KWH","NO","FROST","TOTAL","LOW","FULL","EASY","STATIC",
     "INOX","WHITE","BLACK","SILVER","INVERTER","CLASS","ENERGY","GALA","ED","EU","PEAK","BIOFRESH",
@@ -817,14 +857,31 @@ _MATCHES_DIRTY = True   # set by ingest/retire/review; GET /api/matches rebuilds
 
 
 def _rebuild_matches(db: Session):
-    """Recompute match groups: overrides('same') → EAN → MPN → code → fuzzy
-    containment, via union-find. 'different' overrides split at the end and
-    always win. One ProductMatch row per product per multi-member group."""
+    """Recompute match groups: overrides('same') → EAN → MPN → code → fuzzy,
+    via union-find with two cannot-link rules checked on every merge:
+      * a human 'different' verdict between any two members, and
+      * two different listings from the same retailer — one model is listed
+        once per retailer, so a second SKU from the same site means the merge
+        would join different models (same-SKU URL twins count as one listing).
+    Fuzzy links are only a short suffix on the same brand's code (colour
+    variants: WHK2543X → WHK2543X53) and only when unambiguous, so families of
+    codes sharing a stem can't chain into one giant group."""
     from collections import defaultdict
-    prods = (db.query(Product.id, Product.name, Product.site, Product.ean, Product.mpn)
+    prods = (db.query(Product.id, Product.name, Product.site, Product.ean, Product.mpn,
+                      Product.retailer_sku)
              .filter(Product.active == True).all())
     id_set = {p.id for p in prods}
     parent = {p.id: p.id for p in prods}
+    # per component: member ids, forbidden partners, and listing identity per site
+    members_of = {p.id: {p.id} for p in prods}
+    forbid = defaultdict(set)
+    listing = {p.id: f"{p.site}:{p.retailer_sku}" if p.retailer_sku else f"{p.site}:#{p.id}" for p in prods}
+    sites_of = {p.id: {p.site: {listing[p.id]}} for p in prods}
+    for o in db.query(MatchOverride).filter(MatchOverride.verdict == "different").all():
+        if o.product_a in id_set and o.product_b in id_set:
+            forbid[o.product_a].add(o.product_b)
+            forbid[o.product_b].add(o.product_a)
+    comp_forbid = {p.id: set(forbid[p.id]) for p in prods}
 
     def find(x):
         while parent[x] != x:
@@ -832,12 +889,28 @@ def _rebuild_matches(db: Session):
             x = parent[x]
         return x
 
-    def union(a, b):
-        ra, rb = find(a), find(b)
-        if ra != rb:
-            parent[rb] = ra
-
     edges = []
+
+    def union(a, b, method):
+        ra, rb = find(a), find(b)
+        if ra == rb:
+            edges.append((a, b, method))
+            return True
+        if members_of[ra] & comp_forbid[rb] or members_of[rb] & comp_forbid[ra]:
+            return False                      # a human said these differ
+        if method != "override":
+            for site, keys in sites_of[rb].items():
+                if site in sites_of[ra] and sites_of[ra][site] != keys:
+                    return False              # second, different listing at one retailer
+        if len(members_of[ra]) < len(members_of[rb]):
+            ra, rb = rb, ra
+        parent[rb] = ra
+        members_of[ra] |= members_of.pop(rb)
+        comp_forbid[ra] |= comp_forbid.pop(rb)
+        for site, keys in sites_of.pop(rb).items():
+            sites_of[ra].setdefault(site, set()).update(keys)
+        edges.append((a, b, method))
+        return True
 
     def link_by_key(key_of, method, minlen):
         buckets = defaultdict(list)
@@ -847,47 +920,38 @@ def _rebuild_matches(db: Session):
                 buckets[k].append(p.id)
         for ids in buckets.values():
             for other in ids[1:]:
-                edges.append((ids[0], other, method))
-                union(ids[0], other)
+                union(ids[0], other, method)
 
     # human 'same' verdicts merge first and mark the group human-verified
     for o in db.query(MatchOverride).filter(MatchOverride.verdict == "same").all():
         if o.product_a in id_set and o.product_b in id_set:
-            edges.append((o.product_a, o.product_b, "override"))
-            union(o.product_a, o.product_b)
+            union(o.product_a, o.product_b, "override")
     link_by_key(lambda p: _re.sub(r"\D", "", p.ean or ""), "ean", 8)
     link_by_key(lambda p: _re.sub(r"[^A-Z0-9]", "", (p.mpn or "").upper()), "mpn", 4)
     codes = {p.id: extract_model(p.name or "") for p in prods}
     link_by_key(lambda p: codes[p.id][1] if len(codes[p.id][1]) >= 4 else "", "code", 4)
-    # fuzzy: code containment (WHK2543X53 vs WHK2543X), keys >= 6 chars
+    # fuzzy: same brand, the longer code = the shorter + a ≤4-char suffix
+    # (colour/variant), and the shorter code must have exactly one such
+    # extension — a stem shared by several models links nothing
     keymap = defaultdict(list)
     for p in prods:
-        c = codes[p.id][1]
-        if len(c) >= 6:
-            keymap[c].append(p.id)
-    keys = sorted(keymap)
-    for a in keys:
-        for b in keys:
-            if len(a) <= len(b):
-                continue
-            if b in a:
-                edges.append((keymap[a][0], keymap[b][0], "fuzzy"))
-                union(keymap[a][0], keymap[b][0])
-    # human 'different' verdicts split last — they always win
-    forced_out = set()
-    for o in db.query(MatchOverride).filter(MatchOverride.verdict == "different").all():
-        if o.product_a in id_set and o.product_b in id_set and find(o.product_a) == find(o.product_b):
-            forced_out.add(o.product_b)
+        b, c = codes[p.id]
+        if b and len(c) >= 6:
+            keymap[(b, c)].append(p.id)
+    by_brand = defaultdict(list)
+    for (b, c) in keymap:
+        by_brand[b].append(c)
+    for b, cs in by_brand.items():
+        for short_c in cs:
+            ext = [c for c in cs if c != short_c and c.startswith(short_c) and len(c) - len(short_c) <= 4]
+            if len(ext) == 1:
+                union(keymap[(b, short_c)][0], keymap[(b, ext[0])][0], "fuzzy")
     members = defaultdict(list)
     for p in prods:
-        if p.id in forced_out:
-            continue
         members[find(p.id)].append(p.id)
     gmeth = defaultdict(set)
     for a, b, m in edges:
-        if a in forced_out or b in forced_out:
-            continue
-        if a in parent and b in parent and find(a) == find(b):
+        if find(a) == find(b):
             gmeth[find(a)].add(m)
     db.query(ProductMatch).delete()
     now = datetime.utcnow()
@@ -918,6 +982,8 @@ class MatchReviewPayload(BaseModel):
     model_config = {"protected_namespaces": ()}
     product_ids: list[int]
     verdict: str            # "same" | "different"
+    # partial confirm: product_ids are one model, each of `rest` is NOT that model
+    rest: list[int] = []
 
 
 @app.get("/api/matches")
@@ -1074,25 +1140,34 @@ def review_match(payload: MatchReviewPayload, db: Session = Depends(get_db)):
     if payload.verdict not in ("same", "different"):
         raise HTTPException(400, "verdict must be 'same' or 'different'")
     ids = sorted(set(payload.product_ids))
-    if len(ids) < 2:
-        raise HTTPException(400, "need at least two product_ids")
+    rest = sorted(set(payload.rest) - set(ids))
+    if len(ids) < 2 and not rest:
+        raise HTTPException(400, "need at least two product_ids (or a rest to split off)")
+
+    def put(a, b, verdict):
+        a, b = min(a, b), max(a, b)               # canonical pair order
+        rec = (db.query(MatchOverride)
+               .filter(MatchOverride.product_a == a, MatchOverride.product_b == b).first())
+        if rec:
+            rec.verdict = verdict
+        else:
+            db.add(MatchOverride(product_a=a, product_b=b, verdict=verdict))
+
+    saved = 0
     for i in range(len(ids)):
         for j in range(i + 1, len(ids)):
-            a, b = ids[i], ids[j]
-            rec = (db.query(MatchOverride)
-                   .filter(MatchOverride.product_a == a, MatchOverride.product_b == b).first())
-            if rec:
-                rec.verdict = payload.verdict
-            else:
-                db.add(MatchOverride(product_a=a, product_b=b, verdict=payload.verdict))
-    # the human verdict supersedes any AI suggestion for this exact group
+            put(ids[i], ids[j], payload.verdict); saved += 1
+    for a in ids:                                  # selected ≠ every unselected listing
+        for b in rest:
+            put(a, b, "different"); saved += 1
+    # the human verdict supersedes any AI suggestion for this group
     db.query(MatchSuggestion).filter(
-        MatchSuggestion.sig == ",".join(str(i) for i in ids)).delete()
+        MatchSuggestion.sig == ",".join(str(i) for i in sorted(ids + rest))).delete()
     db.commit()
     _MATCHES_DIRTY = True
     _rebuild_matches(db)
     _MATCHES_DIRTY = False
-    return {"saved": len(ids) * (len(ids) - 1) // 2, "verdict": payload.verdict}
+    return {"saved": saved, "verdict": payload.verdict}
 
 
 # ── Promo analytics ──────────────────────────────────────────────────────

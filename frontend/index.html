@@ -389,7 +389,10 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 
 /* Match review */
 .mr-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
-.mr-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--frost);display:flex;flex-direction:column;gap:7px}
+.mr-card{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--frost);display:flex;flex-direction:column;gap:7px;position:relative}
+.mr-card.picked{border-color:var(--cobalt);box-shadow:0 0 0 2px var(--cobalt-soft)}
+.mr-pick{position:absolute;top:8px;right:8px;cursor:pointer}
+.mr-pick input{width:17px;height:17px;accent-color:var(--cobalt);cursor:pointer}
 .mr-card img{width:60px;height:60px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:8px}
 .mr-nm{font:600 13px 'Hanken Grotesk';line-height:1.35}
 .mr-meta{display:flex;align-items:center;gap:8px;font:700 13.5px 'Bricolage Grotesque'}
@@ -651,6 +654,10 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 /* stock watch rows */
 .sw-st{font:700 10px 'Hanken Grotesk';color:#fff;border-radius:6px;padding:2px 7px;white-space:nowrap}
 .sw-d{font:600 11px 'JetBrains Mono';color:var(--ink-soft);white-space:nowrap;min-width:58px;text-align:right}
+.sw-sub{font:600 11px 'Hanken Grotesk';letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);margin:10px 0 4px}
+.sw-sub b{color:var(--ink)}
+.sw-else{font:500 10.5px 'Hanken Grotesk';color:var(--mint);margin-left:4px}
+.avail-note{font-size:11.5px;color:var(--ink-soft);margin:8px 2px 0;line-height:1.45}
 
 /* ===== Navigation & look-and-feel pass (2026-11) ===== */
 /* Cooling hero now matches the light department hero used by the others */
@@ -750,7 +757,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-11-S1</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-11-S2</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 
@@ -828,8 +835,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <div class="card" style="margin-top:18px">
       <h3><span class="dot" style="background:var(--heat)"></span>Stock watch <span id="coolStockSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
       <div class="grid two-col">
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Your models not buyable online · longest first</div><div id="coolStockMine" class="mini-list"></div></div>
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that dropped out in the last 7 days · your opening</div><div id="coolStockRivals" class="mini-list"></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Your models without ready stock · longest first</div><div id="coolStockMine" class="mini-list"></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that ran out or started clearing in the last 7 days · your opening</div><div id="coolStockRivals" class="mini-list"></div></div>
       </div>
     </div>
 
@@ -895,8 +902,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <div class="card" style="margin-top:18px">
       <h3><span class="dot" style="background:var(--heat)"></span>Stock watch <span id="lauStockSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
       <div class="grid two-col">
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Your models not buyable online · longest first</div><div id="lauStockMine" class="mini-list"></div></div>
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that dropped out in the last 7 days · your opening</div><div id="lauStockRivals" class="mini-list"></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Your models without ready stock · longest first</div><div id="lauStockMine" class="mini-list"></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that ran out or started clearing in the last 7 days · your opening</div><div id="lauStockRivals" class="mini-list"></div></div>
       </div>
     </div>
 
@@ -992,8 +999,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <div class="card" style="margin-top:18px">
       <h3><span class="dot" style="background:var(--heat)"></span>Stock watch <span id="cookStockSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
       <div class="grid two-col">
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Your models not buyable online · longest first</div><div id="cookStockMine" class="mini-list"></div></div>
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that dropped out in the last 7 days · your opening</div><div id="cookStockRivals" class="mini-list"></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Your models without ready stock · longest first</div><div id="cookStockMine" class="mini-list"></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that ran out or started clearing in the last 7 days · your opening</div><div id="cookStockRivals" class="mini-list"></div></div>
       </div>
     </div>
 
@@ -1077,8 +1084,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <div class="card" style="margin-top:18px">
       <h3><span class="dot" style="background:var(--heat)"></span>Stock watch <span id="dishStockSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
       <div class="grid two-col">
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Your models not buyable online · longest first</div><div id="dishStockMine" class="mini-list"></div></div>
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that dropped out in the last 7 days · your opening</div><div id="dishStockRivals" class="mini-list"></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Your models without ready stock · longest first</div><div id="dishStockMine" class="mini-list"></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rivals that ran out or started clearing in the last 7 days · your opening</div><div id="dishStockRivals" class="mini-list"></div></div>
       </div>
     </div>
     <div class="grid two-col" style="margin-top:18px">
@@ -1837,6 +1844,11 @@ async function loadAll(){
       setSrp(rows);
       safeRender("brands",renderBrands); safeRender("alerts",renderAlerts);
       safeRender("srpStatus",renderSrpStatus);
+    }).catch(()=>{});
+    // products that dropped out of the listings (older backends: skip)
+    api("/api/products/delisted?days=180").then(rows=>{
+      state.delisted = Array.isArray(rows) ? rows : [];
+      renderAll();
     }).catch(()=>{});
     // promo-pressure history stats (older backends without the endpoint: skip)
     loadPromoStats();
@@ -3607,26 +3619,35 @@ function miniEmpty(){ return '<div class="empty" style="padding:24px"><div class
 /* Stock status buckets. The runner stores canonical codes (scraper/stock.py:
    InStock, LastPieces, OnOrder, StoreOnly, Display, Partner, OutOfStock;
    "" = not reported); older rows may still hold retailer wording. */
-const AVAIL_CODE = {InStock:"In stock", LastPieces:"Last pieces", OnOrder:"On order", StoreOnly:"Store only",
-                    Display:"Display unit", Partner:"Marketplace partner", OutOfStock:"Out of stock"};
+/* Labels say what the retailer's wording means for stock:
+   Άμεσα διαθέσιμο = ready stock; Κατόπιν παραγγελίας / Διαθέσιμο με
+   παραγγελία = ordered from the supplier, no stock on hand; Τελευταία
+   τεμάχια and Εκθεσιακό (the last unit, on display in a store) = the retailer
+   is running the SKU out — an end-of-life signal. */
+const AV = {READY:"Ready stock", SUPPLIER:"Supplier order", LAST:"Last pieces · EOL", DISPLAY:"Display unit · EOL",
+            STORE:"Store only", PARTNER:"Marketplace seller", OUT:"Out of stock"};
+const AVAIL_CODE = {InStock:AV.READY, LastPieces:AV.LAST, OnOrder:AV.SUPPLIER, StoreOnly:AV.STORE,
+                    Display:AV.DISPLAY, Partner:AV.PARTNER, OutOfStock:AV.OUT};
 function availBucket(a){
   const raw=(a||"").trim();
   if(!raw) return "Not reported";
   if(AVAIL_CODE[raw]) return AVAIL_CODE[raw];
   const s=raw.toLowerCase();
-  if(s.includes("instoreonly")||s.includes("μόνο από κατάστημα")) return "Store only";
-  if(s.includes("εκθεσιακό")||s==="display") return "Display unit";
-  if(s.includes("ελευταία")) return "Last pieces";
-  if(s.includes("κατόπιν")||s.includes("παραγγελία")||s.includes("preorder")) return "On order";
-  if(s.includes("outofstock")||s.includes("εξαντλήθηκε")||s.includes("μη διαθέσιμο")) return "Out of stock";
-  if(s.includes("instock")||s.includes("άμεσα")||s.includes("διαθέσιμο")) return "In stock";
+  if(s.includes("instoreonly")||s.includes("μόνο από κατάστημα")) return AV.STORE;
+  if(s.includes("εκθεσιακό")||s==="display") return AV.DISPLAY;
+  if(s.includes("ελευταία")) return AV.LAST;
+  if(s.includes("κατόπιν")||s.includes("παραγγελία")||s.includes("preorder")) return AV.SUPPLIER;
+  if(s.includes("outofstock")||s.includes("εξαντλήθηκε")||s.includes("μη διαθέσιμο")) return AV.OUT;
+  if(s.includes("instock")||s.includes("άμεσα")||s.includes("διαθέσιμο")) return AV.READY;
   return "Not reported";
 }
-const AVAIL_ORDER = ["In stock","Last pieces","On order","Marketplace partner","Store only","Display unit","Out of stock"];
-const AVAIL_COLOR = {"In stock":"#10B981","Last pieces":"#F59E0B","On order":"#0EA5B7","Marketplace partner":"#64748B",
-                     "Store only":"#A78BFA","Display unit":"#C084FC","Out of stock":"#EF4444"};
-/* not buyable online right now (On order is buyable, just slower) */
-const AVAIL_UNAVAILABLE = new Set(["Out of stock","Store only","Display unit"]);
+const AVAIL_ORDER = [AV.READY, AV.SUPPLIER, AV.LAST, AV.DISPLAY, AV.STORE, AV.PARTNER, AV.OUT];
+const AVAIL_COLOR = {[AV.READY]:"#10B981", [AV.SUPPLIER]:"#0EA5B7", [AV.LAST]:"#F59E0B", [AV.DISPLAY]:"#FB923C",
+                     [AV.STORE]:"#A78BFA", [AV.PARTNER]:"#64748B", [AV.OUT]:"#EF4444"};
+const AVAIL_EOL = new Set([AV.LAST, AV.DISPLAY]);                   // retailer running the SKU out
+const AVAIL_NO_STOCK = new Set([AV.OUT, AV.STORE, AV.SUPPLIER]);    // nothing ready to ship online
+const AVAIL_NOTE = "Ready stock = Άμεσα διαθέσιμο · Supplier order = Κατόπιν παραγγελίας / Διαθέσιμο με παραγγελία (no stock on hand) · "
+                 + "EOL = Τελευταία τεμάχια or Εκθεσιακό (last unit on display): the retailer is running the SKU out.";
 
 /* Availability by retailer: one 100% bar per retailer over the products whose
    status is known, labelled with how many that is — so "not reported" never
@@ -3656,6 +3677,11 @@ function renderAvailChart(id, list){
       plugins:{legend:{position:"bottom",labels:{font:{family:"Hanken Grotesk",size:11},color:txt,usePointStyle:true,boxHeight:6}},
         tooltip:{backgroundColor:"rgba(40,34,24,.95)",padding:10,cornerRadius:8,
           callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.x}% (${c.dataset.counts[c.dataIndex]} of ${rep[shown[c.dataIndex]]} checked)`}}}}});
+  // one-line key to what the statuses mean, under the chart
+  const box=document.getElementById(id).closest(".chart-box");
+  if(box && !(box.nextElementSibling && box.nextElementSibling.classList.contains("avail-note"))){
+    box.insertAdjacentHTML("afterend", `<p class="avail-note">${esc(AVAIL_NOTE)}</p>`);
+  }
 }
 
 /* Stock watch: which of your models can't be bought online right now (and for
@@ -3672,11 +3698,19 @@ function stockStreaks(){
   return by;
 }
 function _daysSince(t){ const ms=Date.now()-new Date(/Z$|[+-]\d\d:?\d\d$/.test(t)?t:t+"Z").getTime(); return Math.max(0, Math.floor(ms/864e5)); }
+/* A product missing from a retailer's listings is not "out of stock" — that
+   status only comes from a product that is still listed. Short absences read
+   as unlisted; after DISCONTINUED_DAYS it is most likely discontinued there. */
+const DISCONTINUED_DAYS = 45;
+function delistedFor(dept){
+  const of = p => isLaundry(p) ? "laundry" : isCooking(p) ? "cooking" : isDish(p) ? "dishwashing" : "cooling";
+  return (state.delisted||[]).filter(p=>of(p)===dept).map(p=>({p, days:p.last_seen?_daysSince(p.last_seen):0}));
+}
 function renderStockWatch(prefix, list){
   const mineEl=document.getElementById(prefix+"StockMine"), rivEl=document.getElementById(prefix+"StockRivals"), sumEl=document.getElementById(prefix+"StockSum");
   if(!mineEl) return;
   const hist=stockStreaks();
-  const SEV={"Out of stock":0,"Store only":1,"Display unit":2,"On order":3};
+  const SEV={[AV.OUT]:0, [AV.STORE]:1, [AV.SUPPLIER]:2, [AV.DISPLAY]:3, [AV.LAST]:4};
   const rows=[];
   for(const p of list){
     const b=availBucket(f.avail(p));
@@ -3693,12 +3727,36 @@ function renderStockWatch(prefix, list){
     return `<div class="mini-row"><span class="pill ${SITE_PILL[f.site(r.p)]||"na"}">${SITE_LABEL[f.site(r.p)]||f.site(r.p)}</span>
       <span class="mini-name" title="${esc(f.name(r.p))}">${url?`<a class="rl" href="${esc(url)}" target="_blank" rel="noopener">${nm}</a>`:nm}</span>
       <span class="sw-st" style="background:${AVAIL_COLOR[r.b]}">${r.b}</span><span class="sw-d">${dur}</span></div>`; };
-  const mine=rows.filter(r=>r.mine).sort((a,b)=>(SEV[a.b]-SEV[b.b])||(b.days-a.days));
-  const rivals=rows.filter(r=>!r.mine && AVAIL_UNAVAILABLE.has(r.b) && r.days<=7).sort((a,b)=>(a.days-b.days)||(SEV[a.b]-SEV[b.b]));
+  const byPain=(a,b)=>(SEV[a.b]-SEV[b.b])||(b.days-a.days);
+  const mineNoStock=rows.filter(r=>r.mine && AVAIL_NO_STOCK.has(r.b)).sort(byPain);
+  const mineEol=rows.filter(r=>r.mine && AVAIL_EOL.has(r.b)).sort(byPain);
+  // rivals that lost ready stock or started running out in the last week = your opening
+  const rivals=rows.filter(r=>!r.mine && r.days<=7 && (AVAIL_EOL.has(r.b) || r.b===AV.OUT || r.b===AV.STORE))
+                   .sort((a,b)=>(a.days-b.days)||(SEV[a.b]-SEV[b.b]));
   const checkedMine=list.filter(p=>isMyBrand(p) && availBucket(f.avail(p))!=="Not reported").length;
   if(sumEl) sumEl.textContent = checkedMine ? `· ${checkedMine} of your listings checked` : "· runs with the runner's --check-stock";
-  mineEl.innerHTML = mine.slice(0,12).map(line).join("") || miniEmpty();
-  rivEl.innerHTML  = rivals.slice(0,12).map(line).join("") || miniEmpty();
+  const sub=(t,n)=>`<div class="sw-sub">${t}${n?` <b>${n}</b>`:""}</div>`;
+
+  // no longer in the retailer's listings: unlisted (<45 d) vs likely discontinued
+  const dept={cool:"cooling", lau:"laundry", cook:"cooking", dish:"dishwashing"}[prefix];
+  const gone=delistedFor(dept);
+  const liveCodes={};   // model code -> retailers still listing it
+  for(const p of list){ const c=normCode(extractModel(f.name(p)).code); if(c.length>=4) (liveCodes[c]=liveCodes[c]||new Set()).add(f.site(p)); }
+  const goneLine=g=>{ const {brand,code}=extractModel(g.p.name||""); const c=normCode(code);
+    const disc=g.days>=DISCONTINUED_DAYS;
+    const elsewhere=[...(liveCodes[c]||[])].filter(s=>s!==g.p.site).map(s=>SITE_LABEL[s]);
+    return `<div class="mini-row"><span class="pill ${SITE_PILL[g.p.site]||"na"}">${SITE_LABEL[g.p.site]||g.p.site}</span>
+      <span class="mini-name" title="${esc(g.p.name||"")} · last seen at ${fmt(g.p.last_price)}">${esc(cap(brand)||"")} ${esc(short(code||g.p.name||"",20))}${elsewhere.length?` <span class="sw-else">still at ${elsewhere.join(", ")}</span>`:""}</span>
+      <span class="sw-st" style="background:${disc?"#6B7280":"#D97706"}">${disc?"Likely discontinued":"Unlisted"}</span><span class="sw-d">${g.days} day${g.days!==1?"s":""}</span></div>`; };
+  const goneMine=gone.filter(g=>isMyBrand(g.p)).sort((a,b)=>a.days-b.days);
+  const goneRivals=gone.filter(g=>!isMyBrand(g.p) && g.days<=7).sort((a,b)=>a.days-b.days);
+
+  mineEl.innerHTML = (mineNoStock.length||mineEol.length||goneMine.length)
+    ? sub("No ready stock", mineNoStock.length) + (mineNoStock.slice(0,8).map(line).join("") || miniEmpty())
+      + sub("End-of-life signals — the retailer is clearing them", mineEol.length) + (mineEol.slice(0,8).map(line).join("") || miniEmpty())
+      + sub(`No longer listed — ${DISCONTINUED_DAYS}+ days gone = likely discontinued`, goneMine.length) + (goneMine.slice(0,8).map(goneLine).join("") || miniEmpty())
+    : miniEmpty();
+  rivEl.innerHTML  = (rivals.slice(0,12).map(line).join("") + goneRivals.slice(0,6).map(goneLine).join("")) || miniEmpty();
 }
 
 let brandFilter = "ALL";
@@ -5407,6 +5465,7 @@ on("srpImportBtn","click",srpDoImport);
 
 /* ---- Match review (server-computed matches + human overrides) ---- */
 let matchData = null, matchFilter = "conflict", _matchBusy = false;
+const MR_PICK = new Map();   // group key -> ticked listing ids (partial review)
 const MATCH_METHOD_LABEL = {ean:"EAN match", mpn:"MPN match", code:"Model-code match",
                             fuzzy:"Fuzzy code match", override:"Human verified"};
 function loadMatches(){
@@ -5438,6 +5497,7 @@ function renderMatches(){
     // one listing; the retire cleanup deactivates the stale row server-side)
     const seenSite=new Map();
     const dispIds=[];
+    const twins={};          // displayed id -> every id of that same listing
     for(const id of g.product_ids){
       const p=byId[String(id)];
       const sk = p ? ((p.sku!=null&&p.sku!=="")?f.site(p)+":"+p.sku:"pid:"+id) : "pid:"+id;
@@ -5446,14 +5506,20 @@ function renderMatches(){
         const prev=seenSite.get(sk);
         if(p && f.price(p)!=null && byId[String(prev)] && f.price(byId[String(prev)])==null){
           const ix=dispIds.indexOf(prev); if(ix>=0) dispIds[ix]=id; seenSite.set(sk,id);
-        }
+          twins[id]=[...(twins[prev]||[prev]), id]; delete twins[prev];
+        } else { (twins[prev]=twins[prev]||[prev]).push(id); }
         continue;
       }
-      seenSite.set(sk,id); dispIds.push(id);
+      seenSite.set(sk,id); dispIds.push(id); twins[id]=[id];
     }
+    // partial review: ticked cards are one model, the rest get split off
+    const picked = MR_PICK.get(g.key) || new Set();
+    const pickIds = dispIds.filter(id=>picked.has(id)).flatMap(id=>twins[id]||[id]);
+    const restIds = dispIds.filter(id=>!picked.has(id)).flatMap(id=>twins[id]||[id]);
     const cards=dispIds.map(id=>{
       const p=byId[String(id)];
-      if(!p) return `<div class="mr-card"><div class="mr-nm" style="color:var(--ink-soft)">product #${id} — not in the current dataset (retired or other department)</div></div>`;
+      const pick = g.human ? "" : `<label class="mr-pick" title="Tick the listings that are the same model"><input type="checkbox" data-pick="${esc(g.key)}" value="${id}" ${picked.has(id)?"checked":""}></label>`;
+      if(!p) return `<div class="mr-card">${pick}<div class="mr-nm" style="color:var(--ink-soft)">product #${id} — not in the current dataset (retired or other department)</div></div>`;
       const ids=[p.sku?"SKU "+p.sku:null, p.ean?"EAN "+p.ean:null, p.mpn?"MPN "+p.mpn:null].filter(Boolean).join(" · ");
       const url=f.url(p);
       // stale listing = an old URL no scrape touches anymore (e.g. a pre-PLP
@@ -5464,7 +5530,7 @@ function renderMatches(){
         const ageH=(Date.now()-t)/36e5;
         if(ageH>48) staleLine=`<div style="font:600 10.5px 'Hanken Grotesk';color:var(--warn)">⚠ stale — last seen ${Math.round(ageH/24)}d ago · auto-retires on the next cleanup</div>`;
       }
-      return `<div class="mr-card">
+      return `<div class="mr-card ${picked.has(id)?"picked":""}">${pick}
         ${p.image?`<img src="${esc(p.image)}" loading="lazy" alt="">`:""}
         <div class="mr-nm">${url?`<a class="rl" href="${esc(url)}" target="_blank" rel="noopener">${esc(short(f.name(p),64))} <span class="rl-arrow">↗</span></a>`:esc(short(f.name(p),64))}</div>
         <div class="mr-meta"><span class="pill ${SITE_PILL[f.site(p)]||"na"}">${SITE_LABEL[f.site(p)]||f.site(p)}</span> ${fmt(f.price(p))}</div>
@@ -5492,7 +5558,11 @@ function renderMatches(){
         <span class="conf ${confCls}" style="margin:0">${MATCH_METHOD_LABEL[g.method]||g.method}</span>
         <span style="font-size:12px;color:var(--ink-soft)">${dispIds.length} listing${dispIds.length>1?"s":""}</span>
         <span style="flex:1"></span>
-        ${g.human ? '<span class="pill ok">human-verified</span>' : `
+        ${g.human ? '<span class="pill ok">human-verified</span>'
+        : (picked.size && restIds.length) ? `
+        <span style="font-size:12px;color:var(--ink-soft)">${picked.size} selected</span>
+        <button class="btn" style="padding:7px 14px" data-mr="same" data-ids="${pickIds.join(",")}" data-rest="${restIds.join(",")}">${picked.size>1?`✓ Confirm selected (${picked.size}) · split off the rest`:"✂ Split selected out"}</button>
+        <button class="btn ghost" style="padding:7px 14px" data-mrclear="${esc(g.key)}">Clear selection</button>` : `
         ${acceptBtn}
         <button class="btn ghost" style="padding:7px 14px" data-mr="same" data-ids="${g.product_ids.join(",")}">✓ Confirm match</button>
         <button class="btn danger" style="padding:7px 14px" data-mr="different" data-ids="${g.product_ids.join(",")}">✕ Not the same</button>`}
@@ -5518,15 +5588,26 @@ on("aiReviewBtn","click",async ()=>{
   }
   btn.textContent=prev; btn.disabled=false;
 });
+on("page-matches","change",e=>{
+  const cb=e.target.closest("[data-pick]"); if(!cb) return;
+  const key=cb.dataset.pick, id=Number(cb.value);
+  const set=MR_PICK.get(key)||new Set(); cb.checked?set.add(id):set.delete(id);
+  set.size?MR_PICK.set(key,set):MR_PICK.delete(key);
+  renderMatches();
+});
 on("page-matches","click",async e=>{
   const chip=e.target.closest("[data-mchip]");
   if(chip){ matchFilter=chip.dataset.mchip; renderMatches(); return; }
+  const clr=e.target.closest("[data-mrclear]");
+  if(clr){ MR_PICK.delete(clr.dataset.mrclear); renderMatches(); return; }
   const b=e.target.closest("[data-mr]");
   if(!b || _matchBusy) return;
   _matchBusy=true; const prev=b.textContent; b.textContent="Saving…";
   try{
-    await api("/api/matches/review",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({product_ids:b.dataset.ids.split(",").map(Number), verdict:b.dataset.mr})});
+    const body={product_ids:b.dataset.ids.split(",").filter(Boolean).map(Number), verdict:b.dataset.mr};
+    if(b.dataset.rest) body.rest=b.dataset.rest.split(",").filter(Boolean).map(Number);
+    await api("/api/matches/review",{method:"POST",headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+    MR_PICK.clear();
     loadMatches();
   }catch(_){ b.textContent=prev; alert("Could not save the review — check that the backend update is deployed."); }
   _matchBusy=false;
