@@ -1345,6 +1345,74 @@ def promo_stats(days: int = 30, db: Session = Depends(get_db)):
 
 
 # ── Price history ────────────────────────────────────────────────────────
+_HISTORY_DAILY = {"key": None, "val": None}
+
+
+@app.get("/api/history/daily")
+def get_history_daily(days: int = 90, db: Session = Depends(get_db)):
+    """Compact price history for the dashboard: per product, its reading on
+    the first day of the window and then only the days its price, was-price
+    or stock status changed (the day's last reading). The dashboard carries
+    values forward across `days` (every day with a scrape), so this covers
+    90 days in a fraction of the rows the raw log needs.
+
+    {"days": ["2026-10-01", ...],
+     "p":    {"<product id>": [name, site], ...},
+     "rows": [[product_id, day_index, price, old_price, availability, "HH:MM"], ...]}
+
+    Cached until a new price row arrives."""
+    days = max(1, min(days, 180))
+    newest = db.query(func.max(PriceHistory.id)).scalar()
+    key = (days, newest, datetime.utcnow().date())
+    if _HISTORY_DAILY["key"] == key:
+        return _HISTORY_DAILY["val"]
+    since = datetime.utcnow() - timedelta(days=days)
+    q = (db.query(PriceHistory.product_id, PriceHistory.price, PriceHistory.old_price,
+                  PriceHistory.availability, PriceHistory.scraped_at)
+         .filter(PriceHistory.scraped_at >= since)
+         .order_by(PriceHistory.product_id, PriceHistory.scraped_at))
+    day_ix, rows = {}, []
+    cur_pid = cur_day = None
+    cur = None            # (price, old, avail, scraped_at) - last reading of cur_day
+    emitted = None        # (price, old, avail) last emitted for cur_pid
+
+    def flush():
+        nonlocal emitted
+        if cur is None:
+            return
+        sig = (cur[0], cur[1], cur[2] or "")
+        if sig != emitted:
+            rows.append([cur_pid, cur_day, cur[0], cur[1], cur[2] or "", cur[3].strftime("%H:%M")])
+            emitted = sig
+
+    for pid, price, old, avail, at in q.yield_per(5000):
+        if at is None:
+            continue
+        d = at.date().isoformat()
+        if pid != cur_pid:
+            flush()
+            cur_pid, cur_day, cur, emitted = pid, d, None, None
+        elif d != cur_day:
+            flush()
+            cur_day = d
+        day_ix.setdefault(d, None)
+        cur = (price, old, avail, at)
+    flush()
+    day_list = sorted(day_ix)
+    pos = {d: i for i, d in enumerate(day_list)}
+    for r in rows:
+        r[1] = pos[r[1]]
+    pids = {r[0] for r in rows}
+    names = {}
+    for i in range(0, len(pids), 900):          # SQLite's bound-parameter limit
+        chunk = list(pids)[i:i + 900]
+        for pid, name, site in db.query(Product.id, Product.name, Product.site).filter(Product.id.in_(chunk)).all():
+            names[str(pid)] = [name, site]
+    val = {"days": day_list, "p": names, "rows": rows}
+    _HISTORY_DAILY.update(key=key, val=val)
+    return val
+
+
 @app.get("/api/history")
 def get_history(product_id: Optional[int] = None, limit: int = 200,
                 days: Optional[int] = None, db: Session = Depends(get_db)):

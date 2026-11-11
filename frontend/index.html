@@ -289,8 +289,8 @@ tbody tr:hover{background:var(--soft-bg)}
 .drawer-head{display:flex;align-items:flex-start;justify-content:space-between;padding:22px 22px 14px;border-bottom:1px solid var(--line)}
 .drawer-title{font:700 18px 'Bricolage Grotesque'}
 .drawer-sub{font:400 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-top:3px}
-.drawer-tabs{display:flex;gap:6px;padding:14px 22px;border-bottom:1px solid var(--line)}
-.dr-tab{border:1px solid var(--line);background:var(--frost);border-radius:99px;padding:6px 14px;font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);cursor:pointer}
+.drawer-tabs{display:flex;gap:6px;padding:14px 22px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.dr-tab{border:1px solid var(--line);background:var(--frost);border-radius:99px;padding:6px 14px;font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);cursor:pointer;white-space:nowrap;flex:0 0 auto}
 .dr-tab.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .radar-list{overflow-y:auto;padding:10px 16px 30px;flex:1}
 .radar-row{display:flex;align-items:center;gap:12px;padding:12px 8px;border-bottom:1px solid var(--soft-bg)}
@@ -795,7 +795,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-11-S7</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-12-S8</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1303,7 +1303,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     </div>
     <div class="card"><div class="chart-box"><canvas id="historyChart"></canvas></div></div>
     <div class="card" style="margin-top:18px">
-      <h3>Raw log <span id="histLogScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <h3>Price changes <span id="histLogScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
       <div style="overflow-x:auto"><table>
         <thead><tr><th>Date</th><th>Product</th><th>Retailer</th><th>Price</th></tr></thead>
         <tbody id="historyTable"></tbody>
@@ -1438,13 +1438,15 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 <div class="drawer-scrim" id="radarScrim"></div>
 <aside class="drawer" id="radarDrawer">
   <div class="drawer-head">
-    <div><div class="drawer-title"><svg class="ic ic-fill" style="width:16px;height:16px;vertical-align:-2px"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg> Deal Radar</div><div class="drawer-sub">Biggest price moves since the last update</div></div>
+    <div><div class="drawer-title"><svg class="ic ic-fill" style="width:16px;height:16px;vertical-align:-2px"><path d="M13 2L4 14h6l-1 8 9-12h-6z"/></svg> Deal Radar</div><div class="drawer-sub">Biggest price moves in the last 7 days</div></div>
     <button class="lb-close" id="radarClose" style="position:static;width:36px;height:36px;background:#EEF2F7;color:var(--ink)">✕</button>
   </div>
   <div class="drawer-tabs">
     <button class="dr-tab on" data-dr="all">All</button>
     <button class="dr-tab" data-dr="down">▼ Drops</button>
     <button class="dr-tab" data-dr="up">▲ Rises</button>
+    <button class="dr-tab" data-dr="mine" title="Moves on your own brands">★ Mine</button>
+    <button class="dr-tab" data-dr="threat" title="Rival drops landing within ±25% of one of your models of the same type">⚠ Near my SKUs</button>
   </div>
   <div id="radarList" class="radar-list"></div>
 </aside>
@@ -1937,9 +1939,9 @@ async function loadAll(){
     renderAll();   // app is usable now
     const bl=document.getElementById("bootLoader"); if(bl) bl.classList.add("hide");
     // history + alerts load in the background and re-render when ready
-    Promise.all([api("/api/history?limit=20000"), api("/api/alerts?limit=50")])
+    Promise.all([loadHistory(), api("/api/alerts?limit=50")])
       .then(([history, alerts])=>{
-        state.history = Array.isArray(history)?history:(history.history||[]);
+        state.history = history;
         state.alerts  = Array.isArray(alerts)?alerts:(alerts.alerts||[]);
         safeRender("history",renderHistory); safeRender("alerts",renderAlerts);
         safeRender("dealCount",updateDealCount);
@@ -1977,6 +1979,50 @@ async function loadAll(){
   renderAll();
   const bl2=document.getElementById("bootLoader"); if(bl2) bl2.classList.add("hide");
 }
+/* Price history: 90 days from /api/history/daily — per product its first
+   reading in the window, then only the days something changed. state.history
+   keeps that compact list (movers read changes straight off it);
+   state.histDays lists every day with a scrape so trend charts can carry a
+   price forward to the days it didn't change. Older backends: the raw log. */
+async function loadHistory(){
+  try{
+    const r = await api("/api/history/daily?days=90");
+    if(r && Array.isArray(r.rows) && Array.isArray(r.days)){
+      state.histDays = r.days;
+      const P = r.p || {};
+      return r.rows.map(([pid, di, price, old, avail, hm])=>{ const meta=P[String(pid)]||["",""];
+        return {product_id:pid, product:meta[0], site:meta[1], price, old_price:old, availability:avail,
+                scraped_at:r.days[di]+"T"+(hm||"12:00")+":00"}; });
+    }
+  }catch(_){}
+  const raw = await api("/api/history?limit=20000");
+  const rows = Array.isArray(raw)?raw:(raw.history||[]);
+  state.histDays = [...new Set(rows.map(h=>String(h.scraped_at||"").slice(0,10)).filter(Boolean))].sort();
+  return rows;
+}
+/* product id -> its history rows, oldest first (cached per state.history) */
+let _histIdx = {src:null, by:{}};
+function historyById(){
+  if(_histIdx.src !== state.history){
+    const by={};
+    for(const h of state.history||[]){ if(h.product_id==null) continue; (by[String(h.product_id)]=by[String(h.product_id)]||[]).push(h); }
+    for(const k in by) by[k].sort((a,b)=>a.scraped_at<b.scraped_at?-1:1);
+    _histIdx={src:state.history, by};
+  }
+  return _histIdx.by;
+}
+/* one product's price on each of `days`, carried forward from its last change
+   (null before its first reading) */
+function dailyPrices(id, days){
+  const rows=(historyById()[String(id)]||[]).filter(h=>h.price!=null);
+  const out=[]; let i=0, cur=null;
+  for(const d of days){
+    while(i<rows.length && String(rows[i].scraped_at).slice(0,10)<=d){ cur=num(rows[i].price); i++; }
+    out.push(cur);
+  }
+  return out;
+}
+
 async function _loadAll_old(){
   const lb=document.getElementById("loadbar"); if(lb) lb.classList.add("on");
   try{
@@ -2942,10 +2988,11 @@ function renderModelPanel(p, keepScroll){
   // --- price history (this model's listings, one line per retailer)
   const ids=new Set(members.map(q=>String(f.id(q))));
   const hist=(state.history||[]).filter(h=>ids.has(String(h.product_id)) && h.price!=null);
-  const days=[...new Set(hist.map(h=>String(h.scraped_at).slice(0,10)))].sort();
-  const bySite={};
-  for(const h of hist){ const s=normSite(h.site), d=String(h.scraped_at).slice(0,10);
-    (bySite[s]=bySite[s]||{}); bySite[s][d]=Math.min(bySite[s][d]??Infinity, h.price); }
+  const first=hist.reduce((a,h)=>{ const d=String(h.scraped_at).slice(0,10); return !a||d<a?d:a; }, "");
+  const days=(state.histDays||[]).filter(d=>first && d>=first);
+  const bySite={};          // site -> per-day cheapest of its listings (carried forward)
+  for(const q of members){ const s=f.site(q), v=dailyPrices(f.id(q), days);
+    bySite[s]=bySite[s] ? bySite[s].map((x,i)=>x==null?v[i]:(v[i]==null?x:Math.min(x,v[i]))) : v; }
   const allVals=hist.map(h=>h.price), lowH=allVals.length?Math.min(...allVals):null;
 
   // --- KPIs
@@ -2997,8 +3044,8 @@ function renderModelPanel(p, keepScroll){
   if(!keepScroll) document.getElementById("mpBody").scrollTop=0;
 
   const COL={kotsovolos:"#FF6A3D", public:"#1463FF", plaisio:"#C77D33"};
-  const datasets=Object.keys(bySite).map(s=>({label:SITE_LABEL[s]||s, data:days.map(d=>Number.isFinite(bySite[s][d])?bySite[s][d]:null),
-    borderColor:COL[s]||"#64748B", backgroundColor:"transparent", tension:.3, spanGaps:true, pointRadius:2}));
+  const datasets=Object.keys(bySite).filter(s=>bySite[s].some(v=>v!=null)).map(s=>({label:SITE_LABEL[s]||s, data:bySite[s],
+    borderColor:COL[s]||"#64748B", backgroundColor:"transparent", stepped:true, spanGaps:true, pointRadius:0}));
   if(datasets.length){
     makeChart("mpChart","line",{labels:days.map(d=>d.slice(5)),datasets},{plugins:{legend:{position:"top"}}});
     // zoom to the price band so small moves are visible
@@ -3110,7 +3157,9 @@ function renderTicker(){
   document.getElementById("ticker").innerHTML = items+items;
 }
 
-/* Compute real price movers from history: latest vs previous price per product. */
+/* Compute real price movers from history: latest vs previous price per product,
+   for moves in the last MOVER_DAYS days. */
+const MOVER_DAYS = 7;
 function computeMovers(history){
   const ks = deptKeySets();
   const byProd={};
@@ -3120,28 +3169,27 @@ function computeMovers(history){
     const id=h.product_id ?? h.product ?? h.name; const pr=num(h.price); const t=h.scraped_at||h.date||"";
     if(id==null||pr==null) continue;
     if(isClearance({name:h.product||h.name||""})) continue;   // skip display/last-piece/outlet
-    (byProd[id]=byProd[id]||[]).push({pr,t,name:h.product||h.name||"",site:h.site});
+    (byProd[id]=byProd[id]||[]).push({pr,t,name:h.product||h.name||"",site:h.site,id:h.product_id});
   }
   const movers=[];
   for(const id in byProd){
     const rows=byProd[id].sort((a,b)=>(a.t<b.t?-1:1));
     if(rows.length<2) continue;
-    // Median of this product's own prices, to reject typo/glitch points
-    // (e.g. €999 mistyped as €100 for 7 minutes). A reading that is <40% or
-    // >250% of the product's median is treated as an error and ignored.
+    // Only typo-level glitches are rejected (€999 read as €99): a reading
+    // under 20% or over 5x the product's median. Black Friday cuts of 40-70%
+    // are real and stay in; anything over 35% is flagged "verify" instead.
     const sorted=rows.map(r=>r.pr).slice().sort((a,b)=>a-b);
     const med=sorted[Math.floor(sorted.length/2)]||0;
-    const sane=rows.filter(r=> med? (r.pr>=med*0.4 && r.pr<=med*2.5) : true);
+    const sane=rows.filter(r=> med? (r.pr>=med*0.2 && r.pr<=med*5) : true);
     if(sane.length<2) continue;
     const last=sane[sane.length-1], prev=sane[sane.length-2];
+    // only recent moves: history now spans 90 days of change points
+    if(last.t && _daysSince(last.t) > MOVER_DAYS) continue;
     if(last.pr!==prev.pr){
       const delta=+(last.pr-prev.pr).toFixed(2);   // negative = price dropped
       const pct=prev.pr?(last.pr-prev.pr)/prev.pr*100:0;
-      // Real retail repricing is rarely more than ~35%. Bigger swings are almost
-      // always parse errors or stock-clearance markdowns — not a competitive
-      // signal — so keep them out of the radar.
-      if(Math.abs(pct) > 35) continue;
-      movers.push({name:last.name,site:last.site,price:last.pr,delta,pct});
+      movers.push({id:last.id,name:last.name,site:last.site,price:last.pr,was:prev.pr,delta,pct,
+                   days:last.t?_daysSince(last.t):null, verify:Math.abs(pct)>35});
     }
   }
   return movers.sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta));
@@ -3169,24 +3217,18 @@ function priceIndexSeries(list, days){
   }
   if(!mineIds.size || !rivalIds.size) return null;
   const cutDay = new Date(Date.now()-days*864e5).toISOString().slice(0,10);
-  const byDay = {};                      // day -> {m:{id:minPrice}, r:{id:minPrice}}
-  for(const h of state.history){
-    const id = String(h.product_id ?? ""); if(!id) continue;
-    const grp = mineIds.has(id) ? "m" : rivalIds.has(id) ? "r" : null; if(!grp) continue;
-    const pr = num(h.price); if(pr==null) continue;
-    const day = (h.scraped_at||h.date||"").slice(0,10);
-    if(!day || day < cutDay) continue;
-    const d = byDay[day] = byDay[day] || {m:{}, r:{}};
-    d[grp][id] = Math.min(d[grp][id] ?? Infinity, pr);
+  const dayList = (state.histDays||[]).filter(d=>d>=cutDay);
+  if(dayList.length<2) return null;
+  // each product's price on every scrape day (carried forward between changes)
+  const sum={m:new Array(dayList.length).fill(0), r:new Array(dayList.length).fill(0)};
+  const cnt={m:new Array(dayList.length).fill(0), r:new Array(dayList.length).fill(0)};
+  const by=historyById();
+  for(const [ids,g] of [[mineIds,"m"],[rivalIds,"r"]]){
+    for(const id of ids){ if(!by[id]) continue;
+      dailyPrices(id, dayList).forEach((v,i)=>{ if(v!=null){ sum[g][i]+=v; cnt[g][i]++; } }); }
   }
   const out=[];
-  for(const day of Object.keys(byDay).sort()){
-    const mv=Object.values(byDay[day].m), rv=Object.values(byDay[day].r);
-    if(mv.length && rv.length){
-      const am=mv.reduce((a,b)=>a+b,0)/mv.length, ar=rv.reduce((a,b)=>a+b,0)/rv.length;
-      out.push(am/ar*100);
-    }
-  }
+  dayList.forEach((d,i)=>{ if(cnt.m[i] && cnt.r[i]) out.push((sum.m[i]/cnt.m[i])/(sum.r[i]/cnt.r[i])*100); });
   return out.length>=2 ? out : null;
 }
 /* tiny hand-drawn sparkline: index line + dashed 100-parity baseline */
@@ -4767,7 +4809,9 @@ function renderHistory(){
   }
 
   // build chart datasets
-  const allDays=[...new Set(state.history.map(h=>(h.scraped_at||h.date||"").slice(0,10)).filter(Boolean))].sort();
+  const allDays=(state.histDays&&state.histDays.length)?state.histDays:[...new Set(state.history.map(h=>(h.scraped_at||h.date||"").slice(0,10)).filter(Boolean))].sort();
+  // history rows are change points: carry each value forward to the next change
+  const carry = vals => { let last=null; return vals.map(v=>{ if(v!=null) last=v; return last; }); };
   let datasets=[];
   if(histState.mode==="retailer" && histState.picks.length){
     // one line per retailer for the (first) picked model
@@ -4775,16 +4819,17 @@ function renderHistory(){
     if(m){ const sites=["kotsovolos","public","plaisio"];
       datasets=sites.filter(s=>m.sites[s]).map((s,i)=>({
         label:SITE_LABEL[s]||s,
-        data:allDays.map(d=>{const v=m.sites[s][d]; return (v!=null && v>=m.median*0.15)?v:null;}),
+        data:carry(allDays.map(d=>{const v=m.sites[s][d]; return (v!=null && v>=m.median*0.15)?v:null;})),
         borderColor:["#FF6A3D","#1463FF","#C77D33"][sites.indexOf(s)]||palette[i],
-        backgroundColor:"transparent",tension:.3,spanGaps:true,pointRadius:3}));
+        backgroundColor:"transparent",stepped:true,spanGaps:true,pointRadius:0}));
     }
   } else if(histState.mode==="compare"){
     // one line per picked model (cheapest price across retailers each day)
     datasets=histState.picks.map((k,i)=>{ const m=models[k]; if(!m) return null;
+      const perSite=Object.values(m.sites).map(sv=>carry(allDays.map(d=>{ const v=sv[d]; return (v!=null&&v>=m.median*0.15)?v:null; })));
       return {label:(cap(m.brand)+" "+(m.code||short(m.name,16))).trim(),
-        data:allDays.map(d=>{ const vals=Object.values(m.sites).map(s=>s[d]).filter(v=>v!=null&&v>=m.median*0.15); return vals.length?Math.min(...vals):null; }),
-        borderColor:palette[i%palette.length],backgroundColor:"transparent",tension:.3,spanGaps:true,pointRadius:3};
+        data:allDays.map((d,j)=>{ const vals=perSite.map(a=>a[j]).filter(v=>v!=null); return vals.length?Math.min(...vals):null; }),
+        borderColor:palette[i%palette.length],backgroundColor:"transparent",stepped:true,spanGaps:true,pointRadius:0};
     }).filter(Boolean);
   }
   if(datasets.length){
@@ -5015,16 +5060,15 @@ const ALERT_OPEN = new Set();   // alert cards expanded to show every rival
    t -> reason string ("" when long-standing). Moves come from saved history. */
 function freshThreatTest(){
   const idByUrl={}; for(const p of allProducts()){ const u=f.url(p); if(u) idByUrl[u]=f.id(p); }
-  const since=Date.now()-7*864e5, first={}, last={};
-  for(const h of state.history||[]){
-    if(h.product_id==null || h.price==null) continue;
-    const t=new Date(/Z$|[+-]\d\d:?\d\d$/.test(h.scraped_at)?h.scraped_at:h.scraped_at+"Z").getTime();
-    if(!(t>=since)) continue;
-    const k=String(h.product_id);
-    if(!first[k] || t<first[k].t) first[k]={t, v:h.price};
-    if(!last[k] || t>last[k].t) last[k]={t, v:h.price};
-  }
-  const move=id=>{ const a=first[String(id)], b=last[String(id)]; return a&&b&&a.v ? (b.v-a.v)/a.v : 0; };
+  // history rows are change points: the baseline is the price in force 7 days
+  // ago (last change at or before then), the current one the latest change
+  const sinceDay=new Date(Date.now()-7*864e5).toISOString().slice(0,10), by=historyById();
+  const move=id=>{ const rows=(by[String(id)]||[]).filter(h=>h.price!=null); if(rows.length<2) return 0;
+    let base=null; for(const h of rows){ if(String(h.scraped_at).slice(0,10)<=sinceDay) base=h; else break; }
+    if(!base) base=rows[0];
+    const cur=rows[rows.length-1]; if(cur===base || !base.price) return 0;
+    if(String(cur.scraped_at).slice(0,10)<=sinceDay) return 0;     // nothing changed this week
+    return (cur.price-base.price)/base.price; };
   const launched=new Set((state.launches||[]).filter(l=>l.kind==="launch" && l.first_seen && _daysSince(l.first_seen)<=7).map(l=>String(l.id)));
   return t=>{
     const [mu, ru] = String(t.key||"").split("|");
@@ -5854,19 +5898,29 @@ function openRadar(){ renderRadar(); document.getElementById("radarDrawer").clas
 function closeRadar(){ document.getElementById("radarDrawer").classList.remove("open"); document.getElementById("radarScrim").classList.remove("open"); }
 function renderRadar(){
   let movers=computeMovers(state.history);
+  const byId={}; allProducts().forEach(p=>{ byId[String(f.id(p))]=p; });
+  const prodOf=m=>byId[String(m.id)];
+  const mineOf=m=>{ const p=prodOf(m); return p ? isMyBrand(p) : isMyBrand({name:m.name, specs:{}}); };
+  // your models' current prices by department + type
+  const myByType={};
+  allProducts().forEach(p=>{ if(isMyBrand(p) && f.price(p)>0){ const k=deptOf(p)+"|"+p.category; (myByType[k]=myByType[k]||[]).push(f.price(p)); } });
+  const hits=m=>{ const p=prodOf(m); if(!p || mineOf(m) || m.delta>=0) return 0;
+    return (myByType[deptOf(p)+"|"+p.category]||[]).filter(v=>m.price>=v*0.75 && m.price<=v*1.25).length; };
   if(radarFilter==="down") movers=movers.filter(m=>m.delta<0);
   else if(radarFilter==="up") movers=movers.filter(m=>m.delta>0);
+  else if(radarFilter==="mine") movers=movers.filter(mineOf);
+  else if(radarFilter==="threat") movers=movers.filter(m=>hits(m)>0).sort((a,b)=>hits(b)-hits(a)||a.pct-b.pct);
   const list=document.getElementById("radarList");
   list.innerHTML = movers.slice(0,60).map(m=>{
     const dropped = m.delta<0;
     const cls = dropped?"down":"up";          // .down = green, .up = red (in CSS)
     const sign = dropped?"▼":"▲";             // ▼ price fell, ▲ price rose
     return `<div class="radar-row">
-      <div class="radar-name"><b>${esc(short(m.name||"—",46))}</b>
-        <span>${SITE_LABEL[normSite(m.site)]||m.site||""} · now ${fmt(m.price)}</span></div>
+      <div class="radar-name"><b>${prodOf(m)&&f.url(prodOf(m))?`<a class="rl" href="${esc(f.url(prodOf(m)))}">${esc(short(m.name||"—",46))}</a>`:esc(short(m.name||"—",46))}</b>${mineOf(m)?' <span class="mine-tag" style="display:inline-block;background:var(--cobalt);color:#fff;font:700 9px \'Hanken Grotesk\';padding:1px 6px;border-radius:99px">MINE</span>':""}${m.verify?' <span class="pill warn" title="A move this large is unusual outside sales — open the listing to confirm">verify</span>':""}
+        <span>${SITE_LABEL[normSite(m.site)]||m.site||""} · was ${fmt(m.was)} · now ${fmt(m.price)}${m.days!=null?` · ${m.days===0?"today":m.days===1?"yesterday":m.days+" d ago"}`:""}${hits(m)?` · near ${hits(m)} of your models`:""}</span></div>
       <div class="radar-delta ${cls}">${sign} ${fmt(Math.abs(m.delta))}<small>${m.pct>0?"+":""}${m.pct.toFixed(1)}%</small></div>
     </div>`;
-  }).join("") || `<div class="empty" style="padding:40px"><div class="big"><svg viewBox="0 0 24 24" class="ic2"><rect class="body" x="3" y="3" width="18" height="18" rx="3"/><path class="det" d="M6.5 15l3-4 3 2.5 4.5-6"/></svg></div>No price changes detected yet.<br><span style="font-size:12px;color:var(--ink-soft)">Moves appear once a product has two or more price points (after the next update).</span></div>`;
+  }).join("") || `<div class="empty" style="padding:40px"><div class="big"><svg viewBox="0 0 24 24" class="ic2"><rect class="body" x="3" y="3" width="18" height="18" rx="3"/><path class="det" d="M6.5 15l3-4 3 2.5 4.5-6"/></svg></div>No price moves in the last 7 days${radarFilter!=="all"?" for this filter":""}.<br><span style="font-size:12px;color:var(--ink-soft)">Moves appear once a product's price changes between scrapes.</span></div>`;
 }
 function updateDealCount(){
   const n=computeMovers(state.history).length;
