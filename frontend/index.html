@@ -698,6 +698,35 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
   font:600 12.5px 'Hanken Grotesk';color:#fff;display:flex;align-items:center;gap:8px}
 .side-dept small{font:600 10px 'Hanken Grotesk';letter-spacing:.1em;text-transform:uppercase;color:#64748B}
 .side-backdrop{display:none}
+.mp-backdrop{position:fixed;inset:0;background:rgba(20,18,14,.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:80}
+.mp-backdrop.open{opacity:1;pointer-events:auto}
+.mp{position:fixed;top:0;right:0;height:100%;width:min(620px,100vw);background:var(--ice);border-left:1px solid var(--line);box-shadow:-18px 0 40px rgba(40,34,24,.14);transform:translateX(102%);transition:transform .22s ease;z-index:81;display:flex;flex-direction:column}
+.mp.open{transform:none}
+.mp-head{display:flex;gap:12px;align-items:flex-start;padding:18px 20px 14px;border-bottom:1px solid var(--line);background:var(--frost)}
+.mp-head-main{flex:1;min-width:0;display:flex;gap:14px;align-items:center}
+.mp-head img,.mp-head .mp-ph{width:64px;height:64px;object-fit:contain;border-radius:12px;background:#fff;border:1px solid var(--line);flex:0 0 64px}
+.mp-title{font:700 19px 'Hanken Grotesk';color:var(--ink);line-height:1.2;overflow-wrap:break-word}
+.mp-sub{font:500 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-top:3px}
+.mp-x{border:0;background:var(--soft-bg);color:var(--ink);width:34px;height:34px;border-radius:10px;cursor:pointer;font-size:15px;flex:0 0 34px}
+.mp-body{flex:1;overflow-y:auto;padding:16px 20px 28px}
+.mp-sec{margin:18px 0 8px;font:700 11px 'Hanken Grotesk';letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+.mp-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.mp-kpi{background:var(--frost);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.mp-kpi b{display:block;font:700 17px 'Hanken Grotesk';color:var(--ink)}
+.mp-kpi span{font:500 11.5px 'Hanken Grotesk';color:var(--ink-soft)}
+.mp-offer{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--soft-bg);flex-wrap:wrap}
+.mp-offer:last-child{border-bottom:0}
+.mp-offer .mp-o-main{flex:1;min-width:140px;font-size:12.5px;color:var(--ink-soft)}
+.mp-offer .mp-price{font:700 15px 'Hanken Grotesk';color:var(--ink);white-space:nowrap}
+.mp-offer .mp-best{font:700 10px 'Hanken Grotesk';color:#fff;background:var(--mint);border-radius:6px;padding:2px 6px;margin-left:6px}
+.mp-specs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px}
+.mp-specs div{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;border-bottom:1px dashed var(--soft-bg);padding:4px 0}
+.mp-specs span{color:var(--ink-soft)} .mp-specs b{color:var(--ink);text-align:right;font-weight:600;overflow-wrap:anywhere}
+.mp-chart{height:210px;background:var(--frost);border:1px solid var(--line);border-radius:12px;padding:8px}
+.mp-rival{cursor:pointer}
+.mp-rival:hover{background:var(--soft-bg)}
+.mp-ext{font:600 12px 'Hanken Grotesk';color:var(--mint);white-space:nowrap;text-decoration:none}
+@media(max-width:600px){.mp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.mp-specs{grid-template-columns:minmax(0,1fr)}.mp-head{padding:14px}.mp-body{padding:12px 14px 24px}}
 @media(max-width:880px){
   .sidebar.open ~ .side-backdrop{display:block;position:fixed;inset:0;z-index:55;background:rgba(12,20,20,.45)}
 }
@@ -766,9 +795,14 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-11-S6</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-11-S7</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
+<div class="mp-backdrop" id="mpBackdrop"></div>
+<aside class="mp" id="modelPanel" aria-hidden="true" role="dialog" aria-label="Model details">
+  <div class="mp-head"><div id="mpHead" class="mp-head-main"></div><button class="mp-x" id="mpClose" title="Close (Esc)">✕</button></div>
+  <div class="mp-body" id="mpBody"></div>
+</aside>
 
 <div class="shell">
 <div class="topbar">
@@ -829,7 +863,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 
     <div class="grid two-col">
       <div class="card"><h3><span class="dot"></span>Products per retailer</h3><div class="chart-box"><canvas id="coverageChart"></canvas></div></div>
-      <div class="card"><h3><span class="dot" style="background:var(--heat)"></span>Top brands by SKU count</h3><div class="chart-box"><canvas id="brandChart"></canvas></div></div>
+      <div class="card"><h3><span class="dot" style="background:var(--heat)"></span>Top brands by ready stock</h3><div class="chart-box"><canvas id="brandChart"></canvas></div></div>
     </div>
 
     <div class="grid two-col" style="margin-top:18px">
@@ -907,7 +941,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       <p class="l-psub" id="lauPulseSub">The shape of the market right now.</p>
       <div class="grid two-col">
         <div class="card"><h3>Products per retailer</h3><div class="chart-box"><canvas id="lCoverageChart"></canvas></div></div>
-        <div class="card"><h3>Top brands by model count</h3><div class="chart-box"><canvas id="lBrandChart"></canvas></div></div>
+        <div class="card"><h3>Top brands by ready stock</h3><div class="chart-box"><canvas id="lBrandChart"></canvas></div></div>
       </div>
       <div class="grid two-col" style="margin-top:16px">
         <div class="card"><h3>Price distribution</h3><div class="chart-box"><canvas id="lPriceChart"></canvas></div></div>
@@ -1011,7 +1045,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       <p class="l-psub">The shape of the market right now.</p>
       <div class="grid two-col">
         <div class="card"><h3>Products per retailer</h3><div class="chart-box"><canvas id="cCoverageChart"></canvas></div></div>
-        <div class="card"><h3>Top brands by model count</h3><div class="chart-box"><canvas id="cBrandChart"></canvas></div></div>
+        <div class="card"><h3>Top brands by ready stock</h3><div class="chart-box"><canvas id="cBrandChart"></canvas></div></div>
       </div>
       <div class="grid two-col" style="margin-top:16px">
         <div class="card"><h3>Price distribution</h3><div class="chart-box"><canvas id="cPriceChart"></canvas></div></div>
@@ -1103,7 +1137,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       <p class="l-psub">The shape of the market right now.</p>
       <div class="grid two-col">
         <div class="card"><h3>Products per retailer</h3><div class="chart-box"><canvas id="dCoverageChart"></canvas></div></div>
-        <div class="card"><h3>Top brands by model count</h3><div class="chart-box"><canvas id="dBrandChart"></canvas></div></div>
+        <div class="card"><h3>Top brands by ready stock</h3><div class="chart-box"><canvas id="dBrandChart"></canvas></div></div>
       </div>
       <div class="grid two-col" style="margin-top:16px">
         <div class="card"><h3>Price distribution</h3><div class="chart-box"><canvas id="dPriceChart"></canvas></div></div>
@@ -2014,12 +2048,14 @@ let _routing = false;
 function syncRoute(replace){
   if(_routing) return;
   const tab = document.querySelector("#nav [data-page].active")?.dataset.page || "dashboard";
-  const h = "#"+state.dept+"/"+tab;
+  const h = "#"+state.dept+"/"+tab+(MP.id?"/m"+MP.id:"");
   if(location.hash !== h) history[replace?"replaceState":"pushState"](null, "", h);
   try{ localStorage.setItem("pricedge_dept", state.dept); }catch(_){}
 }
 function applyRoute(){
-  const [d, t] = location.hash.replace(/^#/,"").split("/");
+  const [d, t, m] = location.hash.replace(/^#/,"").split("/");
+  const mid = m && /^m.+/.test(m) ? m.slice(1) : null;
+  if(!mid && MP.id){ _routing=true; try{ closeModel(); } finally { _routing=false; } }
   let dept = ROUTE_DEPTS.includes(d) ? d : null;
   if(!dept){ try{ const sd=localStorage.getItem("pricedge_dept"); if(ROUTE_DEPTS.includes(sd)) dept=sd; }catch(_){} }
   const tab = t && document.querySelector(`#nav [data-page="${CSS.escape(t)}"]`) ? t : null;
@@ -2030,6 +2066,7 @@ function applyRoute(){
       setDept(dept);
     } else if(tab) showTab(tab);
   } finally { _routing = false; }
+  if(mid && mid!==MP.id){ _routing=true; try{ if(!openModel(mid)) _pendingModel=mid; } finally { _routing=false; } }
   syncRoute(true);
 }
 window.addEventListener("popstate", applyRoute);
@@ -2169,10 +2206,7 @@ function renderLaundry(){
     cset.forEach(p=>{const s=f.site(p); if(s in cov)cov[s]++;});
     if(cset.length) makeChart("lCoverageChart","bar",{labels:Object.keys(cov).map(s=>SITE_LABEL[s]||s),datasets:[{data:Object.values(cov),backgroundColor:["#FF6A3D","#0B6E6E","#0EA5B7"],borderRadius:8,maxBarThickness:60}]},{plugins:{legend:{display:false}}});
     else emptyChart("lCoverageChart","No products in view");
-    const lb={}; cset.forEach(p=>{const b=cap(extractModel(f.name(p)).brand||"").trim(); if(b)lb[b]=(lb[b]||0)+1;});
-    const topB=Object.entries(lb).sort((a,b)=>b[1]-a[1]).slice(0,8);
-    if(topB.length) makeChart("lBrandChart","bar",{labels:topB.map(b=>b[0]),datasets:[{data:topB.map(b=>b[1]),backgroundColor:"#0B6E6E",borderRadius:6,maxBarThickness:30}]},{indexAxis:"y",plugins:{legend:{display:false}}});
-    else emptyChart("lBrandChart","No brand data yet");
+    brandStockChart("lBrandChart", cset);
     const pr=cset.map(f.price).filter(x=>x>0);
     if(pr.length){
       const bins=[0,200,300,400,500,700,1000,99999], labels=["<200","200-300","300-400","400-500","500-700","700-1k","1k+"];
@@ -2671,10 +2705,7 @@ function renderSecDashboard(D){
     cset.forEach(p=>{const s=f.site(p); if(s in cov)cov[s]++;});
     if(cset.length) makeChart(I.cov,"bar",{labels:Object.keys(cov).map(s=>SITE_LABEL[s]||s),datasets:[{data:Object.values(cov),backgroundColor:["#FF6A3D","#0B6E6E","#0EA5B7"],borderRadius:8,maxBarThickness:60}]},{plugins:{legend:{display:false}}});
     else emptyChart(I.cov,"No products in view");
-    const bc={}; cset.forEach(p=>{const b=cap(extractModel(f.name(p)).brand||"").trim(); if(b)bc[b]=(bc[b]||0)+1;});
-    const topB=Object.entries(bc).sort((a,b)=>b[1]-a[1]).slice(0,8);
-    if(topB.length) makeChart(I.brand,"bar",{labels:topB.map(b=>b[0]),datasets:[{data:topB.map(b=>b[1]),backgroundColor:"#0B6E6E",borderRadius:6,maxBarThickness:30}]},{indexAxis:"y",plugins:{legend:{display:false}}});
-    else emptyChart(I.brand,"No brand data yet");
+    brandStockChart(I.brand, cset);
     if(priced.length){
       const [bins,labels]=D.priceBins, counts=labels.map(()=>0);
       priced.forEach(v=>{ for(let i=0;i<bins.length-1;i++){ if(v>=bins[i]&&v<bins[i+1]){counts[i]++;break;} } });
@@ -2837,7 +2868,160 @@ function renderDBrands(){ renderSecBrands(SEC_DEPTS.dishwashing); }
 function renderDSegments(){ renderSecSegments(SEC_DEPTS.dishwashing); }
 function renderDProducts(){ renderSecProducts(SEC_DEPTS.dishwashing); }
 
+/* =========================================================
+   MODEL PAGE — everything about one model in a side panel:
+   every retailer's offer (price, stock, SKU / launch), price history,
+   specs and technologies, and the closest rivals. Opens from any product
+   link (ctrl/cmd-click or the ↗ arrow still go to the retailer).
+========================================================= */
+let MP = {id:null};
+let _pendingModel = null;
+function _prodIndex(){
+  const byId={}, byUrl={};
+  for(const p of allProducts()){ byId[String(f.id(p))]=p; const u=f.url(p); if(u) byUrl[u]=p; }
+  return {byId, byUrl};
+}
+function modelMembers(p){
+  const {byId}=_prodIndex(), pid=String(f.id(p));
+  let ids=null;
+  if(matchData && matchData.groups){
+    const g=matchData.groups.find(g=>g.product_ids.some(x=>String(x)===pid));
+    if(g) ids=g.product_ids.map(String);
+  }
+  let members = ids ? ids.map(i=>byId[i]).filter(Boolean)
+    : (()=>{ const c=normCode(extractModel(f.name(p)).code); const d=deptOf(p);
+        return c.length>=4 ? allProducts().filter(q=>deptOf(q)===d && normCode(extractModel(f.name(q)).code)===c) : [p]; })();
+  if(!members.some(q=>String(f.id(q))===pid)) members.unshift(p);
+  // one offer per retailer listing (a URL-change twin is the same listing)
+  const per=new Map();
+  for(const q of members){
+    const k=(q.sku!=null&&q.sku!=="")?f.site(q)+":"+q.sku:"pid:"+f.id(q);
+    const cur=per.get(k);
+    if(!cur || (f.price(cur)==null && f.price(q)!=null)) per.set(k,q);
+  }
+  return [...per.values()].sort((a,b)=>(f.price(a)??1e9)-(f.price(b)??1e9));
+}
+function skuNewness(p){
+  const n=parseInt(p.sku,10); if(!(n>0)) return null;
+  const v=allProducts().filter(q=>f.site(q)===f.site(p)).map(q=>parseInt(q.sku,10)).filter(x=>x>0);
+  return v.length ? v.filter(x=>x>n).length/v.length : null;   // share of listings newer than this one
+}
+function openModel(ref){
+  const {byId, byUrl}=_prodIndex();
+  const p=byId[String(ref)]||byUrl[ref];
+  if(!p) return false;
+  MP.id=String(f.id(p));
+  renderModelPanel(p);
+  document.getElementById("modelPanel").classList.add("open");
+  document.getElementById("modelPanel").setAttribute("aria-hidden","false");
+  document.getElementById("mpBackdrop").classList.add("open");
+  document.body.style.overflow="hidden";
+  syncRoute();
+  return true;
+}
+function closeModel(){
+  if(!MP.id) return;
+  MP.id=null;
+  document.getElementById("modelPanel").classList.remove("open");
+  document.getElementById("modelPanel").setAttribute("aria-hidden","true");
+  document.getElementById("mpBackdrop").classList.remove("open");
+  document.body.style.overflow="";
+  syncRoute();
+}
+function renderModelPanel(p, keepScroll){
+  const dept=deptOf(p), members=modelMembers(p), priced=members.filter(q=>f.price(q)!=null);
+  const best=priced[0], hi=priced[priced.length-1];
+  const img=members.map(q=>f.image(q)).find(Boolean);
+  const mine=isMyBrand(p);
+  const type=LAUNCH_CAT[p.category]||(typeof SUBCAT_LABEL!=="undefined"&&SUBCAT_LABEL[categorize(p)])||p.category||"";
+  document.getElementById("mpHead").innerHTML = `${img?`<img src="${esc(img)}" alt="" onerror="this.style.visibility='hidden'">`:'<span class="mp-ph"></span>'}
+    <div style="min-width:0"><div class="mp-title">${esc(modelTitle(f.name(p),60))}${mine?' <span class="mine-tag" style="display:inline-block;background:var(--cobalt);color:#fff;font:700 9px \'Hanken Grotesk\';padding:2px 7px;border-radius:99px;vertical-align:middle">YOURS</span>':""}</div>
+    <div class="mp-sub">${esc(DEPT_NAME[dept]||dept)}${type?" · "+esc(type):""} · ${members.length} listing${members.length!==1?"s":""}</div>
+    <div class="mp-sub" style="font-size:11.5px">${esc(short(f.name(p),110))}</div></div>`;
+
+  // --- price history (this model's listings, one line per retailer)
+  const ids=new Set(members.map(q=>String(f.id(q))));
+  const hist=(state.history||[]).filter(h=>ids.has(String(h.product_id)) && h.price!=null);
+  const days=[...new Set(hist.map(h=>String(h.scraped_at).slice(0,10)))].sort();
+  const bySite={};
+  for(const h of hist){ const s=normSite(h.site), d=String(h.scraped_at).slice(0,10);
+    (bySite[s]=bySite[s]||{}); bySite[s][d]=Math.min(bySite[s][d]??Infinity, h.price); }
+  const allVals=hist.map(h=>h.price), lowH=allVals.length?Math.min(...allVals):null;
+
+  // --- KPIs
+  const spread=(best&&hi&&f.price(best))?(f.price(hi)/f.price(best)-1)*100:null;
+  const k=(v,l)=>`<div class="mp-kpi"><b>${v}</b><span>${l}</span></div>`;
+  const kpis = k(best?fmt(f.price(best)):"—", best?`best price · ${SITE_LABEL[f.site(best)]||f.site(best)}`:"no live price")
+    + k(spread!=null&&priced.length>1?spread.toFixed(0)+"%":"—", priced.length>1?`spread across ${priced.length} retailers`:"one retailer only")
+    + k(lowH!=null?fmt(lowH):"—", days.length?`lowest in ${days.length} day${days.length!==1?"s":""} of history`:"no history yet");
+
+  // --- offers
+  const launchById={}; (state.launches||[]).forEach(l=>{ launchById[String(l.id)]=l; });
+  const offers = members.map(q=>{
+    const b=availBucket(f.avail(q)), url=f.url(q), L=launchById[String(f.id(q))], nw=skuNewness(q);
+    const age = L ? (L.kind==="launch" ? `launched ${_daysSince(L.first_seen)===0?"today":_daysSince(L.first_seen)+" d ago"}` : "back in range")
+              : (nw!=null && nw<=0.03 ? "among the newest listings" : "");
+    return `<div class="mp-offer"><span class="pill ${SITE_PILL[f.site(q)]||"na"}">${SITE_LABEL[f.site(q)]||f.site(q)}</span>
+      <span class="mp-o-main">${b!=="Not reported"?`<span class="sw-st" style="background:${AVAIL_COLOR[b]||"#94A3B8"}">${esc(b)}</span> `:'<span style="color:var(--ink-soft)">stock not checked</span> '}${q.sku?`· SKU ${esc(q.sku)}`:""}${age?` · <b style="color:var(--mint)">${age}</b>`:""}</span>
+      <span class="mp-price">${f.price(q)!=null?fmtWas(q):"—"}${best&&q===best&&priced.length>1?'<span class="mp-best">BEST</span>':""}</span>
+      ${url?`<a class="mp-ext" href="${esc(url)}" target="_blank" rel="noopener">Open ↗</a>`:""}</div>`;
+  }).join("");
+
+  // --- specs + technologies (richest listing first)
+  const specSrc=[...members].sort((a,b)=>Object.keys(f.specs(b)).length-Object.keys(f.specs(a)).length);
+  const specs={}; specSrc.forEach(q=>{ for(const [kk,v] of Object.entries(f.specs(q))){ if(kk.startsWith("__")||kk.startsWith("pillar_")||v==null||String(v).trim()==="") continue; if(!(kk in specs)) specs[kk]=String(v); } });
+  const specRows=Object.entries(specs).slice(0,30).map(([kk,v])=>`<div><span>${esc(kk)}</span><b>${esc(short(v,60))}</b></div>`).join("");
+  const tech=[...new Set(specSrc.flatMap(q=>deriveTech(q, dept)||[]))];
+
+  // --- closest rivals: same department and type, nearest price
+  const ref=best?f.price(best):f.price(p);
+  const memberIds=ids;
+  const seen=new Set();
+  const pool=allProducts().filter(q=>deptOf(q)===dept && q.category===p.category && f.price(q)!=null && !memberIds.has(String(f.id(q))) && isMyBrand(q)!==mine)
+    .sort((a,b)=>Math.abs(f.price(a)-ref)-Math.abs(f.price(b)-ref))
+    .filter(q=>{ const c=normCode(extractModel(f.name(q)).code)||String(f.id(q)); if(seen.has(c)) return false; seen.add(c); return true; })
+    .slice(0,6);
+  const rivals=pool.map(q=>{ const d=ref?((f.price(q)/ref-1)*100):null;
+    return `<div class="mini-row mp-rival" data-model="${esc(f.id(q))}"><span class="pill ${SITE_PILL[f.site(q)]||"na"}">${SITE_LABEL[f.site(q)]||f.site(q)}</span>
+      <span class="mini-name">${esc(modelTitle(f.name(q),34))}</span>
+      <span class="sw-d" style="min-width:70px">${fmt(f.price(q))}</span>
+      <span class="sw-d" style="color:${d!=null&&d<0?"var(--heat)":"var(--ink-soft)"}">${d==null?"":(d<0?"−":"+")+Math.abs(d).toFixed(0)+"%"}</span></div>`; }).join("");
+
+  document.getElementById("mpBody").innerHTML = `<div class="mp-kpis">${kpis}</div>
+    <div class="mp-sec">Retailers</div><div>${offers}</div>
+    <div class="mp-sec">Price history</div><div class="mp-chart"><canvas id="mpChart"></canvas></div>
+    ${tech.length?`<div class="mp-sec">Technologies & programs</div><div class="tech-row">${techChipsHTML(tech)}</div>`:""}
+    <div class="mp-sec">Specs</div>${specRows?`<div class="mp-specs">${specRows}</div>`:'<div style="font-size:12.5px;color:var(--ink-soft)">No specs captured for this model yet.</div>'}
+    <div class="mp-sec">${mine?"Closest rivals":"Your closest models"} · same type, nearest price</div>
+    <div class="mini-list">${rivals||'<div class="mini-row" style="color:var(--ink-soft);font-size:12.5px">None found in this type.</div>'}</div>`;
+  if(!keepScroll) document.getElementById("mpBody").scrollTop=0;
+
+  const COL={kotsovolos:"#FF6A3D", public:"#1463FF", plaisio:"#C77D33"};
+  const datasets=Object.keys(bySite).map(s=>({label:SITE_LABEL[s]||s, data:days.map(d=>Number.isFinite(bySite[s][d])?bySite[s][d]:null),
+    borderColor:COL[s]||"#64748B", backgroundColor:"transparent", tension:.3, spanGaps:true, pointRadius:2}));
+  if(datasets.length){
+    makeChart("mpChart","line",{labels:days.map(d=>d.slice(5)),datasets},{plugins:{legend:{position:"top"}}});
+    // zoom to the price band so small moves are visible
+    const c=charts.mpChart; if(c){ c.options.scales.y.beginAtZero=false; c.options.scales.y.grace="8%"; c.update(); }
+  }
+  else emptyChart("mpChart","No price history yet — it fills in with every scrape.");
+}
+// product links open the model page; ctrl/cmd/shift/middle-click or the ↗ arrow still go to the retailer
+document.addEventListener("click",e=>{
+  const r=e.target.closest("[data-model]");
+  if(r){ e.preventDefault(); openModel(r.dataset.model); return; }
+  const a=e.target.closest("a[href]"); if(!a || a.classList.contains("mp-ext") || e.target.closest(".rl-arrow")) return;
+  if(e.ctrlKey||e.metaKey||e.shiftKey||e.button!==0) return;
+  const href=a.getAttribute("href"); if(!href) return;
+  if(openModel(href)) e.preventDefault();
+}, true);
+document.addEventListener("keydown",e=>{ if(e.key==="Escape" && MP.id) closeModel(); });
+on("mpClose","click",closeModel);
+on("mpBackdrop","click",closeModel);
+
 function renderAll(){
+  if(_pendingModel && allProducts().length){ const id=_pendingModel; _pendingModel=null; setTimeout(()=>openModel(id),0); }
+  else if(MP.id){ const mp=_prodIndex().byId[MP.id]; if(mp) setTimeout(()=>renderModelPanel(mp, true),0); }   // fresh data (history, launches) lands in the open panel
   safeRender("freshness",renderFreshness);
   safeRender("ticker",renderTicker);
   if(state.dept==="laundry"){
@@ -3693,10 +3877,7 @@ function renderDashboard(){
   } else emptyChart("coverageChart","No products yet");
 
   // ── top brands ────────────────────────────────────────────
-  const topB=Object.entries(brands).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  if(topB.length){
-    makeChart("brandChart","bar",{labels:topB.map(b=>b[0]),datasets:[{data:topB.map(b=>b[1]),backgroundColor:"#0B6E6E",borderRadius:6,maxBarThickness:30}]},{indexAxis:"y",plugins:{legend:{display:false}}});
-  } else emptyChart("brandChart","No brand data yet");
+  brandStockChart("brandChart", prods);
 
   // ── price distribution ────────────────────────────────────
   if(prices.length){
@@ -4871,7 +5052,7 @@ function renderAlerts(){
                             width:t.width,height:t.height,cat:t.cat,install:t.install,
                             myKg:t.myKg,myType:t.myType,tier:t.tier,capUnit:t.capUnit||"L",rivals:{}};
     const g=byMine[mk].rivals;
-    if(!g[rk]) g[rk]={name:t.rival,offers:[],betterClass:false,moreLitres:false,moreKg:false,bestPrice:Infinity,rivalE:t.rivalE,capGain:0,kgGain:0,isDisruption:false};
+    if(!g[rk]) g[rk]={name:t.rival,url:String(t.key||"").split("|")[1]||"",offers:[],betterClass:false,moreLitres:false,moreKg:false,bestPrice:Infinity,rivalE:t.rivalE,capGain:0,kgGain:0,isDisruption:false};
     g[rk].offers.push({site:t.rivalSite,price:t.rivalPrice});
     g[rk].betterClass = g[rk].betterClass||t.betterClass;
     g[rk].moreLitres  = g[rk].moreLitres||t.moreLitres;
@@ -4912,7 +5093,7 @@ function renderAlerts(){
       if(lau && r.moreKg) edge.push(`<span class="ab-edge">+${r.kgGain}kg</span>`);
       if(!lau && r.moreLitres) edge.push(`<span class="ab-edge">+${r.capGain}${cook&&grp.capUnit!=="L"?" "+grp.capUnit:"L"}</span>`);      const stores=r.offers.map(o=>`${SITE_LABEL[o.site]||o.site} ${fmt(o.price)}`).join(" · ");
       return `<div class="ab-rival ${r.disruption?'disrupt':''}">
-        <div class="ab-rival-main"><b>${esc(short(r.name,40))}</b> ${edge.length?`<span class="ab-edges">${edge.join(" · ")}</span>`:""}${r.fresh?` <span class="pill warn" title="${esc(r.fresh)}">new this week</span>`:""}</div>
+        <div class="ab-rival-main"><b>${r.url?`<a class="rl" href="${esc(r.url)}">${esc(short(r.name,40))}</a>`:esc(short(r.name,40))}</b> ${edge.length?`<span class="ab-edges">${edge.join(" · ")}</span>`:""}${r.fresh?` <span class="pill warn" title="${esc(r.fresh)}">new this week</span>`:""}</div>
         <div class="ab-rival-sub">${stores} · <b style="color:var(--heat)">€${r.gap.toFixed(0)} below you</b></div>
       </div>`;
     }).join("");
@@ -4921,7 +5102,7 @@ function renderAlerts(){
     return {sevHi:hiCount>0, urgent, gap:Math.max(...allShown.map(r=>r.gap)), html:`
       <div class="alert-card ${hiCount?'hi':''}">
         <div class="ab-head">
-          <div><b>${esc(short(grp.mine,44))}</b><div class="ab-meta">${SITE_LABEL[grp.mySite]||grp.mySite} · ${fmt(grp.myPrice)} · ${grp.myE||"?"} · ${dim} · ${esc(seg)}</div></div>
+          <div><b>${mk&&/^https?:/.test(mk)?`<a class="rl" href="${esc(mk)}">${esc(short(grp.mine,44))}</a>`:esc(short(grp.mine,44))}</b><div class="ab-meta">${SITE_LABEL[grp.mySite]||grp.mySite} · ${fmt(grp.myPrice)} · ${grp.myE||"?"} · ${dim} · ${esc(seg)}</div></div>
           <div class="ab-count">${hiCount?`<span class="pill warn">⚠ ${hiCount} disruption${hiCount>1?"s":""}</span>`:""}${!showAll&&undercuts.length?`<span class="ab-more">+${undercuts.length} undercut${undercuts.length>1?"s":""}</span>`:""}</div>
         </div>
         <div class="ab-rivals">${rivalHtml}${hidden>0?`<button class="ab-expand" data-aexp="${esc(mk)}">Show ${hidden} more rival${hidden>1?"s":""}</button>`:""}</div>
@@ -5988,6 +6169,26 @@ function exportMatches(){
 /* =========================================================
    HELPERS
 ========================================================= */
+/* Top brands by what is actually on the shelf: listings per brand split by
+   stock status, ranked by ready stock (last pieces count as ready). A brand
+   whose range is mostly supplier-order no longer tops the chart just by
+   listing many SKUs. "Not checked" = no stock reading for that listing yet. */
+function brandStockChart(id, list){
+  const B={};
+  for(const p of list){
+    const b=cap(extractModel(f.name(p)).brand||"").trim(); if(!b) continue;
+    const a=availBucket(f.avail(p));
+    const k = (a===AV.READY||a===AV.LAST) ? "ready" : a===AV.SUPPLIER ? "order" : a==="Not reported" ? "unk" : "none";
+    (B[b]=B[b]||{ready:0,order:0,none:0,unk:0})[k]++;
+  }
+  const top=Object.entries(B).sort((x,y)=>(y[1].ready-x[1].ready)||((y[1].ready+y[1].order+y[1].none+y[1].unk)-(x[1].ready+x[1].order+x[1].none+x[1].unk))).slice(0,8);
+  if(!top.length) return emptyChart(id,"No brand data yet");
+  const ds=(label,key,color)=>({label, data:top.map(t=>t[1][key]), backgroundColor:color, borderRadius:4, maxBarThickness:30, stack:"s"});
+  makeChart(id,"bar",{labels:top.map(t=>t[0]), datasets:[
+      ds("Ready stock","ready","#0B6E6E"), ds("Supplier order","order","#D97706"),
+      ds("No stock / store / EOL","none","#9CA3AF"), ds("Not checked","unk","rgba(148,163,184,.28)")]},
+    {indexAxis:"y", scales:{x:{stacked:true}, y:{stacked:true}}, plugins:{legend:{display:true, position:"bottom"}}});
+}
 function getCSS(name){ try{ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#888"; }catch(_){ return "#888"; } }
 function makeChart(id,type,data,extra={}){
   if(charts[id]) charts[id].destroy();
