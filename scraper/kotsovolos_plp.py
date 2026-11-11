@@ -19,6 +19,8 @@ Pure requests, no Selenium. Run on the PC:
 Output: kotsovolos_plp.xlsx  (close it in Excel before re-running!)
 """
 
+import json
+import os
 import re
 import sys
 import time
@@ -303,10 +305,15 @@ def parse_entry(entry, cat_name, dept="cooling"):
         if p.get("usage") == "Offer" and sale is None:
             sale = price_to_float(p.get("value"))
 
-    seo = ""
+    seo, leaf = "", ""
     ud = entry.get("UserData") or []
     if isinstance(ud, list) and ud and isinstance(ud[0], dict):
         seo = ud[0].get("seo_url", "") or ""
+        # leaf category of this catalogue: "10551|35018_35030_<leaf>"
+        for b in ud[0].get("x_breadcrumb_ext", []) or []:
+            if str(b).startswith(CATALOG_ID + "|"):
+                leaf = str(b).split("|", 1)[1].split("_")[-1]
+                break
     url = SITE_BASE + seo.lstrip("/") if seo else ""
 
     img = (entry.get("thumbnail") or entry.get("fullImage")
@@ -356,6 +363,7 @@ def parse_entry(entry, cat_name, dept="cooling"):
         "availability": avail,
         "image": img,
         "url": url,
+        "_leaf": leaf,
     }
     # technology + program tags from the flags/free-text attributes (all departments)
     base.update(features.extract(attrs_all, dept))
@@ -446,6 +454,59 @@ def fetch_page(session, cat_id, page_number):
     return r.json()
 
 
+# Kotsovolos's site (Nov 2026) added a sub-category level to product URLs:
+#   household-appliances/hoods/aporrofhthres/306482-<slug>
+# but the listing API still returns the old seo_url without it, which now 404s.
+# The level belongs to the product's leaf category, so we learn each leaf's
+# path once from a single product lookup (getProductByArticleNumber returns
+# the new seo_url) and cache it; product URL = leaf path + "<id>-<slug>".
+PRODUCT_API = "https://www.kotsovolos.gr/api/ext/getProductByArticleNumber"
+_PREFIX_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kotsovolos_url_paths.json")
+_PREFIX = None
+
+
+def _leaf_prefix(session, leaf, sku):
+    global _PREFIX
+    if _PREFIX is None:
+        try:
+            with open(_PREFIX_FILE, encoding="utf-8") as fh:
+                _PREFIX = json.load(fh)
+        except Exception:
+            _PREFIX = {}
+    if leaf in _PREFIX:
+        return _PREFIX[leaf]
+    try:
+        r = session.get(PRODUCT_API, params={"articleNumber": sku, "storeId": STORE_ID,
+                                             "p_name": "findByArticleNumber"}, timeout=40)
+        ents = r.json().get("catalogEntryView") or []
+        seo = ((ents[0].get("UserData") or [{}])[0].get("seo_url", "") or "") if ents else ""
+    except Exception as e:
+        print(f"  ! product lookup for {sku} failed: {e}")
+        return None
+    if "/" not in seo:
+        return None
+    prefix = seo.rsplit("/", 1)[0] + "/"
+    _PREFIX[leaf] = prefix
+    try:
+        with open(_PREFIX_FILE, "w", encoding="utf-8") as fh:
+            json.dump(_PREFIX, fh, ensure_ascii=False, indent=1, sort_keys=True)
+    except Exception:
+        pass
+    return prefix
+
+
+def fix_urls(session, rows):
+    """Rewrite each row's URL to the site's current form (leaf path + id-slug)."""
+    for r in rows:
+        leaf, url = r.get("_leaf"), r.get("url") or ""
+        if not leaf or not url:
+            continue
+        prefix = _leaf_prefix(session, leaf, r["sku_id"])
+        if prefix:
+            r["url"] = SITE_BASE + prefix + url.rstrip("/").rsplit("/", 1)[-1]
+    return rows
+
+
 def collect_category(session, cat_id, cat_name, debug=True, dept="cooling"):
     merged = {}
     total = None
@@ -476,7 +537,7 @@ def collect_category(session, cat_id, cat_name, debug=True, dept="cooling"):
             break
         page += 1
         time.sleep(0.4)
-    return list(merged.values()), total
+    return fix_urls(session, list(merged.values())), total
 
 
 def collect_cooking(session, cat, debug=False):

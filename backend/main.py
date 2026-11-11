@@ -527,13 +527,27 @@ def ingest_results(payload: IngestPayload, request: Request, db: Session = Depen
     if not token or request.headers.get("X-Ingest-Token") != token:
         raise HTTPException(401, "Invalid or missing X-Ingest-Token")
 
-    saved = created = skipped = 0
+    saved = created = skipped = moved = 0
     for r in payload.results:
         url = r.get("url")
         if not url or not r.get("success"):
             skipped += 1
             continue
         product = db.query(Product).filter(Product.url == url).first()
+        if not product and r.get("sku"):
+            # same retailer SKU under a new URL (the retailer changed its URL
+            # scheme): move the existing product to the new URL so its price
+            # history, stock streaks and match verdicts carry on
+            site = detect_site(url) or r.get("site", "unknown")
+            product = (db.query(Product)
+                       .filter(Product.site == site, Product.retailer_sku == str(r["sku"]))
+                       .order_by(Product.active.desc(), Product.id.desc()).first())
+            if product:
+                product.url = url
+                if r.get("name"):
+                    product.name = r["name"]
+                db.commit()             # sessions don't autoflush: save_scrape_result looks it up by URL
+                moved += 1
         if not product:
             site = detect_site(url) or r.get("site", "unknown")
             product = Product(
@@ -575,10 +589,10 @@ def ingest_results(payload: IngestPayload, request: Request, db: Session = Depen
         save_scrape_result(r, db)
         saved += 1
 
-    print(f"📥 Ingest: {saved} saved, {created} new products, {skipped} skipped")
+    print(f"📥 Ingest: {saved} saved, {created} new products, {moved} moved to a new URL, {skipped} skipped")
     global _MATCHES_DIRTY
     _MATCHES_DIRTY = True
-    return {"saved": saved, "new_products": created, "skipped": skipped}
+    return {"saved": saved, "new_products": created, "moved": moved, "skipped": skipped}
 
 
 class RepricePayload(BaseModel):
