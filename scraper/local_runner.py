@@ -212,7 +212,10 @@ def _due_subcats(now=None):
         if not prev:
             due.add(sub); continue
         try:
-            if (now - _dt.datetime.fromisoformat(prev)).days >= interval:
+            # a few hours' slack: a run is marked when it finishes, so the next
+            # day's scheduled start is slightly under 24h later and would
+            # otherwise skip "daily" subcategories every other day
+            if now - _dt.datetime.fromisoformat(prev) >= _dt.timedelta(days=interval, hours=-4):
                 due.add(sub)
         except Exception:
             due.add(sub)

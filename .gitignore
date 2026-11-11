@@ -6,3 +6,5 @@ urls_*.txt
 *.xlsx
 scrapers.py
 backend/scrapers.py
+
+scraper/logs/
