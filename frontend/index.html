@@ -213,6 +213,11 @@ main{max-width:1240px;margin:0 auto;padding:28px 28px 80px}
 
 /* mini lists */
 .mini-list{display:flex;flex-direction:column;gap:2px}
+.pager{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:14px 8px 4px;font-size:12.5px;color:var(--ink-soft)}
+.pager .btn{padding:7px 14px}
+.card-link{margin-left:auto;border:0;background:none;color:var(--mint);font:600 12.5px 'Hanken Grotesk';cursor:pointer;padding:0 0 0 10px;white-space:nowrap}
+.card-link:hover{text-decoration:underline}
+.ab-expand{border:0;background:none;color:var(--mint);font:600 12px 'Hanken Grotesk';cursor:pointer;padding:6px 10px}
 .mini-row{display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--soft-bg)}
 .mini-row:last-child{border-bottom:0}
 .mini-name{flex:1;min-width:0;overflow-wrap:break-word;font-size:13px;color:var(--ink)}
@@ -750,18 +755,18 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="segments"><span class="ico" data-ico="segments"></span> Segments</button>
     <button data-page="compare"><span class="ico" data-ico="compare"></span> Compare</button>
     <button data-page="mysku"><span class="ico" data-ico="mysku"></span> My SKUs</button>
-    <div class="side-sec">New</div>
+    <div class="side-sec">Signals</div>
     <button data-page="launches"><span class="ico" data-ico="launches"></span> New launches<span class="dr-count" id="launchCount"></span></button>
+    <button data-page="alerts"><span class="ico" data-ico="alerts"></span> Alerts</button>
     <div class="side-sec">Catalogue</div>
     <button data-page="products"><span class="ico" data-ico="products"></span> Products</button>
     <button data-page="history"><span class="ico" data-ico="history"></span> Price history</button>
-    <button data-page="alerts"><span class="ico" data-ico="alerts"></span> Alerts</button>
     <div class="side-sec">Data</div>
     <button data-page="matches"><span class="ico" data-ico="compare"></span> Match review<span class="dr-count" id="matchCount"></span></button>
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-11-S5</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-11-S6</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 
@@ -844,7 +849,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       </div>
     </div>
     <div class="card" style="margin-top:18px">
-      <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="coolLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+      <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="coolLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span><button class="card-link" data-goto="launches">All launches →</button></h3>
       <div class="grid two-col">
         <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rival launches · SKU newer than anything the retailer had listed</div><div id="coolLaunchRivals" class="mini-list"></div></div>
         <div><div id="coolLaunchMine" class="mini-list"></div></div>
@@ -918,7 +923,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       </div>
     </div>
     <div class="card" style="margin-top:18px">
-      <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="lauLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+      <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="lauLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span><button class="card-link" data-goto="launches">All launches →</button></h3>
       <div class="grid two-col">
         <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rival launches · SKU newer than anything the retailer had listed</div><div id="lauLaunchRivals" class="mini-list"></div></div>
         <div><div id="lauLaunchMine" class="mini-list"></div></div>
@@ -1022,7 +1027,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       </div>
     </div>
     <div class="card" style="margin-top:18px">
-      <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="cookLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+      <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="cookLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span><button class="card-link" data-goto="launches">All launches →</button></h3>
       <div class="grid two-col">
         <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rival launches · SKU newer than anything the retailer had listed</div><div id="cookLaunchRivals" class="mini-list"></div></div>
         <div><div id="cookLaunchMine" class="mini-list"></div></div>
@@ -1114,7 +1119,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       </div>
     </div>
     <div class="card" style="margin-top:18px">
-      <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="dishLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+      <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="dishLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span><button class="card-link" data-goto="launches">All launches →</button></h3>
       <div class="grid two-col">
         <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Rival launches · SKU newer than anything the retailer had listed</div><div id="dishLaunchRivals" class="mini-list"></div></div>
         <div><div id="dishLaunchMine" class="mini-list"></div></div>
@@ -2001,6 +2006,34 @@ const DEPT_PAGES = {
 };
 function deptHides(tab){ const d=DEPT_PAGES[state.dept]; return !!(d && d.hide.has(tab)); }
 
+/* Address bar mirrors where you are (#cooking/launches): refresh keeps the
+   page, Back/Forward work, and a view can be bookmarked or sent as a link.
+   The last department is also remembered for a bare visit. */
+const ROUTE_DEPTS = ["cooling","laundry","cooking","dishwashing"];
+let _routing = false;
+function syncRoute(replace){
+  if(_routing) return;
+  const tab = document.querySelector("#nav [data-page].active")?.dataset.page || "dashboard";
+  const h = "#"+state.dept+"/"+tab;
+  if(location.hash !== h) history[replace?"replaceState":"pushState"](null, "", h);
+  try{ localStorage.setItem("pricedge_dept", state.dept); }catch(_){}
+}
+function applyRoute(){
+  const [d, t] = location.hash.replace(/^#/,"").split("/");
+  let dept = ROUTE_DEPTS.includes(d) ? d : null;
+  if(!dept){ try{ const sd=localStorage.getItem("pricedge_dept"); if(ROUTE_DEPTS.includes(sd)) dept=sd; }catch(_){} }
+  const tab = t && document.querySelector(`#nav [data-page="${CSS.escape(t)}"]`) ? t : null;
+  _routing = true;
+  try{
+    if(dept && dept!==state.dept){
+      if(tab) document.querySelectorAll("#nav [data-page]").forEach(b=>b.classList.toggle("active", b.dataset.page===tab));
+      setDept(dept);
+    } else if(tab) showTab(tab);
+  } finally { _routing = false; }
+  syncRoute(true);
+}
+window.addEventListener("popstate", applyRoute);
+
 function showTab(tab){
   document.querySelectorAll("#nav [data-page]").forEach(b=>b.classList.toggle("active", b.dataset.page===tab));
   const dp = DEPT_PAGES[state.dept];
@@ -2009,6 +2042,7 @@ function showTab(tab){
   const sb=document.getElementById("sidebar"); if(sb) sb.classList.remove("open");
   renderAll();
   window.scrollTo(0,0);
+  syncRoute();
 }
 
 function applyDeptNav(){
@@ -2294,13 +2328,37 @@ function renderLSegments(){
   host.innerHTML = html || `<div class="card">No segments to show.</div>`;
 }
 
+/* Long lists render 50 rows at a time with "Show more / Show all". The count
+   resets whenever the list's filter signature changes (search, filters, dept). */
+const PAGE_STEP = 50;
+const PAGER = {};
+function pageLimit(key, sig, render){
+  const s = PAGER[key];
+  if(!s || s.sig!==sig) PAGER[key] = {sig, n:PAGE_STEP, render};
+  else s.render = render;
+  return PAGER[key].n;
+}
+function pagerHTML(key, shown, total, noun){
+  if(total<=shown) return "";
+  return `<div class="pager"><span>Showing ${shown} of ${total} ${noun}</span>
+    <button class="btn ghost" data-more="${key}">Show ${Math.min(PAGE_STEP,total-shown)} more</button>
+    <button class="btn ghost" data-more-all="${key}">Show all</button></div>`;
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-more],[data-more-all]"); if(!b) return;
+  const k=b.dataset.more||b.dataset.moreAll, s=PAGER[k]; if(!s) return;
+  s.n = b.dataset.moreAll!=null ? Infinity : s.n+PAGE_STEP;
+  const y=window.scrollY; s.render(); window.scrollTo(0,y);
+});
+
 function renderLProducts(){
   const host = document.getElementById("lpTable"); if(!host) return;
   const q = (document.getElementById("lpSearch")?.value||"").toLowerCase().trim();
   let rows = (state.laundry||[]).filter(p=>f.price(p)!=null);
   if(q) rows = rows.filter(p=> f.name(p).toLowerCase().includes(q) || (extractModel(f.name(p)).brand||"").toLowerCase().includes(q));
   const total = rows.length;
-  rows = rows.sort((a,b)=>f.price(a)-f.price(b)).slice(0,400);
+  const lim = pageLimit("lprod", q+"|"+total, renderLProducts);
+  rows = rows.sort((a,b)=>f.price(a)-f.price(b)).slice(0,lim);
   host.innerHTML = `<table><thead><tr><th></th><th>Model</th><th>Type</th><th>Retailer</th><th>kg</th><th>Energy</th><th>rpm</th><th>Price</th></tr></thead><tbody>${
     rows.map(p=>{ const n=laundryNorm(p); const {brand,code}=extractModel(f.name(p)); const url=f.url(p);
       const nm = esc(modelTitle(f.name(p),30));
@@ -2308,7 +2366,7 @@ function renderLProducts(){
         <td>${esc((LAUNDRY_TYPE_LABEL[n.type]||"").split(" ")[0])}</td><td>${SITE_LABEL[f.site(p)]||f.site(p)}</td>
         <td>${n.wash_kg||n.dry_kg||"—"}</td><td>${esc(n.energy||"—")}</td><td>${n.rpm||"—"}</td><td><b>${fmtWas(p)}</b></td></tr>`;
     }).join("")
-  }</tbody></table><div style="color:var(--ink-soft);font-size:12px;margin-top:8px">${total} product${total!==1?'s':''}${total>400?" · showing cheapest 400, search to narrow":""}</div>`;
+  }</tbody></table>${pagerHTML("lprod", rows.length, total, "products · cheapest first")}<div style="color:var(--ink-soft);font-size:12px;margin-top:8px">${total} product${total!==1?'s':''}</div>`;
 }
 
 /* ===================== COOKING DEPARTMENT ===================== */
@@ -2758,7 +2816,8 @@ function renderSecProducts(D){
   let rows = D.list().filter(p=>f.price(p)!=null);
   if(q) rows = rows.filter(p=> f.name(p).toLowerCase().includes(q) || (extractModel(f.name(p)).brand||"").toLowerCase().includes(q));
   const total = rows.length;
-  rows = rows.sort((a,b)=>f.price(a)-f.price(b)).slice(0,400);
+  const lim = pageLimit("prod-"+D.key, q+"|"+total, ()=>renderSecProducts(D));
+  rows = rows.sort((a,b)=>f.price(a)-f.price(b)).slice(0,lim);
   host.innerHTML = `<table><thead><tr><th></th><th>Model</th><th>Type</th><th>Retailer</th><th>Key specs</th><th>Energy</th><th>Price</th></tr></thead><tbody>${
     rows.map(p=>{ const n=D.norm(p); const {brand,code}=extractModel(f.name(p)); const url=f.url(p);
       const nm = esc(modelTitle(f.name(p),30));
@@ -2766,7 +2825,7 @@ function renderSecProducts(D){
         <td>${esc(D.typeLabel[n.type]||"")}</td><td>${SITE_LABEL[f.site(p)]||f.site(p)}</td>
         <td>${esc(D.tierLabel(n)||"—")}</td><td>${esc(n.energy||"—")}</td><td><b>${fmtWas(p)}</b></td></tr>`;
     }).join("")
-  }</tbody></table><div style="color:var(--ink-soft);font-size:12px;margin-top:8px">${total} product${total!==1?'s':''}${total>400?" · showing cheapest 400, search to narrow":""}</div>`;
+  }</tbody></table>${pagerHTML("prod-"+D.key, rows.length, total, "products · cheapest first")}<div style="color:var(--ink-soft);font-size:12px;margin-top:8px">${total} product${total!==1?'s':''}</div>`;
 }
 
 function renderCooking(){ renderSecDashboard(SEC_DEPTS.cooking); }
@@ -3516,8 +3575,9 @@ function renderBenchmark(){
   const mineN=rows.filter(r=>isMyBrand(r.p)).length;
   setHTML("benchStand", benchStandHTML(rows, typeWord, false));
   setHTML("benchSummary", `${rows.length} ${dedup?"models · best price across retailers":"listings"} · ${mineN} yours`);
-  host.innerHTML = (rows.slice(0,200).map((r,i)=>benchRowHTML(r,i,state.dept)).join("")
-    + (rows.length>200?`<div style="text-align:center;padding:10px;font-size:12px;color:var(--ink-soft)">+${rows.length-200} more — tighten a filter</div>`:""))
+  const blim = pageLimit("bench", state.dept+"|"+rows.length+"|"+(rows[0]?f.id(rows[0].p):""), renderBenchmark);
+  host.innerHTML = (rows.slice(0,blim).map((r,i)=>benchRowHTML(r,i,state.dept)).join("")
+    + pagerHTML("bench", Math.min(blim,rows.length), rows.length, dedup?"models":"listings"))
     || `<div style="padding:30px;text-align:center;color:var(--ink-soft)">No models match — clear a filter.</div>`;
 }
 
@@ -4768,12 +4828,42 @@ function computeMapViolations(){
   return out.sort((a,b)=>b.depth-a.depth);
 }
 
+const ALERT_OPEN = new Set();   // alert cards expanded to show every rival
+/* A disruption is "new this week" when, within the last 7 days, the rival cut
+   its price 3%+, you raised yours 3%+, or the rival is a fresh launch. Returns
+   t -> reason string ("" when long-standing). Moves come from saved history. */
+function freshThreatTest(){
+  const idByUrl={}; for(const p of allProducts()){ const u=f.url(p); if(u) idByUrl[u]=f.id(p); }
+  const since=Date.now()-7*864e5, first={}, last={};
+  for(const h of state.history||[]){
+    if(h.product_id==null || h.price==null) continue;
+    const t=new Date(/Z$|[+-]\d\d:?\d\d$/.test(h.scraped_at)?h.scraped_at:h.scraped_at+"Z").getTime();
+    if(!(t>=since)) continue;
+    const k=String(h.product_id);
+    if(!first[k] || t<first[k].t) first[k]={t, v:h.price};
+    if(!last[k] || t>last[k].t) last[k]={t, v:h.price};
+  }
+  const move=id=>{ const a=first[String(id)], b=last[String(id)]; return a&&b&&a.v ? (b.v-a.v)/a.v : 0; };
+  const launched=new Set((state.launches||[]).filter(l=>l.kind==="launch" && l.first_seen && _daysSince(l.first_seen)<=7).map(l=>String(l.id)));
+  return t=>{
+    const [mu, ru] = String(t.key||"").split("|");
+    const mid=idByUrl[mu], rid=idByUrl[ru];
+    if(rid!=null && launched.has(String(rid))) return "rival launched this week";
+    const rm=rid!=null?move(rid):0, mm=mid!=null?move(mid):0;
+    if(rm<=-0.03) return `rival cut its price ${Math.round(-rm*100)}% this week`;
+    if(mm>=0.03) return `you raised your price ${Math.round(mm*100)}% this week`;
+    return "";
+  };
+}
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-aexp]"); if(!b) return;
+  ALERT_OPEN.add(b.dataset.aexp); const y=window.scrollY; renderAlerts(); window.scrollTo(0,y); });
 function renderAlerts(){
   const lau = state.dept==="laundry", sec = SEC_DEPTS[state.dept], cook = !!sec;
   const showAll = (document.getElementById("alertShowAll")||{}).checked;
   const threats = lau ? computeLaundryThreats() : sec ? sec.threats() : computeThreats();
   // group: my product -> rival model -> {offers per retailer, edge}
   const byMine = {};
+  const fresh = freshThreatTest();
   for(const t of threats){
     const mk=t.key.split("|")[0];   // my product id
     const rk=rivalModelKey(t.rival);
@@ -4787,6 +4877,7 @@ function renderAlerts(){
     g[rk].moreLitres  = g[rk].moreLitres||t.moreLitres;
     g[rk].moreKg      = g[rk].moreKg||t.moreKg;
     g[rk].isDisruption = g[rk].isDisruption || (t.sev==="high");   // strict rule
+    if(t.sev==="high" && !g[rk].fresh) g[rk].fresh = fresh(t);
     if(t.moreLitres) g[rk].capGain=Math.max(g[rk].capGain, Math.round((t.rivalCap||0)-(t.myCap||0)));
     if(t.moreKg) g[rk].kgGain=Math.max(g[rk].kgGain, +((t.rivalKg||0)-(t.myKg||0)).toFixed(1));
     g[rk].bestPrice=Math.min(g[rk].bestPrice,t.rivalPrice);
@@ -4801,8 +4892,12 @@ function renderAlerts(){
     });
     const disruptions=rivals.filter(r=>r.disruption).sort((a,b)=>b.gap-a.gap);
     const undercuts=rivals.filter(r=>!r.disruption).sort((a,b)=>b.gap-a.gap);
-    const shown = showAll? disruptions.concat(undercuts) : disruptions;
-    if(!shown.length) return null;
+    const allShown = showAll? disruptions.concat(undercuts) : disruptions;
+    if(!allShown.length) return null;
+    const mk = Object.keys(byMine).find(k=>byMine[k]===grp);
+    const shown = ALERT_OPEN.has(mk) ? allShown : allShown.slice(0,5);
+    // urgent = a disruption that started this week (see freshThreatTest)
+    const urgent = disruptions.some(r=>r.fresh);
     const dim = lau
       ? `${grp.myKg?grp.myKg+"kg":"?"}${grp.tier&&grp.tier!=="?"?" · "+grp.tier+" tier":""}`
       : cook ? (grp.tier||"?")
@@ -4817,20 +4912,21 @@ function renderAlerts(){
       if(lau && r.moreKg) edge.push(`<span class="ab-edge">+${r.kgGain}kg</span>`);
       if(!lau && r.moreLitres) edge.push(`<span class="ab-edge">+${r.capGain}${cook&&grp.capUnit!=="L"?" "+grp.capUnit:"L"}</span>`);      const stores=r.offers.map(o=>`${SITE_LABEL[o.site]||o.site} ${fmt(o.price)}`).join(" · ");
       return `<div class="ab-rival ${r.disruption?'disrupt':''}">
-        <div class="ab-rival-main"><b>${esc(short(r.name,40))}</b> ${edge.length?`<span class="ab-edges">${edge.join(" · ")}</span>`:""}</div>
+        <div class="ab-rival-main"><b>${esc(short(r.name,40))}</b> ${edge.length?`<span class="ab-edges">${edge.join(" · ")}</span>`:""}${r.fresh?` <span class="pill warn" title="${esc(r.fresh)}">new this week</span>`:""}</div>
         <div class="ab-rival-sub">${stores} · <b style="color:var(--heat)">€${r.gap.toFixed(0)} below you</b></div>
       </div>`;
     }).join("");
     const hiCount=disruptions.length, total=rivals.length;
-    return {sevHi:hiCount>0, gap:Math.max(...shown.map(r=>r.gap)), html:`
+    const hidden = allShown.length - shown.length;
+    return {sevHi:hiCount>0, urgent, gap:Math.max(...allShown.map(r=>r.gap)), html:`
       <div class="alert-card ${hiCount?'hi':''}">
         <div class="ab-head">
           <div><b>${esc(short(grp.mine,44))}</b><div class="ab-meta">${SITE_LABEL[grp.mySite]||grp.mySite} · ${fmt(grp.myPrice)} · ${grp.myE||"?"} · ${dim} · ${esc(seg)}</div></div>
           <div class="ab-count">${hiCount?`<span class="pill warn">⚠ ${hiCount} disruption${hiCount>1?"s":""}</span>`:""}${!showAll&&undercuts.length?`<span class="ab-more">+${undercuts.length} undercut${undercuts.length>1?"s":""}</span>`:""}</div>
         </div>
-        <div class="ab-rivals">${rivalHtml}</div>
+        <div class="ab-rivals">${rivalHtml}${hidden>0?`<button class="ab-expand" data-aexp="${esc(mk)}">Show ${hidden} more rival${hidden>1?"s":""}</button>`:""}</div>
       </div>`};
-  }).filter(Boolean).sort((a,b)=>(b.sevHi-a.sevHi)||(b.gap-a.gap));
+  }).filter(Boolean).sort((a,b)=>(b.urgent-a.urgent)||(b.sevHi-a.sevHi)||(b.gap-a.gap));
 
   // ---- MAP/SRP policy violations (shown first — they're contractual, not competitive) ----
   const mapViol = computeMapViolations();
@@ -4849,14 +4945,16 @@ function renderAlerts(){
       }).join("")}${mapViol.length>25?`<div class="ab-more" style="padding:6px 10px">+${mapViol.length-25} more</div>`:""}</div>
     </div>` : "";
 
-  const totalHi = cards.filter(c=>c.sevHi).length;
+  const totalHi = cards.filter(c=>c.sevHi).length, totalUrgent = cards.filter(c=>c.urgent).length;
   const badge=document.getElementById("notifBadge");
-  // badge = what needs action: models facing a disruption + policy violations
-  // (plain undercuts stay on the Alerts page, they aren't worth a red badge)
-  if(badge){ const n=totalHi+mapViol.length; badge.textContent=n>99?"99+":n; badge.style.display=n?"grid":"none";
-    badge.title=`${totalHi} of your models face a disruption${mapViol.length?` · ${mapViol.length} MAP/SRP violations`:""}`; }
+  // badge = what needs action now: disruptions that started this week + policy
+  // violations (long-standing disruptions stay on the page, not on the bell)
+  if(badge){ const n=totalUrgent+mapViol.length; badge.textContent=n>99?"99+":n; badge.style.display=n?"grid":"none";
+    badge.title=`${totalUrgent} of your models got a new disruption this week${mapViol.length?` · ${mapViol.length} MAP/SRP violations`:""}`; }
 
-  document.getElementById("alertGroups").innerHTML = mapHtml + (cards.map(c=>c.html).join("")
+  const alim = pageLimit("alerts", state.dept+"|"+showAll+"|"+cards.length, renderAlerts);
+  const head = cards.length ? `<div style="font-size:12.5px;color:var(--ink-soft);margin:0 0 10px"><b style="color:var(--heat)">${totalUrgent} new this week</b> (rival cut its price 3%+, you raised yours 3%+, or the rival just launched) · ${totalHi} of your models face a disruption in total</div>` : "";
+  document.getElementById("alertGroups").innerHTML = mapHtml + head + (cards.slice(0,alim).map(c=>c.html).join("") + pagerHTML("alerts", Math.min(alim,cards.length), cards.length, "of your models")
     || (mapViol.length ? "" : `<div class="empty" style="padding:40px"><div class="big"><svg class="ic2" viewBox="0 0 24 24"><path class="body" d="M6 9a6 6 0 0 1 12 0c0 6 2.4 8 2.4 8H3.6S6 15 6 9"/><path class="det" d="M10.2 20.4a2 2 0 0 0 3.6 0"/><circle class="acc" cx="17.6" cy="6" r="2.7"/></svg></div>No ${showAll?"":"disruption-level "}threats right now.<br><span style="font-size:12px;color:var(--ink-soft)">${showAll?"You'll be alerted when a same-segment rival is priced at or below one of your "+(lau?"laundry ":"")+"products.":"Tick 'show standard undercuts' to see lower-priority price gaps."}</span></div>`));
 }
 
@@ -5277,6 +5375,7 @@ function dropTray(ev){
    ACTIONS
 ========================================================= */
 /* run data load immediately so no wiring error below can ever blank the app */
+applyRoute();
 loadAll();
 /* null-safe event binding: a missing element can never halt the script */
 function on(id, ev, fn){ const el=document.getElementById(id); if(el) el.addEventListener(ev, fn); }
@@ -5285,6 +5384,8 @@ document.getElementById("nav").addEventListener("click",e=>{
   const btn=e.target.closest("button"); if(!btn || !btn.dataset.page)return;
   showTab(btn.dataset.page);   // department-aware: stays in current dept
 });
+// "All launches →" style links inside cards
+document.addEventListener("click",e=>{ const g=e.target.closest("[data-goto]"); if(g){ e.preventDefault(); showTab(g.dataset.goto); } });
 on("deptToggle","click",e=>{ const b=e.target.closest(".dept-pill"); if(b) setDept(b.dataset.dept); });
 on("lbType","click",e=>{
   const b=e.target.closest("[data-lb-type]"); if(b){ lbFilter.type=b.dataset.lbType; return renderLBrands(); }
