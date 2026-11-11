@@ -750,6 +750,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="segments"><span class="ico" data-ico="segments"></span> Segments</button>
     <button data-page="compare"><span class="ico" data-ico="compare"></span> Compare</button>
     <button data-page="mysku"><span class="ico" data-ico="mysku"></span> My SKUs</button>
+    <div class="side-sec">New</div>
+    <button data-page="launches"><span class="ico" data-ico="launches"></span> New launches<span class="dr-count" id="launchCount"></span></button>
     <div class="side-sec">Catalogue</div>
     <button data-page="products"><span class="ico" data-ico="products"></span> Products</button>
     <button data-page="history"><span class="ico" data-ico="history"></span> Price history</button>
@@ -759,7 +761,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-11-S4</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-11-S5</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 
@@ -1266,6 +1268,25 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       <div style="overflow-x:auto"><table>
         <thead><tr><th>Date</th><th>Product</th><th>Retailer</th><th>Price</th></tr></thead>
         <tbody id="historyTable"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- NEW LAUNCHES -->
+  <section class="page" id="page-launches">
+    <h2 class="page-title">New launches</h2>
+    <p class="page-sub">Models the retailers started listing recently. A SKU number above everything the retailer had listed before is a <b>launch</b>; an older number is a product <b>back in range</b>. Colour variants listed the same day count once.</p>
+    <div class="catbar" id="launchChips"></div>
+    <div class="grid metrics" id="launchMetrics"></div>
+    <div class="grid two-col" style="margin-bottom:18px">
+      <div class="card"><h3><span class="dot" style="background:var(--heat)"></span>Who's launching</h3><div id="launchBrands" class="mini-list"></div></div>
+      <div class="card"><h3><span class="dot" style="background:var(--aqua)"></span>By type</h3><div id="launchTypes" class="mini-list"></div></div>
+    </div>
+    <div class="card">
+      <h3>All launches <span id="launchScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>First seen</th><th>Retailer</th><th>Model</th><th>Type</th><th style="text-align:right">Price</th><th style="text-align:right" title="Launch price against the median price of your brands' models of the same type">vs your median</th></tr></thead>
+        <tbody id="launchTable"></tbody>
       </table></div>
     </div>
   </section>
@@ -1894,7 +1915,7 @@ async function loadAll(){
       safeRender("srpStatus",renderSrpStatus);
     }).catch(()=>{});
     // new listings, split into launches vs relistings by SKU number (older backends: skip)
-    api("/api/products/launches?days=30").then(rows=>{
+    api("/api/products/launches?days=90").then(rows=>{
       state.launches = Array.isArray(rows) ? rows : [];
       renderAll();
     }).catch(()=>{});
@@ -2771,6 +2792,7 @@ function renderAll(){
     safeRender("alerts",renderAlerts);
     safeRender("dealCount",updateDealCount);
     safeRender("matches",renderMatches);
+    safeRender("launches",renderLaunchPage);
     return;
   }
   if(state.dept==="cooking" || state.dept==="dishwashing"){
@@ -2784,6 +2806,7 @@ function renderAll(){
     safeRender("alerts",renderAlerts);
     safeRender("dealCount",updateDealCount);
     safeRender("matches",renderMatches);
+    safeRender("launches",renderLaunchPage);
     return;
   }
   safeRender("dashboard",renderDashboard);
@@ -2798,6 +2821,7 @@ function renderAll(){
   safeRender("alerts",renderAlerts);
   safeRender("dealCount",updateDealCount);
   safeRender("matches",renderMatches);
+  safeRender("launches",renderLaunchPage);
 }
 
 /* Freshness badge: newest scraped_at per retailer, from data the API already
@@ -3840,7 +3864,8 @@ function renderLaunches(prefix, dept, list){
   const rivEl=document.getElementById(prefix+"LaunchRivals"), mineEl=document.getElementById(prefix+"LaunchMine"),
         sumEl=document.getElementById(prefix+"LaunchSum");
   if(!rivEl) return;
-  const rows=(state.launches||[]).filter(r=>deptOf(r)===dept);
+  // state.launches spans 90 days for the New launches page; this card shows 30
+  const rows=(state.launches||[]).filter(r=>deptOf(r)===dept && (!r.first_seen || _daysSince(r.first_seen)<=30));
   const isMine=r=>isMyBrand({name:r.name, specs:r.specs||{}, category:r.category});
   const line=(g, tag)=>{ const r=g.r, url=r.url, nm=esc(modelTitle(r.name,28));
     const d=r.first_seen?_daysSince(r.first_seen):null;
@@ -3878,6 +3903,87 @@ function renderLaunches(prefix, dept, list){
   const none='<div class="mini-row" style="color:var(--ink-soft);font-size:12.5px">None in the last 30 days</div>';
   mineEl.innerHTML = sub("Your brands' launches", mineL.length) + (mineL.slice(0,6).map(g=>line(g)).join("") || none)
     + sub("Back in range · older SKU, not a launch", back.length) + (back.slice(0,6).map(g=>line(g)).join("") || none);
+}
+
+/* New launches page: every launch in the current department over 7/30/90
+   days, filterable by retailer and by whose brand, with each launch priced
+   against the median of your models of the same type. */
+const launchFilter = {days:30, site:"any", who:"rivals", back:false};
+function renderLaunchPage(){
+  const tbody=document.getElementById("launchTable"); if(!tbody) return;
+  const F=launchFilter, dept=state.dept;
+  const isMine=r=>isMyBrand({name:r.name, specs:r.specs||{}, category:r.category});
+  const inDept=(state.launches||[]).filter(r=>deptOf(r)===dept);
+  // sidebar badge: rival launches this week in this department
+  const badge=document.getElementById("launchCount");
+  if(badge){ const wk=launchFamilies(inDept.filter(r=>r.kind==="launch" && !isMine(r) && r.first_seen && _daysSince(r.first_seen)<=7)).length;
+    badge.textContent=wk>99?"99+":wk; badge.classList.toggle("show", wk>0); }
+
+  const inDays=inDept.filter(r=>!r.first_seen || _daysSince(r.first_seen)<=F.days);
+  const kindOk=r=>r.kind==="launch" || (F.back && r.kind==="relisted");
+  const whoOk=r=>F.who==="all" || (F.who==="mine")===isMine(r);
+  const siteCount={};
+  inDays.filter(r=>kindOk(r) && whoOk(r)).forEach(r=>{ siteCount[r.site]=(siteCount[r.site]||0)+1; });
+  const rows=inDays.filter(r=>kindOk(r) && whoOk(r) && (F.site==="any" || r.site===F.site));
+  const fams=launchFamilies(rows).sort((a,b)=>String(b.r.first_seen||"").localeCompare(String(a.r.first_seen||"")));
+
+  const chip=(k,v,label,on,cnt)=>`<button class="chip ${on?'on':''}" data-lf="${k}" data-lv="${v}">${label}${cnt!=null?`<span class="cnt">${cnt}</span>`:""}</button>`;
+  const sep='<span style="width:1px;background:var(--line);margin:0 4px"></span>';
+  document.getElementById("launchChips").innerHTML =
+    [7,30,90].map(d=>chip("days",d,d+" days",F.days===d)).join("") + sep
+    + chip("who","rivals","Rivals",F.who==="rivals") + chip("who","mine","Your brands",F.who==="mine") + chip("who","all","Everyone",F.who==="all") + sep
+    + chip("site","any","All retailers",F.site==="any") + Object.keys(SITE_LABEL).map(s=>chip("site",s,SITE_LABEL[s],F.site===s,siteCount[s]||0)).join("") + sep
+    + chip("back",F.back?0:1,"Include back in range",F.back);
+
+  // your median price per type, from today's listings
+  const myByCat={};
+  deptList().filter(p=>isMyBrand(p) && f.price(p)>0).forEach(p=>{ (myByCat[p.category]=myByCat[p.category]||[]).push(f.price(p)); });
+  const myMed={};
+  for(const c in myByCat){ const v=myByCat[c].sort((a,b)=>a-b), m=v.length>>1; myMed[c]=v.length%2?v[m]:(v[m-1]+v[m])/2; }
+
+  const brandOf=r=>cap(extractModel(r.name||"").brand)||"Other";
+  const week=fams.filter(g=>g.r.first_seen && _daysSince(g.r.first_seen)<=7).length;
+  const tally=key=>{ const t={}; fams.forEach(g=>{ const k=key(g.r); t[k]=(t[k]||0)+1; }); return Object.entries(t).sort((a,b)=>b[1]-a[1]); };
+  const bySite=tally(r=>r.site), byBrand=tally(brandOf), byType=tally(r=>LAUNCH_CAT[r.category]||"Other");
+  const under=fams.filter(g=>myMed[g.r.category] && g.r.price>0 && g.r.price<myMed[g.r.category]).length;
+  const m1=(label,val,foot,cls)=>`<div class="stat-card ${cls}"><div class="metric-value">${val}</div><div class="metric-label">${label}</div><div class="metric-foot">${foot}</div></div>`;
+  const whoTxt={rivals:"rival", mine:"your", all:""}[F.who];
+  document.getElementById("launchMetrics").innerHTML =
+    m1(`${whoTxt} launches`.trim(), fams.length, `last ${F.days} days`, "sc-blue")
+    + m1("This week", week, "first seen in the last 7 days", "sc-mint")
+    + m1("Most active retailer", bySite.length?SITE_LABEL[bySite[0][0]]||bySite[0][0]:"–", bySite.length?`${bySite[0][1]} launch${bySite[0][1]!==1?"es":""}`:"nothing yet", "sc-aqua")
+    + m1("Below your median", under, "launch price under your typical price for that type", "sc-heat");
+
+  const bar=(label,n,max,extra)=>`<div class="mini-row"><span class="mini-name">${label}${extra||""}</span>
+    <span style="flex:0 0 38%;height:8px;border-radius:99px;background:var(--soft-bg);overflow:hidden"><span style="display:block;height:100%;width:${Math.round(n/max*100)}%;background:var(--cobalt)"></span></span>
+    <span class="sw-d" style="min-width:28px;text-align:right">${n}</span></div>`;
+  const none='<div class="mini-row" style="color:var(--ink-soft);font-size:12.5px">No launches in this period</div>';
+  document.getElementById("launchBrands").innerHTML = byBrand.slice(0,10).map(([b,n])=>{
+      const sites=[...new Set(fams.filter(g=>brandOf(g.r)===b).map(g=>SITE_LABEL[g.r.site]||g.r.site))].join(", ");
+      return bar(esc(b),n,byBrand[0][1],` <span class="sw-else" style="color:var(--ink-soft)">${esc(sites)}</span>`); }).join("") || none;
+  document.getElementById("launchTypes").innerHTML = byType.slice(0,10).map(([t,n])=>bar(esc(t),n,byType[0][1])).join("") || none;
+
+  const scope=document.getElementById("launchScope");
+  if(scope) scope.textContent = `· ${DEPT_NAME[dept]||dept} · ${fams.length} model${fams.length!==1?"s":""}`;
+  if(state.launches==null){
+    tbody.innerHTML=`<tr><td colspan="6" style="color:var(--ink-soft);padding:24px;text-align:center">Launch tracking isn't available yet — it needs the backend's launches endpoint and a few days of listings.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = fams.slice(0,300).map(g=>{
+    const r=g.r, d=r.first_seen?_daysSince(r.first_seen):null, nm=esc(modelTitle(r.name||"",40));
+    const med=myMed[r.category], gap=(med && r.price>0)?r.price-med:null;
+    const gapTxt=gap==null?'<span style="color:#CBD5E1">—</span>'
+      :`<span style="color:${gap<0?'var(--heat)':'var(--ink-soft)'};font-weight:600">${gap<0?"−":"+"}€${Math.abs(gap).toFixed(0)}</span>`;
+    const more=g.n.length?` <span class="sw-else" title="${esc(g.n.map(x=>x.name).join("\n"))}">+${g.n.length} variant${g.n.length>1?"s":""}</span>`:"";
+    const back=r.kind==="relisted"?` <span class="sw-else" style="color:var(--ink-soft)">back in range</span>`:"";
+    const mine=isMine(r)?'<span class="mine-tag" style="display:inline-block;margin-left:6px;background:var(--cobalt);color:#fff;font:700 9px \'Hanken Grotesk\';padding:1px 6px;border-radius:99px;vertical-align:middle">MINE</span>':"";
+    return `<tr><td style="white-space:nowrap">${d==null?"":d===0?"today":d===1?"yesterday":d+" d ago"}</td>
+      <td><span class="pill ${SITE_PILL[r.site]||"na"}">${SITE_LABEL[r.site]||r.site}</span></td>
+      <td title="${esc(r.name||"")} · SKU ${esc(r.sku||"")}">${r.url?`<a class="rl" href="${esc(r.url)}" target="_blank" rel="noopener">${nm}</a>`:nm}${mine}${more}${back}</td>
+      <td>${esc(LAUNCH_CAT[r.category]||"")}</td>
+      <td style="text-align:right;white-space:nowrap"><b>${r.price>0?fmt(r.price):"—"}</b></td>
+      <td style="text-align:right;white-space:nowrap">${gapTxt}</td></tr>`;
+  }).join("") || `<tr><td colspan="6" style="color:var(--ink-soft);padding:24px;text-align:center">No launches match these filters.</td></tr>`;
 }
 
 let brandFilter = "ALL";
@@ -4779,6 +4885,7 @@ function applyTheme(t){
   document.documentElement.dataset.theme = saved==="dark" ? "dark" : "";
 })();
 const ICONS={'benchmark':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"11\" width=\"5.4\" height=\"10\" rx=\"1.6\"/><rect class=\"body\" x=\"9.3\" y=\"6.5\" width=\"5.4\" height=\"14.5\" rx=\"1.6\"/><rect class=\"body\" x=\"15.6\" y=\"14\" width=\"5.4\" height=\"7\" rx=\"1.6\"/><circle class=\"acc\" cx=\"12\" cy=\"3.4\" r=\"2\"/></svg>",'dashboard':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"8\" height=\"8\" rx=\"2\"/><rect class=\"body\" x=\"13\" y=\"3\" width=\"8\" height=\"5\" rx=\"2\"/><rect class=\"body\" x=\"13\" y=\"10.5\" width=\"8\" height=\"10.5\" rx=\"2\"/><rect class=\"body\" x=\"3\" y=\"13\" width=\"8\" height=\"8\" rx=\"2\"/></svg>",'brands':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M3.5 12.6V5.6a2 2 0 0 1 2-2h7l8.4 8.4a1 1 0 0 1 0 1.4l-6.6 6.6a1 1 0 0 1-1.4 0z\"/><circle class=\"detf\" cx=\"8.2\" cy=\"8.2\" r=\"1.7\"/></svg>",'segments':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><circle class=\"body\" cx=\"12\" cy=\"12\" r=\"9\"/><path class=\"det\" d=\"M12 4v8h8\"/></svg>",'compare':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"4\" width=\"7\" height=\"16\" rx=\"2\"/><rect class=\"acc\" x=\"14\" y=\"9\" width=\"7\" height=\"11\" rx=\"2\"/></svg>",'mysku':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M12 2.6l2.7 5.5 6 .9-4.3 4.2 1 6L12 18.4 6.6 21.2l1-6L3.3 11l6-.9z\"/></svg>",'products':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2.6\"/><path class=\"det\" d=\"M7 8h10M7 12h10M7 16h6\"/></svg>",'history':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2.6\"/><path class=\"det\" d=\"M6.5 14.5l3.2-3.2 2.6 2.6 5.2-6\"/></svg>",'alerts':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"body\" d=\"M6 9a6 6 0 0 1 12 0c0 6 2.4 8 2.4 8H3.6S6 15 6 9\"/><path class=\"det\" d=\"M10.2 20.4a2 2 0 0 0 3.6 0\"/><circle class=\"acc\" cx=\"17.6\" cy=\"6\" r=\"2.7\"/></svg>",'exports':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"3\" y=\"13\" width=\"18\" height=\"8\" rx=\"2.2\"/><path class=\"bodys\" d=\"M12 3.5v8M9 9l3 3 3-3\"/></svg>",'about':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><circle class=\"body\" cx=\"12\" cy=\"12\" r=\"9\"/><circle class=\"detf\" cx=\"12\" cy=\"8.3\" r=\"1.35\"/><path class=\"det\" d=\"M12 11.4v5.2\"/></svg>",'cooling':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"6\" y=\"2.5\" width=\"12\" height=\"19\" rx=\"2.8\"/><path class=\"det\" d=\"M6.5 9.6h11M9 5.2v1.9M9 12.2v2.6\"/></svg>",'laundry':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>",'deal':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><path class=\"acc\" d=\"M13 2.4L4.4 13.6H11l-1 8 8.6-11.2H12z\"/></svg>",'e_snow':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"6\" y=\"2.5\" width=\"12\" height=\"19\" rx=\"2.8\"/><path class=\"det\" d=\"M6.5 9.6h11M9 5.2v1.9M9 12.2v2.6\"/></svg>",'e_drum':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>",'t_drum':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><circle class=\"det\" cx=\"12\" cy=\"13.5\" r=\"4.6\"/><circle class=\"detf\" cx=\"12\" cy=\"13.5\" r=\"1.7\"/><path class=\"det\" d=\"M6.6 6h2.4\"/></svg>",'cooking':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><path class=\"det\" d=\"M4.5 8.2h15\"/><circle class=\"detf\" cx=\"8.2\" cy=\"5.6\" r=\"1.1\"/><circle class=\"detf\" cx=\"11.8\" cy=\"5.6\" r=\"1.1\"/><rect class=\"det\" x=\"7.4\" y=\"11.4\" width=\"9.2\" height=\"6.4\" rx=\"1.3\"/></svg>",'dishwashing':"<svg class=\"ic2\" viewBox=\"0 0 24 24\"><rect class=\"body\" x=\"4\" y=\"3\" width=\"16\" height=\"18\" rx=\"2.8\"/><path class=\"det\" d=\"M4.5 7.6h15M7.2 5.3h2.6\"/><circle class=\"detf\" cx=\"16.4\" cy=\"5.3\" r=\"0.9\"/><path class=\"det\" d=\"M8 11.2v6.4M10.7 11.2v6.4M13.4 11.2v6.4M16.1 11.2v6.4\"/></svg>"};
+ICONS.launches='<svg class="ic2" viewBox="0 0 24 24"><path class="body" d="M10 3.5l1.9 5.1 5.1 1.9-5.1 1.9L10 17.5l-1.9-5.1L3 10.5l5.1-1.9z"/><path class="acc" d="M18 13.5l1 2.5 2.5 1-2.5 1-1 2.5-1-2.5-2.5-1 2.5-1z"/></svg>';
 function paintIcons(r){(r||document).querySelectorAll("[data-ico]").forEach(e=>{if(ICONS[e.dataset.ico])e.innerHTML=ICONS[e.dataset.ico];});}
 document.addEventListener("DOMContentLoaded",()=>{
   paintIcons();
@@ -5715,6 +5822,12 @@ on("page-matches","change",e=>{
   const set=MR_PICK.get(key)||new Set(); cb.checked?set.add(id):set.delete(id);
   set.size?MR_PICK.set(key,set):MR_PICK.delete(key);
   renderMatches();
+});
+on("page-launches","click",e=>{
+  const c=e.target.closest("[data-lf]"); if(!c) return;
+  const k=c.dataset.lf, v=c.dataset.lv;
+  launchFilter[k] = k==="days" ? +v : k==="back" ? v==="1" : v;
+  renderLaunchPage();
 });
 on("page-matches","click",async e=>{
   const chip=e.target.closest("[data-mchip]");
