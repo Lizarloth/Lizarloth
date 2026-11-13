@@ -83,9 +83,16 @@ def kotsovolos_status(session, url):
     return (normalize(m.group(1)), m.group(1)) if m else ("", "")
 
 
+# Seconds between requests per retailer. Public's Akamai bot protection
+# flagged ~740 lookups at ~3/s (Nov 2026), so Public gets a gentle pace;
+# its ~740 checks then take ~20 minutes instead of ~5.
+SITE_PAUSE = {"public": 1.5}
+
+
 def check(targets, log=print, pause=0.35, headers=None):
     """targets: [(site, url, sku_id)] for public/kotsovolos. Returns
-    [{'url', 'availability'}] for every product whose status could be read."""
+    [{'url', 'availability'}] for every product whose status could be read.
+    `pause` is the default gap between requests; SITE_PAUSE overrides it."""
     s = requests.Session()
     if headers:
         s.headers.update(headers)
@@ -113,11 +120,12 @@ def check(targets, log=print, pause=0.35, headers=None):
             failed += 1
             if failed <= 5:
                 log(f"   ! stock {site} {str(e)[:50]}")
+            time.sleep(SITE_PAUSE.get(site, pause))     # keep the pace on failures too
             continue
         ok[site] = ok.get(site, 0) + 1
         if st:
             out.append({"url": url, "availability": st})
         if i % 100 == 0:
             log(f"   stock: {i}/{len(targets)} checked · {time.time()-t0:.0f}s")
-        time.sleep(pause)
+        time.sleep(SITE_PAUSE.get(site, pause))
     return out
