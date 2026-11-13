@@ -32,6 +32,7 @@ import dishwashing
 import stock
 
 BASE = "https://www.public.gr/category/"
+BLOCKED = False      # set on a 403 (bot block): the rest of the run skips Public
 
 # Category paths (the "s" param). All slugs confirmed from Public's own
 # category links. Add more here later (one line each).
@@ -423,6 +424,9 @@ def fetch_category(cat_path, ob=None, page_pause=0.6, max_pages=60, debug=True,
     product has a non-null price, so the keyset cursor never dead-ends on the
     null best-seller rank of in-store-only ("Αγορά μόνο από κατάστημα") items.
     """
+    global BLOCKED
+    if BLOCKED:                 # Public refused us earlier this run: don't keep knocking
+        return [], None
     session = requests.Session()
     session.headers.update(HEADERS)
 
@@ -450,6 +454,11 @@ def fetch_category(cat_path, ob=None, page_pause=0.6, max_pages=60, debug=True,
             data = r.json()
         except Exception as e:
             print(f"  ! page {page} failed: {e}")
+            if getattr(getattr(e, "response", None), "status_code", None) == 403:
+                # Akamai bot block (whole IP, also in a browser). More requests
+                # only prolong it, so skip Public for the rest of this run.
+                BLOCKED = True
+                print("  ! Public returned 403 Forbidden - skipping Public for the rest of this run")
             break
 
         if total is None:

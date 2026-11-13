@@ -68,7 +68,10 @@ _K_SCHEMA = re.compile(r'availability":"https://schema.org/(\w+)"')
 def kotsovolos_status(session, url):
     """Chip first ("Άμεσα διαθέσιμο", "Τελευταία τεμάχια", "Εκθεσιακό προϊόν"),
     then the store-only notice, then the page's schema.org availability."""
-    t = session.get(url, timeout=40, headers={"Accept": "text/html"}).text
+    r = session.get(url, timeout=40, headers={"Accept": "text/html"})
+    if r.status_code in (403, 429):     # blocked / rate-limited: count as a failure
+        r.raise_for_status()
+    t = r.text
     m = _K_CHIP.search(t)
     if m:
         st = normalize(m.group(1))
@@ -88,7 +91,17 @@ def check(targets, log=print, pause=0.35, headers=None):
         s.headers.update(headers)
     out, failed = [], 0
     t0 = time.time()
+    # per site: if its first 10 requests all fail (e.g. a 403 bot block), stop
+    # asking it this run - more requests only prolong a block
+    tried, ok, given_up = {}, {}, set()
     for i, (site, url, sku) in enumerate(targets, 1):
+        if site in given_up:
+            continue
+        tried[site] = tried.get(site, 0) + 1
+        if tried[site] > 10 and not ok.get(site):
+            given_up.add(site)
+            log(f"   ! stock: {site} refused its first 10 requests - skipping it this run")
+            continue
         try:
             if site == "public" and sku:
                 st, raw = public_status(s, sku)
@@ -101,6 +114,7 @@ def check(targets, log=print, pause=0.35, headers=None):
             if failed <= 5:
                 log(f"   ! stock {site} {str(e)[:50]}")
             continue
+        ok[site] = ok.get(site, 0) + 1
         if st:
             out.append({"url": url, "availability": st})
         if i % 100 == 0:

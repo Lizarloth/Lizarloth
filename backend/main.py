@@ -740,7 +740,13 @@ def ingest_retire(request: Request, db: Session = Depends(get_db)):
         .subquery()
     )
     last_seen = dict(db.query(latest.c.product_id, latest.c.mx).all())
-    stale_ids = [pid for pid, mx in last_seen.items() if mx and mx < cutoff]
+    # A retailer with no reading at all in the last 12 hours wasn't scraped by
+    # this sweep (blocked, down, or skipped) - its products aren't delisted, so
+    # leave them alone rather than retiring a whole catalogue.
+    site_of = dict(db.query(Product.id, Product.site).all())
+    fresh_since = datetime.utcnow() - timedelta(hours=12)
+    swept = {site_of.get(pid) for pid, mx in last_seen.items() if mx and mx >= fresh_since}
+    stale_ids = [pid for pid, mx in last_seen.items() if mx and mx < cutoff and site_of.get(pid) in swept]
     retired = 0
     if stale_ids:
         retired = (db.query(Product)
