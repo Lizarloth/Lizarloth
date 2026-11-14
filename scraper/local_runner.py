@@ -212,10 +212,10 @@ def _due_subcats(now=None):
         if not prev:
             due.add(sub); continue
         try:
-            # a few hours' slack: a run is marked when it finishes, so the next
-            # day's scheduled start is slightly under 24h later and would
-            # otherwise skip "daily" subcategories every other day
-            if now - _dt.datetime.fromisoformat(prev) >= _dt.timedelta(days=interval, hours=-4):
+            # calendar days, not hours: "daily" = once per calendar day. Counting
+            # hours made a late catch-up run (e.g. finished 20:08) push the
+            # next morning's run to "not due yet", so nothing was scraped.
+            if (now.date() - _dt.datetime.fromisoformat(prev).date()).days >= interval:
                 due.add(sub)
         except Exception:
             due.add(sub)
