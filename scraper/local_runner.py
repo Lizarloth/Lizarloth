@@ -1196,12 +1196,15 @@ _HOUSE = ("WHIRLPOOL", "INDESIT", "BEKO")
 _HOUSE_PLUS = _HOUSE + ("HOTPOINT",)      # Hotpoint counts as yours in cooking + dishwashing
 STOCK_RIVALS_PER_MODEL = 4                # nearest-priced competitors checked per model of yours
 STOCK_CHECK_CAP = 1500                    # hard ceiling on product pages per run
+STOCK_SITES = ("kotsovolos",)             # Public: its stock API is disallowed by robots.txt
 
 
 def _stock_targets(seen):
     """Your products plus, for each, the closest-priced competitors in the same
-    department + subcategory (any retailer). Only Public and Kotsovolos need a
-    page check — Plaisio's listing already carries its stock line."""
+    department + subcategory (any retailer). Only Kotsovolos needs a page
+    check — Plaisio's listing already carries its stock line. Public is left
+    out: its stock source (/public/v2/sku) is disallowed in Public's
+    robots.txt, so Public listings keep the stock their listing reports."""
     def mine(r):
         house = _HOUSE_PLUS if r["dept"] in ("cooking", "dishwashing") else _HOUSE
         return any(b in (r["name"] or "").upper() for b in house)
@@ -1220,7 +1223,7 @@ def _stock_targets(seen):
                 picked.setdefault(r["url"], r)
     # yours first, so the cap never drops one of your models
     ordered = sorted(picked.values(), key=lambda r: not mine(r))
-    return [r for r in ordered if r["site"] in ("public", "kotsovolos")][:STOCK_CHECK_CAP]
+    return [r for r in ordered if r["site"] in STOCK_SITES][:STOCK_CHECK_CAP]
 
 
 def check_stock(seen):

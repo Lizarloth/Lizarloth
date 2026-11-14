@@ -54,6 +54,9 @@ PUBLIC_SKU_API = "https://www.public.gr/public/v2/sku/{}"
 
 
 def public_status(session, sku_id):
+    # Public's robots.txt has "Disallow: /public/v2" - this source is off
+    # limits. Kept only so old callers fail loudly instead of crawling it.
+    raise RuntimeError("Public stock via /public/v2 is disallowed by robots.txt")
     r = session.get(PUBLIC_SKU_API.format(sku_id), params={"locale": "el"}, timeout=30)
     r.raise_for_status()
     sku = r.json().get("sku") or {}
