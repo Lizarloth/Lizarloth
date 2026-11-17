@@ -10,7 +10,8 @@ from datetime import datetime, timedelta
 import json
 import os
 
-from database import init_db, get_db, Product, PriceHistory, Alert, Srp, ProductMatch, MatchOverride, MatchSuggestion
+from database import (init_db, get_db, Product, PriceHistory, Alert, Srp, ProductMatch, MatchOverride,
+                      MatchSuggestion, MarketStat)
 # The scraper module stays on the local PC by design — retailer sites flag
 # datacenter IPs, so all scraping runs from a residential connection via
 # local_runner.py. The backend must still boot without it: fall back to a
@@ -670,6 +671,98 @@ def ingest_stock(payload: RepricePayload, request: Request, db: Session = Depend
     return {"stock_updated": updated, "skipped": skipped}
 
 
+# ── BestPrice market readings ───────────────────────────────────────────
+BESTPRICE_TAG = '"source": "bestprice"'
+_BP_AVAIL = {"in_stock": "InStock", "out_of_stock": "OutOfStock", "preorder": "OnOrder",
+             "backorder": "OnOrder", "on_order": "OnOrder", "limited": "LastPieces"}
+
+
+class MarketPayload(BaseModel):
+    items: list[dict]   # [{brand, code, bp_id, title, offer_count, offers: [[shop, price, availability]]}]
+
+
+def _median(xs):
+    xs = sorted(xs)
+    n = len(xs)
+    if not n:
+        return None
+    return xs[n // 2] if n % 2 else round((xs[n // 2 - 1] + xs[n // 2]) / 2, 2)
+
+
+@app.post("/api/ingest/market")
+def ingest_market(payload: MarketPayload, request: Request, db: Session = Depends(get_db)):
+    """Store one BestPrice reading per model per day (lowest, median, shop
+    count, every offer read). When BestPrice lists a Public offer and the
+    product has no Public reading today, the Public listing gets that price
+    too - tagged source=bestprice - so Public stays current while its own
+    site can't be scraped."""
+    token = os.getenv("INGEST_TOKEN", "")
+    if not token or request.headers.get("X-Ingest-Token") != token:
+        raise HTTPException(401, "Invalid or missing X-Ingest-Token")
+    today = datetime.utcnow().date()
+    day = today.isoformat()
+    public_by_code = {}
+    for pid, name in db.query(Product.id, Product.name).filter(Product.site == "public",
+                                                              Product.active == True).all():
+        b, c = extract_model(name)
+        if c:
+            public_by_code.setdefault((b, c), []).append(pid)
+    stored = public_filled = 0
+    for it in payload.items:
+        code = _norm_code(it.get("code"))
+        offers = [o for o in (it.get("offers") or []) if len(o) >= 2 and isinstance(o[1], (int, float)) and o[1] > 0]
+        if not code or not offers:
+            continue
+        offers.sort(key=lambda o: o[1])
+        prices = [o[1] for o in offers]
+        pub = next((o for o in offers if str(o[0]).strip().lower() == "public"), None)
+        pub_avail = _BP_AVAIL.get(str(pub[2] if len(pub) > 2 else "").lower(), "") if pub else None
+        row = db.query(MarketStat).filter(MarketStat.code == code, MarketStat.day == day).first()
+        if not row:
+            row = MarketStat(code=code, day=day)
+            db.add(row)
+        row.brand = (it.get("brand") or "").upper().replace(" ", "") or None
+        row.bp_id, row.title = it.get("bp_id"), it.get("title")
+        row.min_price, row.median_price = prices[0], _median(prices)
+        row.offers_seen, row.offer_count = len(offers), it.get("offer_count") or len(offers)
+        row.public_price = pub[1] if pub else None
+        row.public_avail = pub_avail
+        row.offers = json.dumps(offers, ensure_ascii=False)
+        row.checked_at = datetime.utcnow()
+        stored += 1
+        if pub:
+            pids = [pid for (b, c), ids in public_by_code.items()
+                    if b == (row.brand or "") and (c == code or (min(len(c), len(code)) >= 6 and (c in code or code in c)))
+                    for pid in ids]
+            for pid in pids:
+                latest = _latest_history(db, pid)
+                if latest and latest.scraped_at and latest.scraped_at.date() == today:
+                    continue      # Public's own reading today wins
+                db.add(PriceHistory(product_id=pid, price=pub[1], availability=pub_avail or None,
+                                    raw_data=json.dumps({"source": "bestprice", "bp_id": it.get("bp_id")})))
+                public_filled += 1
+    db.commit()
+    print(f"🛒 Market: {stored} BestPrice readings, {public_filled} Public prices filled in")
+    return {"stored": stored, "public_filled": public_filled}
+
+
+@app.get("/api/market")
+def get_market(days: int = 30, db: Session = Depends(get_db)):
+    """Latest BestPrice reading per model, plus its daily lowest / median /
+    Public price for the last `days` days: {code: {...latest, series: [[day, min, median, public]]}}."""
+    since = (datetime.utcnow().date() - timedelta(days=max(1, min(days, 180)))).isoformat()
+    out = {}
+    for r in (db.query(MarketStat).filter(MarketStat.day >= since)
+              .order_by(MarketStat.code, MarketStat.day).all()):
+        e = out.setdefault(r.code, {"series": []})
+        e["series"].append([r.day, r.min_price, r.median_price, r.public_price])
+        e.update(brand=r.brand, bp_id=r.bp_id, title=r.title, day=r.day,
+                 min=r.min_price, median=r.median_price, offers_seen=r.offers_seen,
+                 offer_count=r.offer_count, public=r.public_price, public_avail=r.public_avail,
+                 offers=json.loads(r.offers or "[]"))
+    return out
+
+
 @app.get("/api/ingest/missing-ids")
 def ingest_missing_ids(request: Request, site: Optional[str] = None,
                        limit: int = 300, db: Session = Depends(get_db)):
@@ -743,9 +836,15 @@ def ingest_retire(request: Request, db: Session = Depends(get_db)):
     # A retailer with no reading at all in the last 12 hours wasn't scraped by
     # this sweep (blocked, down, or skipped) - its products aren't delisted, so
     # leave them alone rather than retiring a whole catalogue.
+    # Readings that came from BestPrice (/api/ingest/market) don't count: they
+    # mean the model is on the market, not that its retailer was swept.
     site_of = dict(db.query(Product.id, Product.site).all())
     fresh_since = datetime.utcnow() - timedelta(hours=12)
-    swept = {site_of.get(pid) for pid, mx in last_seen.items() if mx and mx >= fresh_since}
+    swept = {site_of.get(pid) for (pid,) in
+             db.query(PriceHistory.product_id).filter(
+                 PriceHistory.scraped_at >= fresh_since,
+                 (PriceHistory.raw_data == None) | ~PriceHistory.raw_data.like(f"%{BESTPRICE_TAG}%"))
+             .distinct().all()}
     stale_ids = [pid for pid, mx in last_seen.items() if mx and mx < cutoff and site_of.get(pid) in swept]
     retired = 0
     if stale_ids:

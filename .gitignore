@@ -8,3 +8,4 @@ scrapers.py
 backend/scrapers.py
 
 scraper/logs/
+scraper/bestprice_ids.json

@@ -795,7 +795,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-12-S8</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-17-S9</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1486,6 +1486,18 @@ function srpOf(code){
   }
   return null;
 }
+/* BestPrice reading for a product's model (exact code, then containment as
+   srpOf does; the brand must agree when both sides name one). */
+function marketOf(p){
+  const m=state.market; if(!m) return null;
+  const x=extractModel(f.name(p)), k=normCode(x.code), b=normCode(x.brand);
+  if(!k || k.length<6) return null;
+  const ok=e=>!b || !e.brand || normCode(e.brand)===b;
+  if(m[k] && ok(m[k])) return m[k];
+  for(const key in m){ if(key.length>=6 && (k.includes(key)||key.includes(k)) && ok(m[key])) return m[key]; }
+  return null;
+}
+const BP_AVAIL={in_stock:"in stock", to_order:"to order", by_order:"to order", preorder:"pre-order", limited:"few left"};
 /* Estimated retailer margin at the current price, assuming the retailer's
    invoice cost preserves BRAND_SETTINGS.marginPct at SRP. */
 function estMargin(price, srp){
@@ -1959,6 +1971,11 @@ async function loadAll(){
     api("/api/products/launches?days=90").then(rows=>{
       state.launches = Array.isArray(rows) ? rows : [];
       renderAll();
+    }).catch(()=>{});
+    // whole-market offers per model from BestPrice (older backends: skip)
+    api("/api/market?days=30").then(m=>{
+      state.market = (m && typeof m==="object" && !Array.isArray(m)) ? m : {};
+      if(MP.id) renderAll();
     }).catch(()=>{});
     // products that dropped out of the listings (older backends: skip)
     api("/api/products/delisted?days=180").then(rows=>{
@@ -3014,6 +3031,19 @@ function renderModelPanel(p, keepScroll){
       ${url?`<a class="mp-ext" href="${esc(url)}" target="_blank" rel="noopener">Open ↗</a>`:""}</div>`;
   }).join("");
 
+  // --- whole market (BestPrice): every shop's offer for this model
+  const mk=marketOf(p);
+  let market="";
+  if(mk){
+    const mrows=(mk.offers||[]).slice(0,10).map(o=>`<div class="mini-row"><span class="mini-name">${String(o[0]).toLowerCase()==="public"?'<span class="pill site-p">Public</span>':esc(o[0]||"")}</span>
+      <span class="sw-d" style="color:var(--ink-soft)">${esc(BP_AVAIL[o[2]]||"")}</span>
+      <span class="sw-d" style="min-width:70px">${fmt(o[1])}</span></div>`).join("");
+    const partial=mk.offer_count && mk.offers_seen && mk.offer_count>mk.offers_seen;
+    market=`<div class="mp-sec">Whole market · BestPrice · ${esc(String(mk.day||"").slice(5))}</div>
+      <div class="mp-kpis">${k(mk.min!=null?fmt(mk.min):"—","lowest of any shop")}${k(mk.median!=null?fmt(mk.median):"—",partial?`median of ${mk.offers_seen} offers read`:"median price")}${k(mk.offer_count||"—",`shops selling it`)}${k(mk.public!=null?fmt(mk.public):"—",mk.public!=null?"Public on BestPrice":"Public not listed")}</div>
+      <div class="mini-list">${mrows}</div>`;
+  }
+
   // --- specs + technologies (richest listing first)
   const specSrc=[...members].sort((a,b)=>Object.keys(f.specs(b)).length-Object.keys(f.specs(a)).length);
   const specs={}; specSrc.forEach(q=>{ for(const [kk,v] of Object.entries(f.specs(q))){ if(kk.startsWith("__")||kk.startsWith("pillar_")||v==null||String(v).trim()==="") continue; if(!(kk in specs)) specs[kk]=String(v); } });
@@ -3036,6 +3066,7 @@ function renderModelPanel(p, keepScroll){
 
   document.getElementById("mpBody").innerHTML = `<div class="mp-kpis">${kpis}</div>
     <div class="mp-sec">Retailers</div><div>${offers}</div>
+    ${market}
     <div class="mp-sec">Price history</div><div class="mp-chart"><canvas id="mpChart"></canvas></div>
     ${tech.length?`<div class="mp-sec">Technologies & programs</div><div class="tech-row">${techChipsHTML(tech)}</div>`:""}
     <div class="mp-sec">Specs</div>${specRows?`<div class="mp-specs">${specRows}</div>`:'<div style="font-size:12.5px;color:var(--ink-soft)">No specs captured for this model yet.</div>'}

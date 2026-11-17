@@ -126,6 +126,31 @@ class Srp(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 
+class MarketStat(Base):
+    """One BestPrice reading per model per day: every shop's offer for that
+    model across the Greek market (bestprice.py, run by local_runner --market).
+    code is the normalized model code from extract_model(), so it lines up
+    with the dashboard's own codes."""
+    __tablename__ = "market_stats"
+    id = Column(Integer, primary_key=True, index=True)
+    brand = Column(String, nullable=True)
+    code = Column(String, index=True, nullable=False)
+    day = Column(String, index=True, nullable=False)      # YYYY-MM-DD
+    bp_id = Column(String, nullable=True)
+    title = Column(String, nullable=True)
+    min_price = Column(Float, nullable=True)
+    median_price = Column(Float, nullable=True)
+    offers_seen = Column(Integer, nullable=True)    # offers we read (BestPrice returns at most ~20)
+    offer_count = Column(Integer, nullable=True)    # all shops BestPrice lists for the model
+    public_price = Column(Float, nullable=True)
+    public_avail = Column(String, nullable=True)
+    offers = Column(Text, nullable=True)            # JSON [[shop, price, availability], ...] cheapest first
+    checked_at = Column(DateTime, default=datetime.utcnow)
+    __table_args__ = (
+        Index("ix_market_code_day", "code", "day", unique=True),
+    )
+
+
 class Alert(Base):
     __tablename__ = "alerts"
     id = Column(Integer, primary_key=True, index=True)

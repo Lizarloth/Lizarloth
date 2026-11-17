@@ -1205,6 +1205,11 @@ def _stock_targets(seen):
     check — Plaisio's listing already carries its stock line. Public is left
     out: its stock source (/public/v2/sku) is disallowed in Public's
     robots.txt, so Public listings keep the stock their listing reports."""
+    return [r for r in _near_targets(seen) if r["site"] in STOCK_SITES][:STOCK_CHECK_CAP]
+
+
+def _near_targets(seen):
+    """Your products, then the closest-priced rivals of each (any retailer)."""
     def mine(r):
         house = _HOUSE_PLUS if r["dept"] in ("cooking", "dishwashing") else _HOUSE
         return any(b in (r["name"] or "").upper() for b in house)
@@ -1221,9 +1226,35 @@ def _stock_targets(seen):
             near = sorted(rivals, key=lambda r: abs(r["price"] - me["price"]))[:STOCK_RIVALS_PER_MODEL]
             for r in near:
                 picked.setdefault(r["url"], r)
-    # yours first, so the cap never drops one of your models
-    ordered = sorted(picked.values(), key=lambda r: not mine(r))
-    return [r for r in ordered if r["site"] in STOCK_SITES][:STOCK_CHECK_CAP]
+    # yours first, so a cap or time budget never drops one of your models
+    return sorted(picked.values(), key=lambda r: not mine(r))
+
+
+MARKET_MINUTES = 25       # time budget for the BestPrice market pass
+
+
+def check_market(seen):
+    """BestPrice: every shop's offer for your models and their nearest rivals."""
+    import bestprice
+    bestprice.run(_near_targets(seen), _push_market, log=log, budget_minutes=MARKET_MINUTES)
+
+
+def _push_market(items, _tries=4):
+    delay = 4
+    for attempt in range(1, _tries + 1):
+        try:
+            r = requests.post(f"{API_URL}/api/ingest/market",
+                              headers={"X-Ingest-Token": INGEST_TOKEN, "Content-Type": "application/json"},
+                              json={"items": items}, timeout=120)
+            if r.status_code == 404:
+                log("    market push: backend has no /api/ingest/market yet (redeploy Railway)"); return
+            r.raise_for_status()
+            log(f"    market pushed {len(items)} -> {r.json()}")
+            return
+        except requests.exceptions.RequestException as e:
+            if attempt == _tries:
+                log(f"    market push failed ({str(e)[:40]})"); return
+            time.sleep(delay); delay = min(delay * 2, 30)
 
 
 def check_stock(seen):
@@ -1264,7 +1295,8 @@ def _push_stock(items, _tries=4):
             time.sleep(delay); delay = min(delay * 2, 30)
 
 
-def run_plp(sites, scope_subs, headless=True, enrich_prices=False, check_stock_after=False):
+def run_plp(sites, scope_subs, headless=True, enrich_prices=False, check_stock_after=False,
+            market_after=False):
     """FAST catalogue path. For each site, pull the whole category list (price +
     basic specs) via the standalone API fetchers, map to result rows, enrich,
     and push in batches. Replaces both the crawl and the per-PDP price scrape
@@ -1516,6 +1548,8 @@ def run_plp(sites, scope_subs, headless=True, enrich_prices=False, check_stock_a
     flush()
     if enrich_prices and reprice_targets:
         reprice_unbeatable(reprice_targets, headless=headless)
+    if market_after and seen:
+        check_market(seen)
     if check_stock_after and seen:
         check_stock(seen)
     return grand
@@ -1547,6 +1581,9 @@ def main():
                     help="with --plp: afterwards read the real stock status from the product "
                          "pages of your models and their nearest-priced rivals (Public product "
                          "JSON, Kotsovolos stock chip). Recommended for the daily run.")
+    ap.add_argument("--market", action="store_true",
+                    help="with --plp: afterwards read every shop's offer for your models and their "
+                         "nearest rivals from BestPrice (lowest, median, shop count, Public's price).")
     ap.add_argument("--max-minutes", type=int, default=0, dest="max_minutes",
                     help="fail-safe for scheduled runs: force-exit after N minutes if the run hangs "
                          "(e.g. --max-minutes 40). 0 = off.")
@@ -1585,7 +1622,7 @@ def main():
         sites = [args.site] if args.site else ["public", "kotsovolos", "plaisio"]
         log(f"=== PLP catalogue mode (fast price path) — sites: {sites} ===")
         grand = run_plp(sites, scope_subs, headless=True, enrich_prices=args.enrich_prices,
-                        check_stock_after=args.check_stock)
+                        check_stock_after=args.check_stock, market_after=args.market)
         log(f"DONE (PLP) -> {grand}")
         # Retire delisted/zombie products — only after a FULL sweep (all sites,
         # all categories), so partial runs (--site / --only) never wrongly retire
