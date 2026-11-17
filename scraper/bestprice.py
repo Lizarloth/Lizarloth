@@ -208,6 +208,16 @@ def run(models, push, log=print, budget_minutes=25):
             offers = _offers(mcp, hit["id"], hit.get("count") or 11)
             time.sleep(PAUSE)
             fails = 0
+        except requests.HTTPError as e:
+            if e.response is not None and e.response.status_code == 429:
+                ra = e.response.headers.get("Retry-After")
+                log(f"   ! market: BestPrice says too many requests (429{', retry after ' + ra + 's' if ra else ''})"
+                    f" - stopping for today after {done} models")
+                break
+            fails += 1
+            log(f"   ! market {code}: {str(e)[:70]}")
+            time.sleep(30 * fails)
+            continue
         except Exception as e:
             fails += 1
             log(f"   ! market {code}: {str(e)[:70]}")
