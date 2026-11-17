@@ -1319,7 +1319,7 @@ def run_plp(sites, scope_subs, headless=True, enrich_prices=False, check_stock_a
             _derive_pillars(r)
             if enrich_prices and r.get("unbeatable") and r.get("url") and r.get("price"):
                 reprice_targets.append((r["url"], r["price"]))
-            if check_stock_after and r.get("url"):
+            if (check_stock_after or market_after) and r.get("url"):
                 seen.append({"site": r.get("site"), "url": r["url"], "sku": r.get("sku"),
                              "category": r.get("category"), "name": r.get("name"),
                              "price": r.get("price"),
