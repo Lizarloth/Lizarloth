@@ -1197,6 +1197,7 @@ _HOUSE_PLUS = _HOUSE + ("HOTPOINT",)      # Hotpoint counts as yours in cooking 
 STOCK_RIVALS_PER_MODEL = 4                # nearest-priced competitors checked per model of yours
 STOCK_CHECK_CAP = 1500                    # hard ceiling on product pages per run
 STOCK_SITES = ("kotsovolos",)             # Public: its stock API is disallowed by robots.txt
+PUBLIC_PAUSED_UNTIL = "2026-11-24"        # full runs skip Public before this date (bot block)
 
 
 def _stock_targets(seen):
@@ -1620,6 +1621,13 @@ def main():
     # ---- FAST catalogue mode (new APIs): no crawl, no PDP, no main browser ----
     if args.plp:
         sites = [args.site] if args.site else ["public", "kotsovolos", "plaisio"]
+        # Public's bot block (403 since 2026-11-13): stay fully quiet so it can
+        # lift; the first run on/after this date tries it once again. BestPrice
+        # (--market) keeps key Public prices coming meanwhile.
+        import datetime as _dt
+        if not args.site and _dt.date.today() < _dt.date.fromisoformat(PUBLIC_PAUSED_UNTIL):
+            sites.remove("public")
+            log(f"Public paused until {PUBLIC_PAUSED_UNTIL} (bot block) - skipping it")
         log(f"=== PLP catalogue mode (fast price path) — sites: {sites} ===")
         grand = run_plp(sites, scope_subs, headless=True, enrich_prices=args.enrich_prices,
                         check_stock_after=args.check_stock, market_after=args.market)
