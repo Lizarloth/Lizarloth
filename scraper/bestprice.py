@@ -29,7 +29,7 @@ import requests
 MCP_URL = "https://mcp.bestprice.gr/mcp"
 HEADERS = {"Content-Type": "application/json", "Accept": "application/json, text/event-stream",
            "User-Agent": "Pricedge/1.0 (price monitoring)"}
-PAUSE = 1.0                 # seconds between calls
+PAUSE = 2.0                 # seconds between calls (BestPrice also limits per minute)
 RETRY_MISSES_DAYS = 7       # re-search models BestPrice didn't have after a week
 _CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bestprice_ids.json")
 
@@ -183,7 +183,7 @@ def run(models, push, log=print, budget_minutes=25):
     except Exception as e:
         log(f"   ! market: BestPrice unreachable ({str(e)[:60]}) - skipping")
         return
-    batch, done, missing, fails = [], 0, 0, 0
+    batch, done, missing, fails, short_waits = [], 0, 0, 0, 0
     for brand, code, name in targets:
         if time.time() > t_end:
             log(f"   market: time budget reached after {done} models")
@@ -211,6 +211,12 @@ def run(models, push, log=print, budget_minutes=25):
         except requests.HTTPError as e:
             if e.response is not None and e.response.status_code == 429:
                 ra = e.response.headers.get("Retry-After")
+                # short wait = per-minute limit: wait as told and carry on;
+                # long wait = today's allowance is used up
+                if ra and ra.isdigit() and int(ra) <= 120 and short_waits < 10:
+                    short_waits += 1
+                    time.sleep(int(ra) + 2)
+                    continue
                 log(f"   ! market: BestPrice says too many requests (429{', retry after ' + ra + 's' if ra else ''})"
                     f" - stopping for today after {done} models")
                 break
