@@ -781,12 +781,14 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <div class="side-sec">Overview</div>
     <button data-page="dashboard" class="active"><span class="ico" data-ico="dashboard"></span> Dashboard</button>
     <button data-page="benchmark"><span class="ico" data-ico="benchmark"></span> Benchmark</button>
+    <button data-page="pindex"><span class="ico" data-ico="segments"></span> Price index</button>
     <button data-page="brands"><span class="ico" data-ico="brands"></span> My Brands</button>
     <button data-page="segments"><span class="ico" data-ico="segments"></span> Segments</button>
     <button data-page="compare"><span class="ico" data-ico="compare"></span> Compare</button>
     <button data-page="mysku"><span class="ico" data-ico="mysku"></span> My SKUs</button>
     <div class="side-sec">Signals</div>
     <button data-page="launches"><span class="ico" data-ico="launches"></span> New launches<span class="dr-count" id="launchCount"></span></button>
+    <button data-page="promofreq"><span class="ico" data-ico="deal"></span> Promo frequency</button>
     <button data-page="alerts"><span class="ico" data-ico="alerts"></span> Alerts</button>
     <div class="side-sec">Catalogue</div>
     <button data-page="products"><span class="ico" data-ico="products"></span> Products</button>
@@ -796,7 +798,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-23-S13</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-23-S14</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1328,6 +1330,44 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
         <thead><tr><th>First seen</th><th>Retailer</th><th>Model</th><th>Type</th><th style="text-align:right">Price</th><th style="text-align:right" title="Launch price against the median price of your brands' models of the same type">vs your median</th></tr></thead>
         <tbody id="launchTable"></tbody>
       </table></div>
+    </div>
+  </section>
+
+  <!-- PRICE INDEX -->
+  <section class="page" id="page-pindex">
+    <h2 class="page-title" id="pxTitle">Price index</h2>
+    <p class="page-sub">Each of your models against competitors with the <b>same specs and colour</b> (the same rules as the same-specs export), at today's best price across the retailers. <b>100</b> = the median rival's price. Above 105 reads as <b>premium</b>, 95–105 <b>competitive</b>, below 95 <b>budget</b>.</p>
+    <div class="catbar" id="pxChips"></div>
+    <div class="grid metrics" id="pxMetrics"></div>
+    <div class="card" style="margin-bottom:18px">
+      <h3><span class="dot" style="background:var(--aqua)"></span>Index by type <span style="font-weight:500;color:var(--ink-soft);font-size:13px">· median of your models' indexes · models in brackets</span></h3>
+      <div style="overflow-x:auto"><table id="pxTypes"></table></div>
+    </div>
+    <div class="card">
+      <h3>Your models <span id="pxScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Model</th><th>Type</th><th>Colour</th><th style="text-align:right">Your best price</th><th style="text-align:right">Rivals</th><th style="text-align:right">Median rival</th><th>Cheapest rival</th><th style="text-align:right" title="Your price ÷ median rival price × 100">Index</th><th>Position</th></tr></thead>
+        <tbody id="pxTable"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- PROMO FREQUENCY -->
+  <section class="page" id="page-promofreq">
+    <h2 class="page-title" id="pfTitle">Promo frequency</h2>
+    <p class="page-sub">How often each brand goes on promo, from every scrape in the price history. A listing counts as <b>on promo</b> on a day when the retailer shows a was-price above the price. A <b>promo</b> is a run of such days; one that's still running is counted too. Display / clearance units are left out. Plaisio doesn't show was-prices, so its promos can't be seen here; days the PC didn't scrape are carried over from the previous scrape.</p>
+    <div class="catbar" id="pfChips"></div>
+    <div class="grid metrics" id="pfMetrics"></div>
+    <div class="card" style="margin-bottom:18px">
+      <h3><span class="dot" style="background:var(--heat)"></span>By brand <span id="pfScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Brand</th><th style="text-align:right">Listings</th><th style="text-align:right" title="Share of the brand's listings that were on promo at least once">Ran a promo</th><th style="text-align:right" title="Share of listing-days on promo">Time on promo</th><th style="text-align:right" title="New promos started, per listing per month">Promos / listing / month</th><th style="text-align:right">Avg depth</th><th style="text-align:right">Deepest</th><th style="text-align:right" title="Average length of a finished promo">Typical length</th><th style="text-align:right">On promo now</th><th>Where</th></tr></thead>
+        <tbody id="pfBrands"></tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <h3><span class="dot" style="background:var(--warn)"></span>Week by week <span style="font-weight:500;color:var(--ink-soft);font-size:13px">· share of each brand's listing-days on promo</span></h3>
+      <div style="overflow-x:auto"><table id="pfWeeks"></table></div>
     </div>
   </section>
 
@@ -2106,7 +2146,7 @@ const LAUNDRY_HIDE_TABS = new Set(["mysku"]);
    `hide` tabs have no equivalent in that department yet */
 const DEPT_PAGES = {
   laundry: {prefix:"l", tabs:LAUNDRY_TAB_SET, hide:LAUNDRY_HIDE_TABS},
-  cooking: {prefix:"c", tabs:new Set(["dashboard","brands","segments","products"]), hide:new Set(["mysku","compare"])},
+  cooking: {prefix:"c", tabs:new Set(["dashboard","brands","segments","products"]), hide:new Set(["mysku","compare","pindex"])},
   dishwashing: {prefix:"d", tabs:new Set(["dashboard","brands","segments","products"]), hide:new Set(["mysku","compare"])},
 };
 function deptHides(tab){ const d=DEPT_PAGES[state.dept]; return !!(d && d.hide.has(tab)); }
@@ -3110,6 +3150,10 @@ on("mpClose","click",closeModel);
 on("mpBackdrop","click",closeModel);
 
 function renderAll(){
+  // the two history-heavy pages only compute while open
+  const vis=id=>{ const el=document.getElementById(id); return el && el.classList.contains("visible"); };
+  if(vis("page-pindex")) safeRender("pindex",renderPriceIndex);
+  if(vis("page-promofreq")) safeRender("promofreq",renderPromoFreq);
   if(_pendingModel && allProducts().length){ const id=_pendingModel; _pendingModel=null; setTimeout(()=>openModel(id),0); }
   else if(MP.id){ const mp=_prodIndex().byId[MP.id]; if(mp) setTimeout(()=>renderModelPanel(mp, true),0); }   // fresh data (history, launches) lands in the open panel
   safeRender("freshness",renderFreshness);
@@ -4310,6 +4354,173 @@ function renderLaunchPage(){
       <td style="text-align:right;white-space:nowrap"><b>${r.price>0?fmt(r.price):"—"}</b></td>
       <td style="text-align:right;white-space:nowrap">${gapTxt}</td></tr>`;
   }).join("") || `<tr><td colspan="6" style="color:var(--ink-soft);padding:24px;text-align:center">No launches match these filters.</td></tr>`;
+}
+
+/* ---- Price index: your models vs same-spec, same-colour rivals (specMatchSets).
+   index = your best price ÷ median rival price × 100. Brand / type figures
+   are the median of the models' indexes. */
+const pxFilter = {brand:"all", pos:"all", min:1};
+const PX_POS = [["premium","Premium","#C9472F"],["competitive","Competitive","#0B6E6E"],["budget","Budget","#2F6FC9"]];
+const pxPos = ix => ix==null ? null : ix>105 ? "premium" : ix<95 ? "budget" : "competitive";
+const _med = v => { if(!v.length) return null; const s=[...v].sort((a,b)=>a-b), m=s.length>>1; return s.length%2?s[m]:(s[m-1]+s[m])/2; };
+let _pxCache = {key:null, val:null};
+function pxSets(){
+  const list=deptList(), key=state.dept+"|"+list.length+"|"+(list[0]?f.id(list[0]):"")+"|"+(matchData&&matchData.computed_at||"");
+  if(_pxCache.key!==key) _pxCache={key, val:specMatchSets(state.dept, list).map(x=>({...x, ix:x.med?x.mp/x.med*100:null}))};
+  return _pxCache.val;
+}
+function renderPriceIndex(){
+  const tbody=document.getElementById("pxTable"); if(!tbody) return;
+  const F=pxFilter, M=SPEC_MATCH[state.dept];
+  document.getElementById("pxTitle").textContent="Price index · "+(DEPT_NAME[state.dept]||"");
+  if(!M){ tbody.innerHTML=`<tr><td colspan="9" style="color:var(--ink-soft);padding:24px;text-align:center">The price index covers Cooling, Laundry and Dishwashing.</td></tr>`; return; }
+  const all=pxSets();
+  const brands=[...new Set(all.map(x=>smBrand(x.me.b)))].sort();
+  if(F.brand!=="all" && !brands.includes(F.brand)) F.brand="all";
+  const inBrand=all.filter(x=>F.brand==="all" || smBrand(x.me.b)===F.brand);
+  const rated=inBrand.filter(x=>x.ix!=null && x.peers.length>=F.min);
+  const shown=(F.pos==="all"?inBrand:rated.filter(x=>pxPos(x.ix)===F.pos));
+
+  const chip=(k,v,label,on,cnt)=>`<button class="chip ${on?'on':''}" data-px="${k}" data-pv="${esc(String(v))}">${label}${cnt!=null?`<span class="cnt">${cnt}</span>`:""}</button>`;
+  const sep='<span style="width:1px;background:var(--line);margin:0 4px"></span>';
+  document.getElementById("pxChips").innerHTML =
+    chip("brand","all","All your brands",F.brand==="all") + brands.map(b=>chip("brand",b,esc(b),F.brand===b)).join("") + sep
+    + chip("pos","all","Any position",F.pos==="all") + PX_POS.map(([k,l])=>chip("pos",k,l,F.pos===k,rated.filter(x=>pxPos(x.ix)===k).length)).join("") + sep
+    + chip("min",1,"1+ rivals",F.min===1) + chip("min",3,"3+ rivals",F.min===3);
+
+  const fmtIx=ix=>ix==null?"–":Math.round(ix);
+  const ixCol=ix=>ix==null?"var(--ink-soft)":ix>105?"#C9472F":ix<95?"#2F6FC9":"#0B6E6E";
+  const m1=(label,val,foot,cls)=>`<div class="stat-card ${cls}"><div class="metric-value">${val}</div><div class="metric-label">${label}</div><div class="metric-foot">${foot}</div></div>`;
+  const byBrand=brands.map(b=>{ const r=rated.filter(x=>smBrand(x.me.b)===b); return [b,_med(r.map(x=>x.ix)),r.length]; }).filter(x=>x[2]);
+  document.getElementById("pxMetrics").innerHTML =
+    m1(F.brand==="all"?"Your index":F.brand+" index", fmtIx(_med(rated.map(x=>x.ix))), `median of ${rated.length} model${rated.length!==1?"s":""} with rivals`, "sc-blue")
+    + (F.brand==="all" ? [...byBrand].sort((a,b)=>b[2]-a[2]).slice(0,3).map(([b,ix,n],i)=>m1(esc(b)+" index", fmtIx(ix), `${n} model${n!==1?"s":""}`, ["sc-aqua","sc-heat","sc-mint"][i])).join("")
+                       : m1("Premium", rated.filter(x=>pxPos(x.ix)==="premium").length, "models above 105", "sc-heat"))
+    + m1("No rivals found", inBrand.length-rated.length, F.min>1?`fewer than ${F.min} same-spec, same-colour rivals`:"no same-spec, same-colour rival listed", "sc-mint");
+
+  // type x brand matrix
+  const types=[...new Set(rated.map(x=>M.type(x.me.s)))].sort();
+  const cols=F.brand==="all"?byBrand.map(x=>x[0]):[F.brand];
+  const cell=r=>{ const ix=_med(r.map(x=>x.ix)); return r.length?`<b style="color:${ixCol(ix)}">${fmtIx(ix)}</b> <span style="color:var(--ink-soft);font-size:11px">(${r.length})</span>`:'<span style="color:#CBD5E1">—</span>'; };
+  document.getElementById("pxTypes").innerHTML = types.length
+    ? `<thead><tr><th>Type</th>${cols.map(b=>`<th style="text-align:right">${esc(b)}</th>`).join("")}${cols.length>1?'<th style="text-align:right">All</th>':""}</tr></thead><tbody>`
+      + types.map(t=>{ const rt=rated.filter(x=>M.type(x.me.s)===t);
+          return `<tr><td>${esc(t)}</td>${cols.map(b=>`<td style="text-align:right;white-space:nowrap">${cell(rt.filter(x=>smBrand(x.me.b)===b))}</td>`).join("")}${cols.length>1?`<td style="text-align:right;white-space:nowrap">${cell(rt)}</td>`:""}</tr>`; }).join("") + "</tbody>"
+    : `<tbody><tr><td style="color:var(--ink-soft);padding:16px">No models with rivals in this view.</td></tr></tbody>`;
+
+  const scope=document.getElementById("pxScope");
+  if(scope) scope.textContent=`· ${shown.length} model${shown.length!==1?"s":""} · highest index first`;
+  const rows=[...shown].sort((a,b)=>(b.ix??-1)-(a.ix??-1));
+  tbody.innerHTML = rows.map(x=>{
+    const {me,mp,peers,med,cheapest,ix,byColour}=x, ok=ix!=null && peers.length>=F.min, pos=ok?pxPos(ix):null, P=PX_POS.find(p=>p[0]===pos);
+    const col=byColour?(me.col||'<span style="color:var(--ink-soft)">not stated</span>'):'<span style="color:var(--ink-soft)">built-in</span>';
+    return `<tr><td><a class="rl" href="#" data-model="${esc(f.id(me.b))}" title="${esc(f.name(me.b))}">${esc(modelTitle(f.name(me.b),40))}</a></td>
+      <td>${esc(M.type(me.s))}</td><td>${col}</td>
+      <td style="text-align:right;white-space:nowrap"><b>${fmt(mp)}</b> <span class="pill ${SITE_PILL[f.site(me.b)]||"na"}">${SITE_LABEL[f.site(me.b)]||f.site(me.b)}</span></td>
+      <td style="text-align:right">${peers.length||'<span style="color:var(--ink-soft)">0</span>'}${x.unsure.length?` <span style="color:var(--ink-soft);font-size:11px" title="Same specs, colour not stated - not counted">+${x.unsure.length}?</span>`:""}</td>
+      <td style="text-align:right;white-space:nowrap">${med?fmt(med):"–"}</td>
+      <td>${cheapest?`<a class="rl" href="#" data-model="${esc(f.id(cheapest.b))}">${esc(modelTitle(f.name(cheapest.b),30))}</a> <span style="white-space:nowrap">${fmt(f.price(cheapest.b))}</span>`:"–"}</td>
+      <td style="text-align:right"><b style="color:${ok?ixCol(ix):"var(--ink-soft)"}">${ok?fmtIx(ix):"–"}</b></td>
+      <td>${P?`<span style="display:inline-block;padding:2px 9px;border-radius:99px;font:700 11px 'Hanken Grotesk';color:#fff;background:${P[2]}">${P[1]}</span>`:""}</td></tr>`;
+  }).join("") || `<tr><td colspan="9" style="color:var(--ink-soft);padding:24px;text-align:center">No models match these filters.</td></tr>`;
+}
+
+/* ---- Promo frequency: per listing, carry price + was-price forward across
+   the scrape days (state.histDays) from its history rows; a day is on promo
+   when was > price. Runs of promo days are promos. */
+const pfFilter = {days:90, who:"rivals", site:"any"};
+function pfListingDays(p, days){
+  const rows=historyById()[String(f.id(p))]||[];
+  const out=[]; let i=0, cur=null;
+  for(const d of days){
+    while(i<rows.length && String(rows[i].scraped_at).slice(0,10)<=d){ if(rows[i].price!=null) cur=rows[i]; i++; }
+    if(!cur){ out.push(null); continue; }
+    const pr=num(cur.price), was=num(cur.old_price);
+    out.push(was && pr && was>pr+0.5 ? (1-pr/was)*100 : 0);   // null = not listed yet, 0 = full price, >0 = depth %
+  }
+  return out;
+}
+function renderPromoFreq(){
+  const tbody=document.getElementById("pfBrands"); if(!tbody) return;
+  const F=pfFilter;
+  document.getElementById("pfTitle").textContent="Promo frequency · "+(DEPT_NAME[state.dept]||"");
+  const chip=(k,v,label,on)=>`<button class="chip ${on?'on':''}" data-pf="${k}" data-pv="${v}">${label}</button>`;
+  const sep='<span style="width:1px;background:var(--line);margin:0 4px"></span>';
+  document.getElementById("pfChips").innerHTML =
+    [30,60,90].map(d=>chip("days",d,d+" days",F.days===d)).join("") + sep
+    + chip("who","rivals","Rivals",F.who==="rivals") + chip("who","mine","Your brands",F.who==="mine") + chip("who","all","Everyone",F.who==="all") + sep
+    + chip("site","any","All retailers",F.site==="any") + Object.keys(SITE_LABEL).map(s=>chip("site",s,SITE_LABEL[s],F.site===s)).join("");
+  const allDays=state.histDays||[];
+  if(!(state.history||[]).length || !allDays.length){
+    tbody.innerHTML=`<tr><td colspan="10" style="color:var(--ink-soft);padding:24px;text-align:center">Price history is loading…</td></tr>`;
+    ["pfMetrics","pfWeeks"].forEach(id=>document.getElementById(id).innerHTML=""); return;
+  }
+  const since=new Date(Date.now()-F.days*864e5).toISOString().slice(0,10);
+  const days=allDays.filter(d=>d>=since);
+  const span=days.length?Math.max(1,(new Date(days[days.length-1])-new Date(days[0]))/864e5+1):1;
+  const list=deptList().filter(p=>!isClearance(p) && (F.site==="any" || f.site(p)===F.site)
+                                 && (F.who==="all" || (F.who==="mine")===isMyBrand(p)));
+  // per brand: listings, listing-days, promo days, promos started, depths, finished promo lengths, per-site promo days, per-week
+  const wk=d=>{ const t=new Date(d+"T00:00:00Z"); t.setUTCDate(t.getUTCDate()-((t.getUTCDay()+6)%7)); return t.toISOString().slice(0,10); };
+  const weeks=[...new Set(days.map(wk))];
+  const B={};
+  for(const p of list){
+    const b=smBrand(p); if(!b) continue;
+    const s=pfListingDays(p, days);
+    if(!s.some(v=>v!=null)) continue;
+    const e=B[b]=B[b]||{b, n:0, ran:0, obs:0, on:0, starts:0, depthSum:0, maxD:0, lens:[], now:0, nowN:0, site:{}, wk:{}};
+    e.n++; let ranHere=false, runStart=null, prev=null;
+    s.forEach((v,i)=>{
+      if(v==null) return;
+      e.obs++; const w=e.wk[wk(days[i])]=e.wk[wk(days[i])]||[0,0]; w[1]++;
+      if(v>0){
+        e.on++; w[0]++; e.depthSum+=v; e.maxD=Math.max(e.maxD,v); ranHere=true;
+        e.site[f.site(p)]=(e.site[f.site(p)]||0)+1;
+        if(runStart==null){ runStart=days[i]; if(prev!=null) e.starts++; }   // a promo already running when tracking began isn't a "start"
+      } else if(runStart!=null){
+        e.lens.push((new Date(days[i])-new Date(runStart))/864e5); runStart=null;
+      }
+      prev=v;
+    });
+    if(ranHere) e.ran++;
+    const last=s[s.length-1]; if(last!=null){ e.nowN++; if(last>0) e.now++; }
+  }
+  const rows=Object.values(B).filter(e=>e.n>=5).sort((a,b)=>b.on/b.obs-a.on/a.obs);
+  const pct=v=>Math.round(v*100)+"%";
+  const tot=Object.values(B).reduce((a,e)=>({n:a.n+e.n, ran:a.ran+e.ran, obs:a.obs+e.obs, on:a.on+e.on, d:a.d+e.depthSum}),{n:0,ran:0,obs:0,on:0,d:0});
+  const m1=(label,val,foot,cls)=>`<div class="stat-card ${cls}"><div class="metric-value">${val}</div><div class="metric-label">${label}</div><div class="metric-foot">${foot}</div></div>`;
+  const top=rows[0];
+  document.getElementById("pfMetrics").innerHTML =
+    m1("Listings tracked", tot.n, `${days.length} scrape days since ${days[0]||"–"}`, "sc-blue")
+    + m1("Ran a promo", tot.n?pct(tot.ran/tot.n):"–", "of listings, at least once", "sc-aqua")
+    + m1("Time on promo", tot.obs?pct(tot.on/tot.obs):"–", tot.on?`avg depth −${Math.round(tot.d/tot.on)}%`:"no promos", "sc-heat")
+    + m1("Most promo-heavy brand", top?esc(top.b):"–", top?`${pct(top.on/top.obs)} of the time on promo`:"5+ listings needed", "sc-mint");
+  const scope=document.getElementById("pfScope");
+  if(scope) scope.textContent=`· brands with 5+ listings · most time on promo first`;
+  tbody.innerHTML = rows.map(e=>{
+    const sites=Object.entries(e.site).sort((a,b)=>b[1]-a[1]);
+    const where=sites.length?sites.map(([s,n])=>`<span class="pill ${SITE_PILL[s]||"na"}" title="${Math.round(n/e.on*100)}% of its promo days">${SITE_LABEL[s]||s}</span>`).join(" "):"";
+    const typ=e.lens.length?Math.round(e.lens.reduce((a,v)=>a+v,0)/e.lens.length)+" d":"–";
+    const mine=MY_BRANDS.some(m=>cap(m)===e.b)?' <span style="color:var(--cobalt);font-weight:700">★</span>':"";
+    return `<tr><td><b>${esc(e.b)}</b>${mine}</td><td style="text-align:right">${e.n}</td>
+      <td style="text-align:right">${pct(e.ran/e.n)}</td>
+      <td style="text-align:right"><b>${pct(e.on/e.obs)}</b></td>
+      <td style="text-align:right">${(e.starts/e.n/(span/30)).toFixed(1)}</td>
+      <td style="text-align:right">${e.on?"−"+Math.round(e.depthSum/e.on)+"%":"–"}</td>
+      <td style="text-align:right">${e.maxD?"−"+Math.round(e.maxD)+"%":"–"}</td>
+      <td style="text-align:right">${typ}</td>
+      <td style="text-align:right">${e.nowN?pct(e.now/e.nowN):"–"}</td>
+      <td style="white-space:nowrap">${where}</td></tr>`;
+  }).join("") || `<tr><td colspan="10" style="color:var(--ink-soft);padding:24px;text-align:center">No brand has 5+ listings in this view.</td></tr>`;
+  // week-by-week heat table, top 15 brands
+  const wkLbl=w=>{ const t=new Date(w+"T00:00:00Z"); return t.getUTCDate()+" "+t.toLocaleString("en-GB",{month:"short",timeZone:"UTC"}); };
+  document.getElementById("pfWeeks").innerHTML = rows.length
+    ? `<thead><tr><th>Brand</th>${weeks.map(w=>`<th style="text-align:center;font-size:11px;white-space:nowrap">${wkLbl(w)}</th>`).join("")}</tr></thead><tbody>`
+      + rows.slice(0,15).map(e=>`<tr><td style="white-space:nowrap"><b>${esc(e.b)}</b></td>${weeks.map(w=>{ const c=e.wk[w];
+          if(!c||!c[1]) return '<td style="text-align:center;color:#CBD5E1">·</td>';
+          const v=c[0]/c[1];
+          return `<td style="text-align:center;font-size:11.5px;background:rgba(201,71,47,${(0.08+v*0.8).toFixed(2)});color:${v>0.5?"#fff":"inherit"}" title="${c[0]} of ${c[1]} listing-days">${Math.round(v*100)}</td>`; }).join("")}</tr>`).join("") + "</tbody>"
+    : "";
 }
 
 let brandFilter = "ALL";
@@ -5655,6 +5866,10 @@ document.getElementById("nav").addEventListener("click",e=>{
 // "All launches →" style links inside cards
 document.addEventListener("click",e=>{ const g=e.target.closest("[data-goto]"); if(g){ e.preventDefault(); showTab(g.dataset.goto); } });
 on("deptToggle","click",e=>{ const b=e.target.closest(".dept-pill"); if(b) setDept(b.dataset.dept); });
+on("pxChips","click",e=>{ const c=e.target.closest("[data-px]"); if(!c) return;
+  pxFilter[c.dataset.px] = c.dataset.px==="min" ? +c.dataset.pv : c.dataset.pv; renderPriceIndex(); });
+on("pfChips","click",e=>{ const c=e.target.closest("[data-pf]"); if(!c) return;
+  pfFilter[c.dataset.pf] = c.dataset.pf==="days" ? +c.dataset.pv : c.dataset.pv; renderPromoFreq(); });
 on("lbType","click",e=>{
   const b=e.target.closest("[data-lb-type]"); if(b){ lbFilter.type=b.dataset.lbType; return renderLBrands(); }
   const t=e.target.closest("[data-lb-brand]"); if(t){ lbFilter.brand=t.dataset.lbBrand; return renderLBrands(); }
@@ -6309,6 +6524,42 @@ function specMatchColour(members){
 // a built-in fridge or a fully integrated dishwasher hides behind a kitchen door: colour doesn't matter
 const colourMatters=(d,p)=> d==="cooling" ? (p.__norm||(p.__norm=normalize(p))).installType!=="builtin"
                           : d==="dishwashing" ? dishNorm(p).integration!=="fully" : true;
+const smBrand=p=>cap(extractModel(f.name(p)).brand||"");
+/* Your models against same-spec competitors, one entry per model of yours
+   (shared by the same-specs export and the Price index page).
+   Each model: match groups first, then same brand + code. Price = the
+   cheapest listing (b); specs = the listing with the fullest spec sheet (s),
+   so a retailer that lists few specs doesn't hide the model from matching.
+   peers = same specs AND same colour family (or colour-exempt built-in);
+   unsure = same specs where either side's colour isn't stated. */
+function specMatchSets(d, list){
+  const M=SPEC_MATCH[d]; if(!M) return [];
+  const nSpecs=p=>Object.keys(f.specs(p)||{}).length;
+  const byCode=new Map();
+  for(const r of benchDedupe(list.filter(p=>!isClearance(p)))){
+    const p=r.p; if(f.price(p)==null) continue;
+    const x=extractModel(f.name(p)), k=(x.code&&x.code.length>=4) ? normCode(x.brand)+"|"+normCode(x.code) : "id:"+f.id(p);
+    const members=[p, ...(r.others||[])], e=byCode.get(k)||{best:p, members:[]};
+    if(f.price(p)<f.price(e.best)) e.best=p;
+    e.members.push(...members); byCode.set(k,e);
+  }
+  const rows=[...byCode.values()].map(e=>({b:e.best, s:e.members.reduce((a,c)=>nSpecs(c)>nSpecs(a)?c:a, e.best),
+                                          col:specMatchColour([e.best, ...e.members])}));
+  const pr=m=>f.price(m.b);
+  const mine=rows.filter(m=>isMyBrand(m.b)), comp=rows.filter(m=>!isMyBrand(m.b));
+  mine.sort((a,b)=>M.type(a.s).localeCompare(M.type(b.s)) || pr(a)-pr(b));
+  return mine.map(me=>{
+    const mp=pr(me), byColour=colourMatters(d,me.s);
+    const near=(a,b)=>Math.abs(pr(a)-mp)-Math.abs(pr(b)-mp);
+    const specPeers=comp.filter(c=>M.same(me.s,c.s));
+    const peers=specPeers.filter(c=>!byColour || (me.col && c.col===me.col)).sort(near);
+    const unsure=byColour ? specPeers.filter(c=>!me.col || !c.col).sort(near) : [];
+    const prices=peers.map(pr).sort((a,b)=>a-b), n=prices.length;
+    const med=n?(n%2?prices[(n-1)/2]:(prices[n/2-1]+prices[n/2])/2):null;
+    const cheapest=n?peers.reduce((a,b)=>pr(a)<=pr(b)?a:b):null;
+    return {me, mp, peers, unsure, byColour, prices, med, cheapest};
+  });
+}
 async function exportSpecMatch(){
   if(state.demo){ alert("Demo data — connect the backend to export."); return; }
   let X; try{ X=await loadXLSX(); }catch(_){ alert("Could not load the Excel library — check the connection."); return; }
@@ -6319,52 +6570,22 @@ async function exportSpecMatch(){
   const summary=[["Department","Type","Your brand","Your model","Colour","Your specs","Your best price","Retailer",
                   "Competitors with same specs","Cheapest competitor","Its price","Median competitor price",
                   "You vs median %","Your price rank (1 = cheapest)"]];
-  const brandOfP=p=>cap(extractModel(f.name(p)).brand||"");
   const en=(d,p)=>{ const v=d==="cooling"?(p.__norm||normalize(p)).energy:d==="laundry"?laundryNorm(p).energy:dishNorm(p).energy; return v||"?"; };
   for(const [d,list] of Object.entries(lists)){
     const M=SPEC_MATCH[d];
-    // one row per model: match groups first, then same brand + code. Price =
-    // the cheapest listing; specs = the listing with the fullest spec sheet
-    // (a retailer that lists few specs mustn't hide the model from matching).
-    const nSpecs=p=>Object.keys(f.specs(p)||{}).length;
-    const byCode=new Map();
-    for(const r of benchDedupe(list.filter(p=>!isClearance(p)))){
-      const p=r.p; if(f.price(p)==null) continue;
-      const x=extractModel(f.name(p)), k=(x.code&&x.code.length>=4) ? normCode(x.brand)+"|"+normCode(x.code) : "id:"+f.id(p);
-      const members=[p, ...(r.others||[])], e=byCode.get(k)||{best:p, members:[]};
-      if(f.price(p)<f.price(e.best)) e.best=p;
-      e.members.push(...members); byCode.set(k,e);
-    }
-    // m.b = cheapest listing (price, retailer, name); m.s = fullest spec sheet
-    const rows=[...byCode.values()].map(e=>({b:e.best, s:e.members.reduce((a,c)=>nSpecs(c)>nSpecs(a)?c:a, e.best),
-                                            col:specMatchColour([e.best, ...e.members])}));
-    const pr=m=>f.price(m.b);
-    const mine=rows.filter(m=>isMyBrand(m.b)), comp=rows.filter(m=>!isMyBrand(m.b));
-    mine.sort((a,b)=>M.type(a.s).localeCompare(M.type(b.s)) || pr(a)-pr(b));
-    for(const me of mine){
-      const mp=pr(me);
-      // colour: same family required. Where either side's colour isn't stated
-      // the pair is still listed (after the confirmed ones) but flagged, and
-      // stays out of the Summary figures.
-      const byColour=colourMatters(d,me.s);
-      const near=(a,b)=>Math.abs(pr(a)-mp)-Math.abs(pr(b)-mp);
-      const specPeers=comp.filter(c=>M.same(me.s,c.s));
-      const peers=specPeers.filter(c=>!byColour || (me.col && c.col===me.col)).sort(near);
-      const unsure=byColour ? specPeers.filter(c=>!me.col || !c.col).sort(near) : [];
+    for(const x of specMatchSets(d, list)){
+      const {me, mp, peers, unsure, byColour, med, cheapest, prices}=x;
       const colTxt=m=>byColour ? (m.col||"not stated") : "built-in";
-      const base=[M.label, M.type(me.s), brandOfP(me.b), modelTitle(f.name(me.b),60), colTxt(me), M.specs(me.s), mp, SITE_LABEL[f.site(me.b)]||f.site(me.b)];
+      const base=[M.label, M.type(me.s), smBrand(me.b), modelTitle(f.name(me.b),60), colTxt(me), M.specs(me.s), mp, SITE_LABEL[f.site(me.b)]||f.site(me.b)];
       const listed=peers.slice(0,SPEC_MATCH_CAP);
       for(const c of [...listed, ...unsure.slice(0,SPEC_MATCH_CAP-listed.length)]){
-        const cp=pr(c);
-        pairs.push([...base, brandOfP(c.b), modelTitle(f.name(c.b),60), colTxt(c), M.specs(c.s), cp, SITE_LABEL[f.site(c.b)]||f.site(c.b),
+        const cp=f.price(c.b);
+        pairs.push([...base, smBrand(c.b), modelTitle(f.name(c.b),60), colTxt(c), M.specs(c.s), cp, SITE_LABEL[f.site(c.b)]||f.site(c.b),
                     Math.round((cp-mp)*100)/100, Math.round((cp/mp-1)*1000)/10, en(d,me.s)+" / "+en(d,c.s),
                     !byColour ? "built-in" : peers.includes(c) ? "same" : "not stated"]);
       }
-      const prices=peers.map(pr).sort((a,b)=>a-b);
-      const med=prices.length?(prices.length%2?prices[(prices.length-1)/2]:(prices[prices.length/2-1]+prices[prices.length/2])/2):null;
-      const cheapest=peers.length?peers.reduce((a,b)=>pr(a)<=pr(b)?a:b):null;
       summary.push([...base, peers.length, cheapest?modelTitle(f.name(cheapest.b),40):"",
-                    cheapest?pr(cheapest):null, med, med?Math.round((mp/med-1)*1000)/10:null,
+                    cheapest?f.price(cheapest.b):null, med, med?Math.round((mp/med-1)*1000)/10:null,
                     peers.length?(prices.filter(v=>v<mp).length+1)+" of "+(peers.length+1):""]);
     }
   }
