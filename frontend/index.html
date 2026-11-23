@@ -796,7 +796,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-23-S12</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-23-S13</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -6296,14 +6296,27 @@ const SPEC_MATCH = {
   }
 };
 const SPEC_MATCH_CAP = 25;     // competitors listed per model of yours (nearest price first)
+/* Colour family of a model: the retailers' colour spec first (any listing),
+   then a colour word in a title. null = no listing says. */
+function specMatchColour(members){
+  for(const p of members){ const c=specVal(f.specs(p),["Χρώμα","Color"]); if(c) return colorFamily(c); }
+  for(const p of members){
+    const hay=String(f.name(p)||"").toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g,"");
+    for(const [fam,re] of COLOR_FAMILIES){ if(re.test(hay)) return fam; }
+  }
+  return null;
+}
+// a built-in fridge or a fully integrated dishwasher hides behind a kitchen door: colour doesn't matter
+const colourMatters=(d,p)=> d==="cooling" ? (p.__norm||(p.__norm=normalize(p))).installType!=="builtin"
+                          : d==="dishwashing" ? dishNorm(p).integration!=="fully" : true;
 async function exportSpecMatch(){
   if(state.demo){ alert("Demo data — connect the backend to export."); return; }
   let X; try{ X=await loadXLSX(); }catch(_){ alert("Could not load the Excel library — check the connection."); return; }
   const lists={cooling:state.products||[], laundry:state.laundry||[], dishwashing:state.dishwashing||[]};
-  const pairs=[["Department","Type","Your brand","Your model","Your specs","Your best price","Retailer",
-                "Competitor brand","Competitor model","Competitor specs","Competitor best price","Retailer",
-                "Gap € (competitor − yours)","Gap %","Energy yours / theirs"]];
-  const summary=[["Department","Type","Your brand","Your model","Your specs","Your best price","Retailer",
+  const pairs=[["Department","Type","Your brand","Your model","Colour","Your specs","Your best price","Retailer",
+                "Competitor brand","Competitor model","Colour","Competitor specs","Competitor best price","Retailer",
+                "Gap € (competitor − yours)","Gap %","Energy yours / theirs","Colour check"]];
+  const summary=[["Department","Type","Your brand","Your model","Colour","Your specs","Your best price","Retailer",
                   "Competitors with same specs","Cheapest competitor","Its price","Median competitor price",
                   "You vs median %","Your price rank (1 = cheapest)"]];
   const brandOfP=p=>cap(extractModel(f.name(p)).brand||"");
@@ -6323,18 +6336,29 @@ async function exportSpecMatch(){
       e.members.push(...members); byCode.set(k,e);
     }
     // m.b = cheapest listing (price, retailer, name); m.s = fullest spec sheet
-    const rows=[...byCode.values()].map(e=>({b:e.best, s:e.members.reduce((a,c)=>nSpecs(c)>nSpecs(a)?c:a, e.best)}));
+    const rows=[...byCode.values()].map(e=>({b:e.best, s:e.members.reduce((a,c)=>nSpecs(c)>nSpecs(a)?c:a, e.best),
+                                            col:specMatchColour([e.best, ...e.members])}));
     const pr=m=>f.price(m.b);
     const mine=rows.filter(m=>isMyBrand(m.b)), comp=rows.filter(m=>!isMyBrand(m.b));
     mine.sort((a,b)=>M.type(a.s).localeCompare(M.type(b.s)) || pr(a)-pr(b));
     for(const me of mine){
       const mp=pr(me);
-      const peers=comp.filter(c=>M.same(me.s,c.s)).sort((a,b)=>Math.abs(pr(a)-mp)-Math.abs(pr(b)-mp));
-      const base=[M.label, M.type(me.s), brandOfP(me.b), modelTitle(f.name(me.b),60), M.specs(me.s), mp, SITE_LABEL[f.site(me.b)]||f.site(me.b)];
-      for(const c of peers.slice(0,SPEC_MATCH_CAP)){
+      // colour: same family required. Where either side's colour isn't stated
+      // the pair is still listed (after the confirmed ones) but flagged, and
+      // stays out of the Summary figures.
+      const byColour=colourMatters(d,me.s);
+      const near=(a,b)=>Math.abs(pr(a)-mp)-Math.abs(pr(b)-mp);
+      const specPeers=comp.filter(c=>M.same(me.s,c.s));
+      const peers=specPeers.filter(c=>!byColour || (me.col && c.col===me.col)).sort(near);
+      const unsure=byColour ? specPeers.filter(c=>!me.col || !c.col).sort(near) : [];
+      const colTxt=m=>byColour ? (m.col||"not stated") : "built-in";
+      const base=[M.label, M.type(me.s), brandOfP(me.b), modelTitle(f.name(me.b),60), colTxt(me), M.specs(me.s), mp, SITE_LABEL[f.site(me.b)]||f.site(me.b)];
+      const listed=peers.slice(0,SPEC_MATCH_CAP);
+      for(const c of [...listed, ...unsure.slice(0,SPEC_MATCH_CAP-listed.length)]){
         const cp=pr(c);
-        pairs.push([...base, brandOfP(c.b), modelTitle(f.name(c.b),60), M.specs(c.s), cp, SITE_LABEL[f.site(c.b)]||f.site(c.b),
-                    Math.round((cp-mp)*100)/100, Math.round((cp/mp-1)*1000)/10, en(d,me.s)+" / "+en(d,c.s)]);
+        pairs.push([...base, brandOfP(c.b), modelTitle(f.name(c.b),60), colTxt(c), M.specs(c.s), cp, SITE_LABEL[f.site(c.b)]||f.site(c.b),
+                    Math.round((cp-mp)*100)/100, Math.round((cp/mp-1)*1000)/10, en(d,me.s)+" / "+en(d,c.s),
+                    !byColour ? "built-in" : peers.includes(c) ? "same" : "not stated"]);
       }
       const prices=peers.map(pr).sort((a,b)=>a-b);
       const med=prices.length?(prices.length%2?prices[(prices.length-1)/2]:(prices[prices.length/2-1]+prices[prices.length/2])/2):null;
@@ -6348,13 +6372,18 @@ async function exportSpecMatch(){
     ["Each model = its best current price across Kotsovolos, Public and Plaisio; display / clearance units are left out."],
     ["Yours = Whirlpool, Indesit, Beko (+ Hotpoint in dishwashing). Competitors = every other brand."],
     ["'Same specs' means:"], ...Object.values(SPEC_MATCH).map(m=>["  "+m.label+": "+m.rule]),
+    ["  All departments: same colour family (White, Black, Inox / Silver, Graphite / Dark, Grey, Beige / Cream, Other colour),"],
+    ["    except built-in fridges and fully integrated dishwashers, which sit behind a kitchen door (Colour = 'built-in')."],
+    ["    Colour comes from the retailers' colour spec, else a colour word in the title."],
+    ["    Where no retailer states a colour, the pair is listed after the confirmed ones with 'Colour check' = 'not stated'"],
+    ["    (check it yourself). Summary counts, cheapest, median and rank use confirmed same-colour competitors only."],
     [`'Same specs' sheet lists up to ${SPEC_MATCH_CAP} competitors per model of yours, nearest price first.`],
     ["Gap € / % > 0: the competitor is dearer than you. 'You vs median' > 0: you are above the median competitor."],
     ["Models whose specs weren't captured can't be matched, so a 0 in 'Competitors with same specs' may mean missing specs."]];
   const wb=X.utils.book_new();
   const sheet=(aoa,widths)=>{ const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=widths.map(w=>({wch:w})); return ws; };
-  X.utils.book_append_sheet(wb, sheet(summary,[12,22,11,30,48,12,11,12,34,11,13,11,14]), "Summary");
-  X.utils.book_append_sheet(wb, sheet(pairs,[12,22,11,30,48,12,11,12,30,48,12,11,12,8,12]), "Same specs");
+  X.utils.book_append_sheet(wb, sheet(summary,[12,22,11,30,14,48,12,11,12,34,11,13,11,14]), "Summary");
+  X.utils.book_append_sheet(wb, sheet(pairs,[12,22,11,30,14,48,12,11,12,30,14,48,12,11,12,8,12,12]), "Same specs");
   X.utils.book_append_sheet(wb, sheet(notes,[110]), "Notes");
   X.writeFile(wb, "my_models_vs_competition_same_specs.xlsx");
 }
