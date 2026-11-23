@@ -782,6 +782,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="dashboard" class="active"><span class="ico" data-ico="dashboard"></span> Dashboard</button>
     <button data-page="benchmark"><span class="ico" data-ico="benchmark"></span> Benchmark</button>
     <button data-page="pindex"><span class="ico" data-ico="segments"></span> Price index</button>
+    <button data-page="shelf"><span class="ico" data-ico="brands"></span> Shelf share</button>
+    <button data-page="gaps"><span class="ico" data-ico="mysku"></span> Range gaps</button>
     <button data-page="brands"><span class="ico" data-ico="brands"></span> My Brands</button>
     <button data-page="segments"><span class="ico" data-ico="segments"></span> Segments</button>
     <button data-page="compare"><span class="ico" data-ico="compare"></span> Compare</button>
@@ -798,7 +800,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-23-S14</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-24-S15</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1352,10 +1354,44 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     </div>
   </section>
 
+  <!-- SHELF SHARE -->
+  <section class="page" id="page-shelf">
+    <h2 class="page-title" id="shTitle">Shelf share</h2>
+    <p class="page-sub">How many models each brand has listed at each retailer, and how that changed week by week. A model counts from the first scrape that saw it until it was delisted; a retailer changing a product's web address doesn't count as a change. Weeks before we covered a retailer's whole department are left out.</p>
+    <div class="catbar" id="shChips"></div>
+    <div class="grid metrics" id="shMetrics"></div>
+    <div class="card" style="margin-bottom:18px">
+      <h3><span class="dot" style="background:var(--cobalt)"></span>By brand <span id="shScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Brand</th><th style="text-align:right">Listings now</th><th style="text-align:right">Share now</th><th style="text-align:right" id="shThenH">Listings then</th><th style="text-align:right">Share then</th><th style="text-align:right">Change</th><th style="text-align:right" title="Listings added / dropped since then">Added / dropped</th></tr></thead>
+        <tbody id="shBrands"></tbody>
+      </table></div>
+    </div>
+    <div class="card">
+      <h3><span class="dot" style="background:var(--aqua)"></span>Week by week <span style="font-weight:500;color:var(--ink-soft);font-size:13px">· share of the retailer's listings, %</span></h3>
+      <div style="overflow-x:auto"><table id="shWeeks"></table></div>
+    </div>
+  </section>
+
+  <!-- RANGE GAPS -->
+  <section class="page" id="page-gaps">
+    <h2 class="page-title" id="gpTitle">Range gaps</h2>
+    <p class="page-sub">The market split into spec segments (type, size and colour) from today's listings, one row per model at its best price. A <b>gap</b> is a segment where competitors sell models and you have none; <b>thin</b> means you have one model against five or more. Models whose key specs weren't captured are left out.</p>
+    <div class="catbar" id="gpChips"></div>
+    <div class="grid metrics" id="gpMetrics"></div>
+    <div class="card">
+      <h3>Segments <span id="gpScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Segment</th><th style="text-align:right">Rival models</th><th>Main rival brands</th><th style="text-align:right">Rival prices (min · median · max)</th><th style="text-align:right">Your models</th><th style="text-align:right" title="Your median price against the rivals' median">You vs rivals</th><th>Status</th></tr></thead>
+        <tbody id="gpTable"></tbody>
+      </table></div>
+    </div>
+  </section>
+
   <!-- PROMO FREQUENCY -->
   <section class="page" id="page-promofreq">
     <h2 class="page-title" id="pfTitle">Promo frequency</h2>
-    <p class="page-sub">How often each brand goes on promo, from every scrape in the price history. A listing counts as <b>on promo</b> on a day when the retailer shows a was-price above the price. A <b>promo</b> is a run of such days; one that's still running is counted too. Display / clearance units are left out. Plaisio doesn't show was-prices, so its promos can't be seen here; days the PC didn't scrape are carried over from the previous scrape.</p>
+    <p class="page-sub">How often each brand goes on promo, from every scrape in the price history. A listing counts as <b>on promo</b> on a day when the retailer shows a was-price above the price. A <b>promo</b> is a run of such days; one that's still running is counted too. Display / clearance units are left out. Plaisio doesn't show was-prices, so there a promo is the price sitting <b>5% or more under its highest price of the previous 30 days</b> (a permanent price cut also reads as a promo for up to 30 days). Days the PC didn't scrape are carried over from the previous scrape, so a weekend-only deal can be missed.</p>
     <div class="catbar" id="pfChips"></div>
     <div class="grid metrics" id="pfMetrics"></div>
     <div class="card" style="margin-bottom:18px">
@@ -2146,7 +2182,7 @@ const LAUNDRY_HIDE_TABS = new Set(["mysku"]);
    `hide` tabs have no equivalent in that department yet */
 const DEPT_PAGES = {
   laundry: {prefix:"l", tabs:LAUNDRY_TAB_SET, hide:LAUNDRY_HIDE_TABS},
-  cooking: {prefix:"c", tabs:new Set(["dashboard","brands","segments","products"]), hide:new Set(["mysku","compare","pindex"])},
+  cooking: {prefix:"c", tabs:new Set(["dashboard","brands","segments","products"]), hide:new Set(["mysku","compare","pindex","gaps"])},
   dishwashing: {prefix:"d", tabs:new Set(["dashboard","brands","segments","products"]), hide:new Set(["mysku","compare"])},
 };
 function deptHides(tab){ const d=DEPT_PAGES[state.dept]; return !!(d && d.hide.has(tab)); }
@@ -3154,6 +3190,8 @@ function renderAll(){
   const vis=id=>{ const el=document.getElementById(id); return el && el.classList.contains("visible"); };
   if(vis("page-pindex")) safeRender("pindex",renderPriceIndex);
   if(vis("page-promofreq")) safeRender("promofreq",renderPromoFreq);
+  if(vis("page-shelf")) safeRender("shelf",renderShelf);
+  if(vis("page-gaps")) safeRender("gaps",renderGaps);
   if(_pendingModel && allProducts().length){ const id=_pendingModel; _pendingModel=null; setTimeout(()=>openModel(id),0); }
   else if(MP.id){ const mp=_prodIndex().byId[MP.id]; if(mp) setTimeout(()=>renderModelPanel(mp, true),0); }   // fresh data (history, launches) lands in the open panel
   safeRender("freshness",renderFreshness);
@@ -4429,14 +4467,32 @@ function renderPriceIndex(){
    the scrape days (state.histDays) from its history rows; a day is on promo
    when was > price. Runs of promo days are promos. */
 const pfFilter = {days:90, who:"rivals", site:"any"};
+/* Plaisio shows no was-price: there a promo is the price sitting at least
+   PF_DROP_MIN % under the listing's highest price of the previous 30 days
+   (its regular price). A permanent cut reads as a promo for up to 30 days. */
+const PF_NO_WAS = new Set(["plaisio"]), PF_DROP_MIN = 5, PF_REF_DAYS = 30;
 function pfListingDays(p, days){
-  const rows=historyById()[String(f.id(p))]||[];
+  const rows=historyById()[String(f.id(p))]||[], noWas=PF_NO_WAS.has(f.site(p));
+  // regular-price reference reaches back before the window, so start from the listing's first reading
+  const seen=[];          // [day, price] of every scrape day so far (no-was sites)
   const out=[]; let i=0, cur=null;
-  for(const d of days){
+  const refDays = noWas ? [...new Set([...(state.histDays||[]).filter(d=>d<days[0]), ...days])] : days;
+  for(const d of refDays){
     while(i<rows.length && String(rows[i].scraped_at).slice(0,10)<=d){ if(rows[i].price!=null) cur=rows[i]; i++; }
-    if(!cur){ out.push(null); continue; }
-    const pr=num(cur.price), was=num(cur.old_price);
-    out.push(was && pr && was>pr+0.5 ? (1-pr/was)*100 : 0);   // null = not listed yet, 0 = full price, >0 = depth %
+    const inWin = d>=days[0];
+    if(!cur){ if(inWin) out.push(null); continue; }
+    const pr=num(cur.price);
+    let depth=0;
+    if(noWas){
+      seen.push([d,pr]);
+      const lo=new Date(new Date(d+"T00:00:00Z")-PF_REF_DAYS*864e5).toISOString().slice(0,10);
+      const ref=Math.max(...seen.filter(x=>x[0]>=lo).map(x=>x[1]));
+      if(pr && ref && (1-pr/ref)*100>=PF_DROP_MIN) depth=(1-pr/ref)*100;
+    } else {
+      const was=num(cur.old_price);
+      if(was && pr && was>pr+0.5) depth=(1-pr/was)*100;
+    }
+    if(inWin) out.push(depth);   // null = not listed yet, 0 = full price, >0 = depth %
   }
   return out;
 }
@@ -4521,6 +4577,168 @@ function renderPromoFreq(){
           const v=c[0]/c[1];
           return `<td style="text-align:center;font-size:11.5px;background:rgba(201,71,47,${(0.08+v*0.8).toFixed(2)});color:${v>0.5?"#fff":"inherit"}" title="${c[0]} of ${c[1]} listing-days">${Math.round(v*100)}</td>`; }).join("")}</tr>`).join("") + "</tbody>"
     : "";
+}
+
+/* ---- Shelf share: listings per brand at a retailer over time. A listing is
+   on the shelf from its first reading in the price history to its delisting
+   (last_seen); active listings run to today. A week's snapshot = its last
+   scrape day. A retailer's department counts only from the first scrape that
+   covered it (cooking / dish were added in November), so earlier weeks are
+   blank rather than growing artificially. */
+const shFilter = {site:"kotsovolos", type:"all"};
+/* Counted per model (retailer + brand + model code), not per URL: when a
+   retailer changes its URLs (Kotsovolos did in late September) the old
+   listing is delisted and a new one created for the same product, which
+   would otherwise read as a drop plus a new listing. */
+function shListings(dept){
+  const hb=historyById(), by=new Map();
+  const add=(p,last)=>{ const h=hb[String(f.id(p))]; if(!h||!h.length) return;
+    const x=extractModel(f.name(p)), first=String(h[0].scraped_at).slice(0,10);
+    const k=f.site(p)+"|"+((x.code&&x.code.length>=4)?normCode(x.brand)+"|"+normCode(x.code):"id:"+f.id(p));
+    const e=by.get(k);
+    if(e){ if(first<e.first) e.first=first; if(last>e.last) e.last=last; return; }
+    by.set(k,{b:smBrand(p)||"Other", site:f.site(p), type:LAUNCH_CAT[p.category]||p.category||"Other",
+              first, last, mine:isMyBrand(p)}); };
+  for(const p of deptListOf(dept)) add(p, "9999-12-31");
+  for(const r of state.delisted||[]) if(r.last_seen && deptOf(r)===dept) add(r, String(r.last_seen).slice(0,10));
+  return [...by.values()];
+}
+function renderShelf(){
+  const tbody=document.getElementById("shBrands"); if(!tbody) return;
+  const F=shFilter, dept=state.dept;
+  document.getElementById("shTitle").textContent="Shelf share · "+(DEPT_NAME[dept]||"");
+  const days=state.histDays||[];
+  if(!(state.history||[]).length || !days.length){
+    tbody.innerHTML=`<tr><td colspan="7" style="color:var(--ink-soft);padding:24px;text-align:center">Price history is loading…</td></tr>`; return;
+  }
+  const L=shListings(dept);
+  const types=[...new Set(L.map(x=>x.type))].sort();
+  if(F.type!=="all" && !types.includes(F.type)) F.type="all";
+  const chip=(k,v,label,on)=>`<button class="chip ${on?'on':''}" data-sh="${k}" data-pv="${esc(v)}">${esc(label)}</button>`;
+  const sep='<span style="width:1px;background:var(--line);margin:0 4px"></span>';
+  document.getElementById("shChips").innerHTML =
+    Object.keys(SITE_LABEL).map(s=>chip("site",s,SITE_LABEL[s],F.site===s)).join("") + chip("site","all","All retailers",F.site==="all") + sep
+    + chip("type","all","All types",F.type==="all") + (types.length>1?types.map(t=>chip("type",t,t,F.type===t)).join(""):"");
+  const sites=F.site==="all"?Object.keys(SITE_LABEL):[F.site];
+  // coverage start: the latest of the chosen retailers' first scrape of this department
+  const start=sites.map(s=>L.filter(x=>x.site===s).reduce((m,x)=>x.first<m?x.first:m,"9999")).reduce((a,b)=>a>b?a:b,"");
+  const pool=L.filter(x=>sites.includes(x.site) && (F.type==="all" || x.type===F.type));
+  const wk=d=>{ const t=new Date(d+"T00:00:00Z"); t.setUTCDate(t.getUTCDate()-((t.getUTCDay()+6)%7)); return t.toISOString().slice(0,10); };
+  const snapOf={}; for(const d of days) snapOf[wk(d)]=d;            // last scrape day of each week
+  const snaps=Object.values(snapOf).filter(d=>d>=start).sort();
+  if(!snaps.length || !pool.length){ tbody.innerHTML=`<tr><td colspan="7" style="color:var(--ink-soft);padding:24px;text-align:center">No listings for this retailer and type.</td></tr>`;
+    ["shMetrics","shWeeks"].forEach(id=>document.getElementById(id).innerHTML=""); return; }
+  const on=(x,d)=>x.first<=d && d<=x.last;
+  const count=d=>{ const c={}, all=pool.filter(x=>on(x,d)); for(const x of all) c[x.b]=(c[x.b]||0)+1;
+    return {c, n:all.length, mine:all.filter(x=>x.mine).length}; };
+  const S=snaps.map(d=>({d, ...count(d)}));
+  const then=S[0], now=S[S.length-1];
+  const share=(s,b)=>s.n?(s.c[b]||0)/s.n*100:0;
+  const brands=[...new Set([...Object.keys(now.c), ...Object.keys(then.c)])];
+  const rows=brands.map(b=>({b, now:now.c[b]||0, then:then.c[b]||0, sNow:share(now,b), sThen:share(then,b),
+      added:pool.filter(x=>x.b===b && on(x,now.d) && x.first>then.d).length,
+      dropped:pool.filter(x=>x.b===b && on(x,then.d) && x.last<now.d).length}))
+    .sort((a,b)=>b.now-a.now || b.then-a.then);
+  const dl=d=>new Date(d+"T00:00:00Z").toLocaleDateString("en-GB",{day:"numeric",month:"short",timeZone:"UTC"});
+  const pts=v=>(v>0?"+":v<0?"−":"±")+Math.abs(v).toFixed(1)+" pts";
+  const ptsCol=v=>v>0.05?"#0B6E6E":v<-0.05?"#C9472F":"var(--ink-soft)";
+  const isMineB=b=>MY_BRANDS.some(m=>cap(m)===b) || (dept==="dishwashing"||dept==="cooking") && MY_BRANDS_COOKING.some(m=>cap(m)===b);
+  const mNow=now.n?now.mine/now.n*100:0, mThen=then.n?then.mine/then.n*100:0;
+  const moved=rows.filter(r=>r.now+r.then>=3).map(r=>({...r, d:r.sNow-r.sThen}));
+  const up=[...moved].sort((a,b)=>b.d-a.d)[0], down=[...moved].sort((a,b)=>a.d-b.d)[0];
+  const m1=(label,val,foot,cls)=>`<div class="stat-card ${cls}"><div class="metric-value">${val}</div><div class="metric-label">${label}</div><div class="metric-foot">${foot}</div></div>`;
+  document.getElementById("shMetrics").innerHTML =
+    m1("Listings now", now.n, `${then.n} on ${dl(then.d)}`, "sc-blue")
+    + m1("Your brands' share", mNow.toFixed(1)+"%", `<span style="color:${ptsCol(mNow-mThen)}">${pts(mNow-mThen)}</span> since ${dl(then.d)} · ${now.mine} listings`, "sc-aqua")
+    + m1("Biggest gainer", up&&up.d>0.05?esc(up.b):"–", up&&up.d>0.05?`${pts(up.d)} · now ${up.sNow.toFixed(1)}%`:"no brand gained share", "sc-mint")
+    + m1("Biggest loser", down&&down.d<-0.05?esc(down.b):"–", down&&down.d<-0.05?`${pts(down.d)} · now ${down.sNow.toFixed(1)}%`:"no brand lost share", "sc-heat");
+  document.getElementById("shThenH").textContent="Listings "+dl(then.d);
+  const scope=document.getElementById("shScope");
+  if(scope) scope.textContent=`· ${dl(then.d)} → ${dl(now.d)}`+(sites.includes("public")&&now.d>"2026-11-13"?" · Public frozen since 13 Nov (not scraped)":"");
+  const tr=(r,bold)=>`<tr${bold?' style="background:var(--soft-bg)"':""}><td>${bold?"<b>★ Your brands</b>":`<b>${esc(r.b)}</b>${isMineB(r.b)?' <span style="color:var(--cobalt);font-weight:700">★</span>':""}`}</td>
+      <td style="text-align:right">${r.now}</td><td style="text-align:right"><b>${r.sNow.toFixed(1)}%</b></td>
+      <td style="text-align:right">${r.then}</td><td style="text-align:right">${r.sThen.toFixed(1)}%</td>
+      <td style="text-align:right;color:${ptsCol(r.sNow-r.sThen)};font-weight:600">${pts(r.sNow-r.sThen)}</td>
+      <td style="text-align:right;white-space:nowrap">${r.added!=null?`<span style="color:#0B6E6E">+${r.added}</span> / <span style="color:#C9472F">−${r.dropped}</span>`:""}</td></tr>`;
+  tbody.innerHTML = tr({now:now.mine, then:then.mine, sNow:mNow, sThen:mThen,
+      added:pool.filter(x=>x.mine && on(x,now.d) && x.first>then.d).length, dropped:pool.filter(x=>x.mine && on(x,then.d) && x.last<now.d).length}, true)
+    + rows.map(r=>tr(r)).join("");
+  const top=rows.slice(0,15);
+  document.getElementById("shWeeks").innerHTML =
+    `<thead><tr><th>Brand</th>${S.map(s=>`<th style="text-align:center;font-size:11px;white-space:nowrap">${dl(s.d)}</th>`).join("")}</tr></thead><tbody>`
+    + `<tr style="background:var(--soft-bg)"><td style="white-space:nowrap"><b>★ Your brands</b></td>${S.map(s=>`<td style="text-align:center;font-size:11.5px"><b>${s.n?(s.mine/s.n*100).toFixed(1):"–"}</b></td>`).join("")}</tr>`
+    + top.map(r=>`<tr><td style="white-space:nowrap"><b>${esc(r.b)}</b></td>${S.map((s,i)=>{ const v=share(s,r.b), p=i?share(S[i-1],r.b):v;
+        return `<td style="text-align:center;font-size:11.5px;color:${v-p>0.3?"#0B6E6E":v-p<-0.3?"#C9472F":"inherit"}" title="${s.c[r.b]||0} of ${s.n} listings">${v.toFixed(1)}</td>`; }).join("")}</tr>`).join("")
+    + `<tr><td style="color:var(--ink-soft)">All listings</td>${S.map(s=>`<td style="text-align:center;font-size:11.5px;color:var(--ink-soft)">${s.n}</td>`).join("")}</tr></tbody>`;
+}
+
+/* ---- Range gaps: today's models (smRows) split into spec segments; where
+   rivals sell and you have nothing. */
+const gpFilter = {show:"gaps", min:3, colour:true};
+const GAP_SEG = {
+  cooling: s=>{ const n=s.__norm||(s.__norm=normalize(s)), w=widthBandLabel(n.width), c=capBandLabel(n.capacity);
+    if(!w || !c) return null;
+    const bi=n.installType==="builtin";
+    return {parts:[SUBCAT_LABEL[categorize(s)]||categorize(s), bi?"Built-in":"Freestanding", "W "+w, c,
+                   n.cooling?(/No Frost/i.test(n.cooling)?"No Frost":n.cooling):""].filter(Boolean), colourOk:!bi}; },
+  laundry: s=>{ const n=laundryNorm(s), kg=n.type==="dryer"?n.dry_kg:n.wash_kg;
+    if(!kg) return null;
+    return {parts:[n.typeLabel, n.loader?cap(n.loader)+"-load":"", kg+" kg",
+                   n.type==="dryer"?(n.heat_pump==="yes"?"Heat pump":n.heat_pump==="no"?"No heat pump":""):""].filter(Boolean), colourOk:true}; },
+  dishwashing: s=>{ const n=dishNorm(s);
+    if(!n.settings || !n.typeLabel) return null;
+    return {parts:[n.typeLabel, DISH_INTEG_LABEL[n.integration]||"", n.settings+" settings"].filter(Boolean), colourOk:n.integration!=="fully"}; }
+};
+function renderGaps(){
+  const tbody=document.getElementById("gpTable"); if(!tbody) return;
+  const F=gpFilter, dept=state.dept, seg=GAP_SEG[dept];
+  document.getElementById("gpTitle").textContent="Range gaps · "+(DEPT_NAME[dept]||"");
+  const chip=(k,v,label,on)=>`<button class="chip ${on?'on':''}" data-gp="${k}" data-pv="${v}">${label}</button>`;
+  const sep='<span style="width:1px;background:var(--line);margin:0 4px"></span>';
+  document.getElementById("gpChips").innerHTML =
+    chip("show","gaps","Gaps",F.show==="gaps") + chip("show","thin","Thin",F.show==="thin") + chip("show","all","All segments",F.show==="all") + sep
+    + chip("min",3,"3+ rival models",F.min===3) + chip("min",5,"5+ rival models",F.min===5) + sep
+    + chip("colour",F.colour?0:1,"Split by colour",F.colour);
+  if(!seg){ tbody.innerHTML=`<tr><td colspan="7" style="color:var(--ink-soft);padding:24px;text-align:center">Range gaps cover Cooling, Laundry and Dishwashing.</td></tr>`; return; }
+  const S=new Map(); let skipped=0;
+  for(const m of smRows(deptList())){
+    const g=seg(m.s); if(!g){ skipped++; continue; }
+    const parts=[...g.parts];
+    if(F.colour && g.colourOk){ if(!m.col){ skipped++; continue; } parts.push(m.col); }
+    const k=parts.join(" · "), e=S.get(k)||{k, rivals:[], mine:[]};
+    (isMyBrand(m.b)?e.mine:e.rivals).push(m); S.set(k,e);
+  }
+  const pr=m=>f.price(m.b);
+  const segs=[...S.values()].map(e=>({...e, status:!e.mine.length?"gap":e.mine.length===1&&e.rivals.length>=5?"thin":"covered"}));
+  const big=segs.filter(e=>e.rivals.length>=F.min);
+  const gaps=big.filter(e=>e.status==="gap");
+  const shown=(F.show==="gaps"?gaps:F.show==="thin"?segs.filter(e=>e.status==="thin"):segs.filter(e=>e.rivals.length>=F.min||e.mine.length))
+    .sort((a,b)=>b.rivals.length-a.rivals.length || a.k.localeCompare(b.k));
+  const m1=(label,val,foot,cls)=>`<div class="stat-card ${cls}"><div class="metric-value">${val}</div><div class="metric-label">${label}</div><div class="metric-foot">${foot}</div></div>`;
+  const covered=big.filter(e=>e.mine.length).length;
+  document.getElementById("gpMetrics").innerHTML =
+    m1("Segments", big.length, `with ${F.min}+ rival models`, "sc-blue")
+    + m1("You're in", big.length?Math.round(covered/big.length*100)+"%":"–", `${covered} of them`, "sc-aqua")
+    + m1("Gaps", gaps.length, `${gaps.reduce((a,e)=>a+e.rivals.length,0)} rival models where you have none`, "sc-heat")
+    + m1("Not segmented", skipped, F.colour?"models missing size specs or colour":"models missing size specs", "sc-mint");
+  const scope=document.getElementById("gpScope");
+  if(scope) scope.textContent=`· ${shown.length} segment${shown.length!==1?"s":""} · most rival models first`;
+  const q=(v,p)=>{ const s=[...v].sort((a,b)=>a-b); return s[Math.min(s.length-1,Math.floor(p*(s.length-1)+0.5))]; };
+  const ST={gap:["Gap","#C9472F"], thin:["Thin","#C77D33"], covered:["Covered","#0B6E6E"]};
+  tbody.innerHTML = shown.slice(0,300).map(e=>{
+    const rp=e.rivals.map(pr), mp=e.mine.map(pr), rMed=rp.length?_med(rp):null, myMed=mp.length?_med(mp):null;
+    const bc={}; e.rivals.forEach(m=>{ const b=smBrand(m.b)||"Other"; bc[b]=(bc[b]||0)+1; });
+    const topB=Object.entries(bc).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([b,n])=>`${esc(b)} ${n}`).join(", ");
+    const list=(arr,lbl)=>arr.length?`<div style="font-size:11.5px;color:var(--ink-soft);margin-top:4px">${lbl}: ${[...arr].sort((a,b)=>pr(a)-pr(b)).slice(0,10)
+        .map(m=>`<a class="rl" href="#" data-model="${esc(f.id(m.b))}">${esc(modelTitle(f.name(m.b),28))}</a> ${fmt(pr(m))}`).join(" · ")}${arr.length>10?` · +${arr.length-10} more`:""}</div>`:"";
+    const vs=rMed&&myMed?(myMed/rMed-1)*100:null;
+    return `<tr><td><details><summary style="cursor:pointer"><b>${esc(e.k)}</b></summary>${list(e.mine,"Yours")}${list(e.rivals,"Rivals")}</details></td>
+      <td style="text-align:right">${e.rivals.length}</td><td style="font-size:12.5px">${topB||"–"}</td>
+      <td style="text-align:right;white-space:nowrap">${rp.length?`${fmt(q(rp,0))} · <b>${fmt(rMed)}</b> · ${fmt(q(rp,1))}`:"–"}</td>
+      <td style="text-align:right;white-space:nowrap">${e.mine.length?`${e.mine.length} <span style="color:var(--ink-soft);font-size:11.5px">(${fmt(myMed)})</span>`:'<span style="color:var(--ink-soft)">0</span>'}</td>
+      <td style="text-align:right">${vs==null?"–":`<b style="color:${vs>5?"#C9472F":vs<-5?"#2F6FC9":"#0B6E6E"}">${vs>0?"+":""}${Math.round(vs)}%</b>`}</td>
+      <td><span style="display:inline-block;padding:2px 9px;border-radius:99px;font:700 11px 'Hanken Grotesk';color:#fff;background:${ST[e.status][1]}">${ST[e.status][0]}</span></td></tr>`;
+  }).join("") || `<tr><td colspan="7" style="color:var(--ink-soft);padding:24px;text-align:center">${F.show==="gaps"?"No gaps — you have a model in every segment with "+F.min+"+ rival models.":"No segments match."}</td></tr>`;
 }
 
 let brandFilter = "ALL";
@@ -5868,6 +6086,9 @@ document.addEventListener("click",e=>{ const g=e.target.closest("[data-goto]"); 
 on("deptToggle","click",e=>{ const b=e.target.closest(".dept-pill"); if(b) setDept(b.dataset.dept); });
 on("pxChips","click",e=>{ const c=e.target.closest("[data-px]"); if(!c) return;
   pxFilter[c.dataset.px] = c.dataset.px==="min" ? +c.dataset.pv : c.dataset.pv; renderPriceIndex(); });
+on("shChips","click",e=>{ const c=e.target.closest("[data-sh]"); if(!c) return; shFilter[c.dataset.sh]=c.dataset.pv; renderShelf(); });
+on("gpChips","click",e=>{ const c=e.target.closest("[data-gp]"); if(!c) return;
+  const k=c.dataset.gp; gpFilter[k] = k==="min" ? +c.dataset.pv : k==="colour" ? c.dataset.pv==="1" : c.dataset.pv; renderGaps(); });
 on("pfChips","click",e=>{ const c=e.target.closest("[data-pf]"); if(!c) return;
   pfFilter[c.dataset.pf] = c.dataset.pf==="days" ? +c.dataset.pv : c.dataset.pv; renderPromoFreq(); });
 on("lbType","click",e=>{
@@ -6534,17 +6755,7 @@ const smBrand=p=>cap(extractModel(f.name(p)).brand||"");
    unsure = same specs where either side's colour isn't stated. */
 function specMatchSets(d, list){
   const M=SPEC_MATCH[d]; if(!M) return [];
-  const nSpecs=p=>Object.keys(f.specs(p)||{}).length;
-  const byCode=new Map();
-  for(const r of benchDedupe(list.filter(p=>!isClearance(p)))){
-    const p=r.p; if(f.price(p)==null) continue;
-    const x=extractModel(f.name(p)), k=(x.code&&x.code.length>=4) ? normCode(x.brand)+"|"+normCode(x.code) : "id:"+f.id(p);
-    const members=[p, ...(r.others||[])], e=byCode.get(k)||{best:p, members:[]};
-    if(f.price(p)<f.price(e.best)) e.best=p;
-    e.members.push(...members); byCode.set(k,e);
-  }
-  const rows=[...byCode.values()].map(e=>({b:e.best, s:e.members.reduce((a,c)=>nSpecs(c)>nSpecs(a)?c:a, e.best),
-                                          col:specMatchColour([e.best, ...e.members])}));
+  const rows=smRows(list);
   const pr=m=>f.price(m.b);
   const mine=rows.filter(m=>isMyBrand(m.b)), comp=rows.filter(m=>!isMyBrand(m.b));
   mine.sort((a,b)=>M.type(a.s).localeCompare(M.type(b.s)) || pr(a)-pr(b));
@@ -6559,6 +6770,20 @@ function specMatchSets(d, list){
     const cheapest=n?peers.reduce((a,b)=>pr(a)<=pr(b)?a:b):null;
     return {me, mp, peers, unsure, byColour, prices, med, cheapest};
   });
+}
+/* one row per model on the shelves today: {b: cheapest listing, s: fullest spec sheet, col: colour family} */
+function smRows(list){
+  const nSpecs=p=>Object.keys(f.specs(p)||{}).length;
+  const byCode=new Map();
+  for(const r of benchDedupe(list.filter(p=>!isClearance(p)))){
+    const p=r.p; if(f.price(p)==null) continue;
+    const x=extractModel(f.name(p)), k=(x.code&&x.code.length>=4) ? normCode(x.brand)+"|"+normCode(x.code) : "id:"+f.id(p);
+    const members=[p, ...(r.others||[])], e=byCode.get(k)||{best:p, members:[]};
+    if(f.price(p)<f.price(e.best)) e.best=p;
+    e.members.push(...members); byCode.set(k,e);
+  }
+  return [...byCode.values()].map(e=>({b:e.best, s:e.members.reduce((a,c)=>nSpecs(c)>nSpecs(a)?c:a, e.best),
+                                       col:specMatchColour([e.best, ...e.members])}));
 }
 async function exportSpecMatch(){
   if(state.demo){ alert("Demo data — connect the backend to export."); return; }
