@@ -1232,7 +1232,7 @@ _HOUSE_PLUS = _HOUSE + ("HOTPOINT",)      # Hotpoint counts as yours in cooking 
 STOCK_RIVALS_PER_MODEL = 4                # nearest-priced competitors checked per model of yours
 STOCK_CHECK_CAP = 1500                    # hard ceiling on product pages per run
 STOCK_SITES = ("kotsovolos",)             # Public: its stock API is disallowed by robots.txt
-PUBLIC_PAUSED_UNTIL = "2026-11-24"        # full runs skip Public before this date (bot block)
+PUBLIC_PAUSED_UNTIL = "2026-12-01"        # full runs skip Public before this date (bot block)
 
 
 def _stock_targets(seen):
