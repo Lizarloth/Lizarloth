@@ -178,6 +178,41 @@ def _start_watchdog(minutes):
     log(f"Watchdog armed: will force-exit after {minutes} min if the run hangs.")
     return t
 
+def _seconds_since_input():
+    """Seconds since the last keyboard/mouse input on this PC (Windows)."""
+    import ctypes
+    class LASTINPUTINFO(ctypes.Structure):
+        _fields_ = [("cbSize", ctypes.c_uint), ("dwTime", ctypes.c_uint)]
+    li = LASTINPUTINFO(ctypes.sizeof(LASTINPUTINFO), 0)
+    if not ctypes.windll.user32.GetLastInputInfo(ctypes.byref(li)):
+        return None
+    return ((ctypes.windll.kernel32.GetTickCount() - li.dwTime) & 0xFFFFFFFF) / 1000
+
+
+def _start_idle_guard():
+    """For the idle-only scheduled run: the moment someone uses the PC again
+    (keyboard/mouse), stop the whole run - this process and its Chrome - so a
+    scrape never competes with a game. What was already pushed stays; the
+    task starts again at the next idle spell (--due redoes what's left)."""
+    import threading, subprocess
+    def _watch():
+        while True:
+            time.sleep(5)
+            try:
+                s = _seconds_since_input()
+            except Exception:
+                return
+            if s is not None and s < 10:
+                log("PC in use again - stopping this run (it continues at the next idle spell).")
+                try: sys.stdout.flush()
+                except Exception: pass
+                subprocess.call(["taskkill", "/F", "/T", "/PID", str(os.getpid())],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                os._exit(3)
+    threading.Thread(target=_watch, daemon=True).start()
+    log("Idle guard on: the run stops as soon as the PC is used.")
+
+
 def _load_last_run():
     """Read the per-subcategory last-run log from disk."""
     try:
@@ -1585,11 +1620,16 @@ def main():
     ap.add_argument("--market", action="store_true",
                     help="with --plp: afterwards read every shop's offer for your models and their "
                          "nearest rivals from BestPrice (lowest, median, shop count, Public's price).")
+    ap.add_argument("--stop-if-used", action="store_true", dest="stop_if_used",
+                    help="for the idle-only scheduled run: stop the whole run as soon as the "
+                         "keyboard or mouse is used.")
     ap.add_argument("--max-minutes", type=int, default=0, dest="max_minutes",
                     help="fail-safe for scheduled runs: force-exit after N minutes if the run hangs "
                          "(e.g. --max-minutes 40). 0 = off.")
     args = ap.parse_args()
     _start_watchdog(args.max_minutes)
+    if args.stop_if_used:
+        _start_idle_guard()
     if not INGEST_TOKEN or INGEST_TOKEN.startswith("PASTE_"):
         log("X Set the INGEST_TOKEN environment variable first (must match Railway)."); sys.exit(1)
 

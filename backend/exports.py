@@ -175,3 +175,91 @@ def export_full_excel(products, history_rows, alert_rows) -> bytes:
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
+
+
+_RETAILER = {"kotsovolos": "Kotsovolos", "public": "Public", "plaisio": "Plaisio"}
+_DEPT_ORDER = {"Cooling": 0, "Laundry": 1, "Dishwashing": 2}
+_EUR = '#,##0.00 "€"'
+
+
+def _brand(b):
+    b = b or ""
+    return b if len(b) <= 3 else b.title()      # LG, AEG, TCL stay upper case
+
+
+def _month_label(m):
+    return datetime.strptime(m, "%Y-%m").strftime("%b %Y")
+
+
+def export_monthly_excel(rows, months) -> bytes:
+    """rows: competitor models per retailer (see /api/export/monthly), each with
+    dept, cat, brand, code, name, site, sku, active, months {YYYY-MM: price},
+    closest (your model, its price)."""
+    wb = openpyxl.Workbook()
+    rows = sorted(rows, key=lambda r: (_DEPT_ORDER.get(r["dept"], 9), r["cat"] or "", r["brand"],
+                                       r["code"] or r["name"], r["site"]))
+    mcols = [_month_label(m) for m in months]
+
+    # ── Sheet 1: one row per model per retailer ──
+    ws = wb.active
+    ws.title = "By retailer"
+    head = ["Department", "Subcategory", "Brand", "Model code", "Product name", "Retailer",
+            "Retailer SKU", "Listed now", "Your closest model", "Its price now"] + mcols
+    ws.append(head)
+    _style_header_row(ws, 1, len(head))
+    for r in rows:
+        ws.append([r["dept"], r["cat"], _brand(r["brand"]), r["code"], r["name"],
+                   _RETAILER.get(r["site"], r["site"]), r["sku"] or "", "Yes" if r["active"] else "No",
+                   r["closest"][0], r["closest"][1]] + [r["months"].get(m) for m in months])
+
+    # ── Sheet 2: one row per model, the lowest retailer's monthly price ──
+    ws2 = wb.create_sheet("By model")
+    head2 = ["Department", "Subcategory", "Brand", "Model code", "Product name", "Retailers",
+             "Your closest model"] + mcols
+    ws2.append(head2)
+    _style_header_row(ws2, 1, len(head2))
+    models = {}
+    for r in rows:
+        key = (r["dept"], r["brand"], r["code"] or r["name"].upper())
+        e = models.setdefault(key, {"r": r, "sites": [], "months": {}})
+        e["sites"].append(_RETAILER.get(r["site"], r["site"]))
+        for m, v in r["months"].items():
+            e["months"][m] = min(v, e["months"].get(m, v))
+    for e in models.values():
+        r = e["r"]
+        ws2.append([r["dept"], r["cat"], _brand(r["brand"]), r["code"], r["name"],
+                    ", ".join(sorted(set(e["sites"]))), r["closest"][0]] + [e["months"].get(m) for m in months])
+
+    for sheet, first_month, money in ((ws, 11, [10]), (ws2, 8, [])):
+        _auto_width(sheet)
+        sheet.column_dimensions["E"].width = 46
+        sheet.freeze_panes = sheet.cell(row=2, column=first_month)
+        sheet.auto_filter.ref = sheet.dimensions
+        for col in money + list(range(first_month, first_month + len(months))):
+            letter = get_column_letter(col)
+            sheet.column_dimensions[letter].width = max(sheet.column_dimensions[letter].width or 0, 12)
+            for row in sheet.iter_rows(min_row=2, min_col=col, max_col=col):
+                row[0].number_format = _EUR
+
+    # ── Sheet 3: how the numbers are made ──
+    ws3 = wb.create_sheet("Notes")
+    for line in [
+        "Competitor monthly prices - Cooling, Laundry, Dishwashing",
+        f"Generated {datetime.utcnow():%Y-%m-%d %H:%M} UTC from Pricedge's stored price history.",
+        "",
+        "Competitors = every brand except Whirlpool, Indesit and Beko (and Hotpoint in Dishwashing).",
+        "Monthly price = the median of that month's daily shelf prices at the retailer; a day's price",
+        "is its last reading. The median keeps a one-day promo or a scraping glitch from setting it.",
+        "Empty cell = the model wasn't seen at that retailer that month.",
+        "The current month is month-to-date. The first month starts when tracking began.",
+        "'By model' takes, per month, the lowest of the retailers' monthly prices.",
+        "'Your closest model' = your model in the same subcategory with the nearest current price.",
+        "Public: since its site blocked scraping (2026-11-13), some Public prices come from BestPrice.",
+    ]:
+        ws3.append([line])
+    ws3.column_dimensions["A"].width = 100
+    ws3["A1"].font = Font(bold=True, size=12)
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    return buf.getvalue()

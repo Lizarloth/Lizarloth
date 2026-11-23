@@ -328,13 +328,26 @@ def list_products(db: Session = Depends(get_db)):
     latest_by_pid = {}
     for h in latest_rows:                      # ties on scraped_at: keep first
         latest_by_pid.setdefault(h.product_id, h)
+    # A BestPrice-filled reading (Public while it's blocked) carries a price but
+    # no specs/image: take those from the product's last own scrape instead.
+    spec_row = {}
+    bp_pids = [pid for pid, h in latest_by_pid.items() if h.raw_data and BESTPRICE_TAG in h.raw_data]
+    if bp_pids:
+        own = (db.query(PriceHistory.product_id, func.max(PriceHistory.id).label("mid"))
+               .filter(PriceHistory.product_id.in_(bp_pids), PriceHistory.raw_data != None,
+                       ~PriceHistory.raw_data.like(f"%{BESTPRICE_TAG}%"))
+               .group_by(PriceHistory.product_id).subquery())
+        for pid, raw in (db.query(PriceHistory.product_id, PriceHistory.raw_data)
+                         .join(own, PriceHistory.id == own.c.mid).all()):
+            spec_row[pid] = raw
     out = []
     for p in products:
         latest = latest_by_pid.get(p.id)
         specs, image = {}, None
-        if latest and latest.raw_data:
+        raw_json = spec_row.get(p.id) or (latest.raw_data if latest else None)
+        if raw_json:
             try:
-                raw = json.loads(latest.raw_data)
+                raw = json.loads(raw_json)
                 specs = raw.get("specs", {}) or {}
                 image = raw.get("image") or None   # scraped but previously never served
             except Exception:
@@ -1629,6 +1642,82 @@ def export_excel_alias(db: Session = Depends(get_db)):
 @app.get("/api/export/xlsx")
 def export_xlsx(db: Session = Depends(get_db)):
     return _xlsx_response(db)
+
+
+# ── Monthly competitor prices ─────────────────────────────────────────────
+_EXPORT_DEPTS = {"washing_machine": "Laundry", "washer_dryer": "Laundry", "dryer": "Laundry",
+                 "dw_free_60": "Dishwashing", "dw_free_45": "Dishwashing", "dw_bi_60": "Dishwashing",
+                 "dw_bi_45": "Dishwashing", "dw_compact": "Dishwashing"}
+_EXPORT_SKIP = {"cooker", "oven", "hob", "hood", "microwave"}     # cooking is out of scope
+_OWN = {"WHIRLPOOL", "INDESIT", "BEKO"}
+
+
+def _is_own(brand, dept):
+    return brand in _OWN or (brand == "HOTPOINT" and dept == "Dishwashing")
+
+
+@app.get("/api/export/monthly")
+def export_monthly(db: Session = Depends(get_db)):
+    """Competitor models in Cooling, Laundry and Dishwashing (every brand but
+    Whirlpool / Indesit / Beko, and Hotpoint in dishwashing), one price per
+    month for as far back as history goes. A month's price is the median of
+    that month's daily shelf prices (a day = its last reading), so a one-day
+    promo or a glitch doesn't set it. Each row names your closest model: same
+    subcategory, nearest current price."""
+    from collections import defaultdict
+    prods = {}
+    for p in db.query(Product).all():
+        if p.category in _EXPORT_SKIP:
+            continue
+        dept = _EXPORT_DEPTS.get(p.category, "Cooling")
+        brand, code = extract_model(p.name)
+        prods[p.id] = dict(dept=dept, cat=p.category, brand=brand, code=code, name=p.name,
+                           site=p.site, sku=p.retailer_sku, active=p.active)
+    # daily price per product (last reading of the day), then per month
+    daily = defaultdict(dict)                     # pid -> {day: price}
+    q = (db.query(PriceHistory.product_id, PriceHistory.scraped_at, PriceHistory.price)
+         .filter(PriceHistory.price != None).order_by(PriceHistory.product_id, PriceHistory.scraped_at))
+    for pid, at, price in q.yield_per(5000):
+        if pid in prods and at and price and price > 0:
+            daily[pid][at.date().isoformat()] = price
+    # merge listings of the same model at the same retailer (URL changes)
+    rows = {}
+    for pid, info in prods.items():
+        if pid not in daily:
+            continue
+        key = (info["site"], info["brand"], info["code"] or info["name"].upper())
+        r = rows.setdefault(key, dict(info, days={}, pids=[]))
+        r["pids"].append(pid)
+        r["active"] = r["active"] or info["active"]
+        for d, v in daily[pid].items():
+            r["days"][d] = min(v, r["days"].get(d, v))
+    months_all = set()
+    for r in rows.values():
+        bym = defaultdict(list)
+        for d, v in r["days"].items():
+            bym[d[:7]].append(v)
+        r["months"] = {m: _median(v) for m, v in bym.items()}
+        months_all.update(r["months"])
+        last_day = max(r["days"])
+        r["latest"] = r["days"][last_day]
+    months = sorted(months_all)
+    # your models by subcategory, for "closest model of yours"
+    own_by_cat = defaultdict(list)
+    for r in rows.values():
+        if _is_own(r["brand"], r["dept"]) and r["active"]:
+            own_by_cat[r["cat"]].append(r)
+    comp = [r for r in rows.values() if not _is_own(r["brand"], r["dept"])]
+    for r in comp:
+        cands = own_by_cat.get(r["cat"]) or []
+        near = min(cands, key=lambda o: abs(o["latest"] - r["latest"]), default=None)
+        r["closest"] = (f"{near['brand'].title()} {near['code'] or near['name']}".strip(), near["latest"]) if near else ("", None)
+    from exports import export_monthly_excel
+    data = export_monthly_excel(comp, months)
+    return StreamingResponse(
+        iter([data]),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": "attachment; filename=competitor_monthly_prices.xlsx"},
+    )
 
 
 @app.get("/api/export/csv/alerts")
