@@ -1381,6 +1381,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       <div class="card lift export-card" onclick="doExport('csv')"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></div><h4>Price history — CSV</h4><p>All tracked prices, comma separated.</p></div>
       <div class="card lift export-card" onclick="doExport('excel')"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M4 20V11M10 20V5M16 20v-8M22 20H2"/></svg></div><h4>Price history — Excel</h4><p>Styled .xlsx with one sheet per retailer.</p></div>
       <div class="card lift export-card" onclick="doExport('monthly')"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div><h4>Competitor monthly prices — Excel</h4><p>Cooling, laundry & dish rivals: one price per month, with your closest model.</p></div>
+      <div class="card lift export-card" onclick="exportDailyBrief()"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7M9 8h3"/></svg></div><h4>Daily brief — Excel</h4><p>Your models at every retailer, price changes, stock issues, new listings, rivals on promo.</p></div>
       <div class="card lift export-card" onclick="exportSpecMatch()"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M4 6h7M4 12h7M4 18h7M14 6h6M14 12h6M14 18h6"/></svg></div><h4>Your models vs competition — same specs</h4><p>Whirlpool, Indesit & Beko against rivals with matching specs: gaps, median, rank.</p></div>
       <div class="card lift export-card" onclick="exportMatches()"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M9.5 14.5l5-5"/><path d="M11 6.2l1.6-1.6a4 4 0 0 1 5.7 5.7l-1.6 1.6"/><path d="M13 17.8l-1.6 1.6a4 4 0 0 1-5.7-5.7l1.6-1.6"/></svg></div><h4>Match matrix — CSV</h4><p>The Compare table: one model per row, RRP per retailer.</p></div>
     </div>
@@ -6356,6 +6357,96 @@ async function exportSpecMatch(){
   X.utils.book_append_sheet(wb, sheet(pairs,[12,22,11,30,48,12,11,12,30,48,12,11,12,8,12]), "Same specs");
   X.utils.book_append_sheet(wb, sheet(notes,[110]), "Notes");
   X.writeFile(wb, "my_models_vs_competition_same_specs.xlsx");
+}
+/* ---- Daily brief — one workbook for the morning: your models across the
+   retailers (+ SRP/MAP and BestPrice), price changes, stock problems, new
+   listings, rivals on promo. Built from what the dashboard has loaded. */
+const DEPT_LABEL = {cooling:"Cooling", laundry:"Laundry", cooking:"Cooking", dishwashing:"Dishwashing"};
+async function exportDailyBrief(){
+  if(state.demo){ alert("Demo data — connect the backend to export."); return; }
+  if(!(state.histDays||[]).length){ alert("Price history is still loading — try again in a few seconds."); return; }
+  let X; try{ X=await loadXLSX(); }catch(_){ alert("Could not load the Excel library — check the connection."); return; }
+  const SITES=["kotsovolos","public","plaisio"], L=s=>SITE_LABEL[s]||s;
+  const all=allProducts().filter(p=>f.price(p)!=null);
+  const brand=p=>cap(extractModel(f.name(p)).brand||"");
+  const pct=(a,b)=>(a!=null&&b)?Math.round((a/b-1)*1000)/10:null;
+  const r2=v=>v==null?null:Math.round(v*100)/100;
+
+  // 1. your models, one row each, a column block per retailer
+  const groups=new Map();
+  for(const p of all.filter(isMyBrand)){
+    const x=extractModel(f.name(p)), k=(x.code&&x.code.length>=4)?normCode(x.brand)+"|"+normCode(x.code):"id:"+f.id(p);
+    const g=groups.get(k)||{p, by:{}}; const cur=g.by[f.site(p)];
+    if(!cur || f.price(p)<f.price(cur)) g.by[f.site(p)]=p;
+    groups.set(k,g);
+  }
+  const mine=[["Department","Brand","Model",
+    ...SITES.flatMap(s=>[L(s)+" price",L(s)+" was",L(s)+" stock"]),
+    "Best price","Best at","Retailers","SRP","Best vs SRP %","MAP","Below MAP",
+    "BestPrice lowest","BestPrice median","Shops on BestPrice"]];
+  const stock=[["Department","Brand","Model","Retailer","Stock","Price","Link"]];
+  for(const g of [...groups.values()].sort((a,b)=>deptOf(a.p).localeCompare(deptOf(b.p))||brand(a.p).localeCompare(brand(b.p))||modelTitle(f.name(a.p),60).localeCompare(modelTitle(f.name(b.p),60)))){
+    const offers=SITES.map(s=>g.by[s]).filter(Boolean), best=offers.reduce((a,b)=>f.price(b)<f.price(a)?b:a);
+    const sr=srpOf(extractModel(f.name(g.p)).code), mk=marketOf(g.p);
+    mine.push([DEPT_LABEL[deptOf(g.p)], brand(g.p), modelTitle(f.name(g.p),60),
+      ...SITES.flatMap(s=>{ const q=g.by[s]; return q?[f.price(q), (f.oldPrice(q)>f.price(q)+0.5)?f.oldPrice(q):null, availBucket(f.avail(q))]:[null,null,""]; }),
+      f.price(best), L(f.site(best)), offers.length,
+      sr?sr.srp:null, sr?pct(f.price(best),sr.srp):null, sr&&sr.map?sr.map:null,
+      sr&&sr.map&&offers.some(q=>f.price(q)<sr.map-0.5)?"YES":"",
+      mk?mk.min:null, mk?mk.median:null, mk?mk.offer_count:null]);
+    for(const q of offers){
+      const b=availBucket(f.avail(q));
+      if([AV.OUT, AV.LAST, AV.DISPLAY, AV.STORE].includes(b))
+        stock.push([DEPT_LABEL[deptOf(q)], brand(q), modelTitle(f.name(q),60), L(f.site(q)), b, f.price(q), f.url(q)]);
+    }
+  }
+
+  // 2. price changes: yesterday -> today, and over 7 days (every listing that moved)
+  const days=state.histDays, D=days.slice(-8), last=D.length-1;
+  const moves=[["Department","Yours?","Brand","Model","Retailer","7 scrapes ago","Previous scrape","Latest","Change €","Change %","Change over 7 scrapes %","Link"]];
+  for(const p of all){
+    const v=dailyPrices(f.id(p), D), t=v[last], y=v[last-1], w=v[0];
+    if(t==null || ((y==null||Math.abs(t-y)<0.5) && (w==null||Math.abs(t-w)<0.5))) continue;
+    if((y&&(t/y>5||t/y<0.2)) || (w&&(t/w>5||t/w<0.2))) continue;     // scraping glitch
+    moves.push([DEPT_LABEL[deptOf(p)], isMyBrand(p)?"★":"", brand(p), modelTitle(f.name(p),60), L(f.site(p)),
+      w, y, t, y!=null?r2(t-y):null, pct(t,y), pct(t,w), f.url(p)]);
+  }
+  moves.splice(1, moves.length, ...moves.slice(1).sort((a,b)=>Math.abs(b[9]||0)-Math.abs(a[9]||0) || Math.abs(b[10]||0)-Math.abs(a[10]||0)));
+
+  // 3. new listings in the last 7 days
+  const launches=[["Department","Kind","Brand","Model","Retailer","Price","First seen","Link"]];
+  for(const l of (state.launches||[]).filter(l=>_daysSince(l.first_seen)<=7))
+    launches.push([DEPT_LABEL[deptOf(l)]||"", l.kind==="launch"?"New launch":"Back in range", brand(l), modelTitle(l.name||"",60),
+      L(f.site(l)), f.price(l), String(l.first_seen||"").slice(0,10), f.url(l)]);
+
+  // 4. rivals on promo (was-price at least 5% above today's)
+  const promo=[["Department","Brand","Model","Retailer","Was","Now","Discount %","Stock","Link"]];
+  for(const p of all.filter(p=>!isMyBrand(p))){
+    const was=f.oldPrice(p), now=f.price(p);
+    if(was && was>now*1.05) promo.push([DEPT_LABEL[deptOf(p)], brand(p), modelTitle(f.name(p),60), L(f.site(p)), was, now,
+      Math.round((1-now/was)*1000)/10, availBucket(f.avail(p)), f.url(p)]);
+  }
+  promo.splice(1, promo.length, ...promo.slice(1).sort((a,b)=>b[6]-a[6]));
+
+  const today=new Date().toISOString().slice(0,10);
+  const notes=[["Pricedge daily brief — "+today],[""],
+    ["My models: one row per model of yours with each retailer's price, was-price and stock; SRP / MAP from the pricing policy;"],
+    ["  'Below MAP' = YES when any retailer is under the minimum advertised price. BestPrice = the whole market (where read)."],
+    [`Price changes: every listing whose price moved since the previous scrape (${D[last-1]||"?"}) or over the last 7 scrape days (since ${D[0]||"?"}); biggest moves first; ★ = yours.`],
+    ["  Moves over 5x or under 1/5 are treated as scraping glitches and left out."],
+    ["Stock issues: your listings that are out of stock, last pieces, display-only or store-only."],
+    ["New listings: first seen in the last 7 days — 'New launch' has a SKU number above the retailer's newest, 'Back in range' is an older SKU."],
+    ["Rivals on promo: competitor listings whose was-price is at least 5% above today's price."],
+    [`Data as of the dashboard's last load (${(state.histDays||[]).slice(-1)[0]||"?"}).`]];
+  const wb=X.utils.book_new();
+  const add=(name,aoa,widths)=>{ const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=widths.map(w=>({wch:w})); ws["!autofilter"]={ref:ws["!ref"]}; X.utils.book_append_sheet(wb,ws,name); };
+  add("My models", mine, [12,11,30, ...SITES.flatMap(()=>[11,10,14]), 10,11,9,9,11,9,10,12,12,10]);
+  add("Price changes", moves, [12,6,11,30,11,10,10,10,11,11,10,40]);
+  add("Stock issues", stock, [12,11,30,11,16,10,40]);
+  add("New listings (7 d)", launches, [12,13,11,30,11,10,11,40]);
+  add("Rivals on promo", promo, [12,11,30,11,10,10,10,14,40]);
+  add("Notes", notes, [120]);
+  X.writeFile(wb, `pricedge_daily_brief_${today}.xlsx`);
 }
 function exportMatches(){
   const matches=buildMatches(state.products);
