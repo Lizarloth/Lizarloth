@@ -796,7 +796,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-23-S11</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-23-S12</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1381,6 +1381,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
       <div class="card lift export-card" onclick="doExport('csv')"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></div><h4>Price history — CSV</h4><p>All tracked prices, comma separated.</p></div>
       <div class="card lift export-card" onclick="doExport('excel')"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M4 20V11M10 20V5M16 20v-8M22 20H2"/></svg></div><h4>Price history — Excel</h4><p>Styled .xlsx with one sheet per retailer.</p></div>
       <div class="card lift export-card" onclick="doExport('monthly')"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div><h4>Competitor monthly prices — Excel</h4><p>Cooling, laundry & dish rivals: one price per month, with your closest model.</p></div>
+      <div class="card lift export-card" onclick="exportSpecMatch()"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M4 6h7M4 12h7M4 18h7M14 6h6M14 12h6M14 18h6"/></svg></div><h4>Your models vs competition — same specs</h4><p>Whirlpool, Indesit & Beko against rivals with matching specs: gaps, median, rank.</p></div>
       <div class="card lift export-card" onclick="exportMatches()"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M9.5 14.5l5-5"/><path d="M11 6.2l1.6-1.6a4 4 0 0 1 5.7 5.7l-1.6 1.6"/><path d="M13 17.8l-1.6 1.6a4 4 0 0 1-5.7-5.7l1.6-1.6"/></svg></div><h4>Match matrix — CSV</h4><p>The Compare table: one model per row, RRP per retailer.</p></div>
     </div>
 
@@ -1563,7 +1564,11 @@ const SITE_PILL  = {kotsovolos:"site-k", public:"site-p", plaisio:"site-l"};
 const BRANDS = ["WHIRLPOOL","SAMSUNG","LG","BOSCH","SIEMENS","PITSOS","DELONGHI","DE LONGHI","AEG","BEKO","HISENSE","TOSHIBA","SHARP","CANDY","LIEBHERR","MIELE","INVENTOR","MORRIS","UNITED","CROWN","MIDEA","HAIER","TCL","DAVOLINE","ELECTROLUX","INDESIT","HOTPOINT","GORENJE","TEKA","FINLUX","PHILCO","FRANKE","NEFF","SMEG","BERTAZZONI","KENDRIX","OMNYS","PROFI COOK","PROFICOOK","LA SOMMELIERE","JURO PRO","JURO-PRO","ESKIMO","ROBIN","CARAD","TELEFUNKEN","NASCO","KARAMCO",
   // cooking-only brands (hoods, hobs, cookers, microwaves)
   "ELICA","FABER","LA GERMANIA","PYRAMIS","CECOTEC","KÜPPERSBUSCH","KUPPERSBUSCH","HOOVER","BRANDT",
-  "ZANUSSI","SINGER","ROHNSON","IZZY","ESTIA"];
+  "ZANUSSI","SINGER","ROHNSON","IZZY","ESTIA",
+  // smaller cooling / laundry brands seen in the listings (Nov 2026)
+  "LA SOMMELIÈRE","TESLA","INDELB","XIAOMI","MIJIA","SANGIORGIO","FRIGELUX","MATSUI","MONDIN",
+  "KITCHENAID","KENWOOD","HITACHI","GRUNDIG","PRIMO","FIRST AUSTRIA","LES PETITS CHAMPS",
+  "OPERA ITALIANA","EASYWASH","SOGO"];
 
 let state = {products:[], laundry:[], cooking:[], dishwashing:[], history:[], alerts:[], srp:{}, demo:false, dept:"cooling"};
 /* every department's products (freshness, SRP matching, match review, MAP checks) */
@@ -6238,6 +6243,119 @@ async function doExport(kind){
     a.click();
     URL.revokeObjectURL(a.href);
   }catch(_){ alert("Export failed — check that the backend is reachable and the API key is set."); }
+}
+/* ---- "Your models vs competition on the same specs" — Excel, built in the
+   browser from the loaded catalogue (SheetJS loaded on demand). One model =
+   its best price across retailers (benchDedupe); display/clearance units out. */
+function loadXLSX(){
+  if(window.XLSX) return Promise.resolve(window.XLSX);
+  return new Promise((ok,fail)=>{ const s=document.createElement("script");
+    s.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+    s.onload=()=>ok(window.XLSX); s.onerror=fail; document.head.appendChild(s); });
+}
+const SPEC_MATCH = {
+  cooling: {
+    label:"Cooling", type:p=>SUBCAT_LABEL[categorize(p)]||categorize(p),
+    specs:p=>{ const n=p.__norm||(p.__norm=normalize(p));
+      return [n.capacity&&n.capacity+" lt", n.height&&"H "+n.height+" cm", n.width&&"W "+n.width+" cm",
+              n.cooling, n.installType==="builtin"?"built-in":"", n.energy&&"class "+n.energy].filter(Boolean).join(" · "); },
+    same:(a,b)=>{ const x=a.__norm||(a.__norm=normalize(a)), y=b.__norm||(b.__norm=normalize(b));
+      if(categorize(a)!==categorize(b) || x.installType!==y.installType) return false;
+      const frost=c=>!c?null:/No Frost/.test(c)?"nf":c;
+      if(frost(x.cooling) && frost(y.cooling) && frost(x.cooling)!==frost(y.cooling)) return false;
+      let known=0;
+      if(x.width&&y.width){ known++; if(Math.abs(x.width-y.width)>3) return false; }
+      if(x.height&&y.height){ known++; if(Math.abs(x.height-y.height)>5) return false; }
+      if(x.capacity&&y.capacity){ known++; if(Math.abs(x.capacity-y.capacity)/x.capacity>0.10) return false; }
+      return known>=2; },
+    rule:"same subcategory and installation, same frost type, width ±3 cm, height ±5 cm, capacity ±10% (at least two of the three known)"
+  },
+  laundry: {
+    label:"Laundry", type:p=>laundryNorm(p).typeLabel,
+    specs:p=>{ const n=laundryNorm(p);
+      return [n.wash_kg&&n.wash_kg+" kg wash", n.dry_kg&&n.dry_kg+" kg dry", n.rpm&&n.rpm+" rpm",
+              n.loader&&n.loader+"-load", n.heat_pump==="yes"?"heat pump":"", n.energy&&"class "+n.energy].filter(Boolean).join(" · "); },
+    same:(a,b)=>{ const x=laundryNorm(a), y=laundryNorm(b);
+      if(x.type!==y.type) return false;
+      if(x.loader && y.loader && x.loader!==y.loader) return false;
+      if(x.type==="dryer") return !!(x.dry_kg && x.dry_kg===y.dry_kg);
+      if(!(x.wash_kg && x.wash_kg===y.wash_kg)) return false;
+      return x.type!=="washer_dryer" || !(x.dry_kg&&y.dry_kg) || Math.abs(x.dry_kg-y.dry_kg)<=1; },
+    rule:"same type and loading, same wash kg (dryers: same dry kg; washer-dryers: dry kg ±1)"
+  },
+  dishwashing: {
+    label:"Dishwashing", type:p=>dishNorm(p).typeLabel,
+    specs:p=>{ const n=dishNorm(p);
+      return [n.settings&&n.settings+" settings", n.width&&"W "+n.width+" cm", DISH_INTEG_LABEL[n.integration],
+              n.noise&&n.noise+" dB", n.energy&&"class "+n.energy].filter(Boolean).join(" · "); },
+    same:(a,b)=>{ const x=dishNorm(a), y=dishNorm(b);
+      if(x.type!==y.type || !x.settings || !y.settings || Math.abs(x.settings-y.settings)>1) return false;
+      return !(x.integration && y.integration) || x.integration===y.integration; },
+    rule:"same type (freestanding / built-in, 60 / 45 cm / compact), place settings ±1, same integration"
+  }
+};
+const SPEC_MATCH_CAP = 25;     // competitors listed per model of yours (nearest price first)
+async function exportSpecMatch(){
+  if(state.demo){ alert("Demo data — connect the backend to export."); return; }
+  let X; try{ X=await loadXLSX(); }catch(_){ alert("Could not load the Excel library — check the connection."); return; }
+  const lists={cooling:state.products||[], laundry:state.laundry||[], dishwashing:state.dishwashing||[]};
+  const pairs=[["Department","Type","Your brand","Your model","Your specs","Your best price","Retailer",
+                "Competitor brand","Competitor model","Competitor specs","Competitor best price","Retailer",
+                "Gap € (competitor − yours)","Gap %","Energy yours / theirs"]];
+  const summary=[["Department","Type","Your brand","Your model","Your specs","Your best price","Retailer",
+                  "Competitors with same specs","Cheapest competitor","Its price","Median competitor price",
+                  "You vs median %","Your price rank (1 = cheapest)"]];
+  const brandOfP=p=>cap(extractModel(f.name(p)).brand||"");
+  const en=(d,p)=>{ const v=d==="cooling"?(p.__norm||normalize(p)).energy:d==="laundry"?laundryNorm(p).energy:dishNorm(p).energy; return v||"?"; };
+  for(const [d,list] of Object.entries(lists)){
+    const M=SPEC_MATCH[d];
+    // one row per model: match groups first, then same brand + code. Price =
+    // the cheapest listing; specs = the listing with the fullest spec sheet
+    // (a retailer that lists few specs mustn't hide the model from matching).
+    const nSpecs=p=>Object.keys(f.specs(p)||{}).length;
+    const byCode=new Map();
+    for(const r of benchDedupe(list.filter(p=>!isClearance(p)))){
+      const p=r.p; if(f.price(p)==null) continue;
+      const x=extractModel(f.name(p)), k=(x.code&&x.code.length>=4) ? normCode(x.brand)+"|"+normCode(x.code) : "id:"+f.id(p);
+      const members=[p, ...(r.others||[])], e=byCode.get(k)||{best:p, members:[]};
+      if(f.price(p)<f.price(e.best)) e.best=p;
+      e.members.push(...members); byCode.set(k,e);
+    }
+    // m.b = cheapest listing (price, retailer, name); m.s = fullest spec sheet
+    const rows=[...byCode.values()].map(e=>({b:e.best, s:e.members.reduce((a,c)=>nSpecs(c)>nSpecs(a)?c:a, e.best)}));
+    const pr=m=>f.price(m.b);
+    const mine=rows.filter(m=>isMyBrand(m.b)), comp=rows.filter(m=>!isMyBrand(m.b));
+    mine.sort((a,b)=>M.type(a.s).localeCompare(M.type(b.s)) || pr(a)-pr(b));
+    for(const me of mine){
+      const mp=pr(me);
+      const peers=comp.filter(c=>M.same(me.s,c.s)).sort((a,b)=>Math.abs(pr(a)-mp)-Math.abs(pr(b)-mp));
+      const base=[M.label, M.type(me.s), brandOfP(me.b), modelTitle(f.name(me.b),60), M.specs(me.s), mp, SITE_LABEL[f.site(me.b)]||f.site(me.b)];
+      for(const c of peers.slice(0,SPEC_MATCH_CAP)){
+        const cp=pr(c);
+        pairs.push([...base, brandOfP(c.b), modelTitle(f.name(c.b),60), M.specs(c.s), cp, SITE_LABEL[f.site(c.b)]||f.site(c.b),
+                    Math.round((cp-mp)*100)/100, Math.round((cp/mp-1)*1000)/10, en(d,me.s)+" / "+en(d,c.s)]);
+      }
+      const prices=peers.map(pr).sort((a,b)=>a-b);
+      const med=prices.length?(prices.length%2?prices[(prices.length-1)/2]:(prices[prices.length/2-1]+prices[prices.length/2])/2):null;
+      const cheapest=peers.length?peers.reduce((a,b)=>pr(a)<=pr(b)?a:b):null;
+      summary.push([...base, peers.length, cheapest?modelTitle(f.name(cheapest.b),40):"",
+                    cheapest?pr(cheapest):null, med, med?Math.round((mp/med-1)*1000)/10:null,
+                    peers.length?(prices.filter(v=>v<mp).length+1)+" of "+(peers.length+1):""]);
+    }
+  }
+  const notes=[["Your models vs competition on the same specs"],[`Built ${new Date().toLocaleString("en-GB")} from the dashboard's current prices.`],[""],
+    ["Each model = its best current price across Kotsovolos, Public and Plaisio; display / clearance units are left out."],
+    ["Yours = Whirlpool, Indesit, Beko (+ Hotpoint in dishwashing). Competitors = every other brand."],
+    ["'Same specs' means:"], ...Object.values(SPEC_MATCH).map(m=>["  "+m.label+": "+m.rule]),
+    [`'Same specs' sheet lists up to ${SPEC_MATCH_CAP} competitors per model of yours, nearest price first.`],
+    ["Gap € / % > 0: the competitor is dearer than you. 'You vs median' > 0: you are above the median competitor."],
+    ["Models whose specs weren't captured can't be matched, so a 0 in 'Competitors with same specs' may mean missing specs."]];
+  const wb=X.utils.book_new();
+  const sheet=(aoa,widths)=>{ const ws=X.utils.aoa_to_sheet(aoa); ws["!cols"]=widths.map(w=>({wch:w})); return ws; };
+  X.utils.book_append_sheet(wb, sheet(summary,[12,22,11,30,48,12,11,12,34,11,13,11,14]), "Summary");
+  X.utils.book_append_sheet(wb, sheet(pairs,[12,22,11,30,48,12,11,12,30,48,12,11,12,8,12]), "Same specs");
+  X.utils.book_append_sheet(wb, sheet(notes,[110]), "Notes");
+  X.writeFile(wb, "my_models_vs_competition_same_specs.xlsx");
 }
 function exportMatches(){
   const matches=buildMatches(state.products);
