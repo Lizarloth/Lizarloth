@@ -198,6 +198,10 @@ nav button.active{background:var(--cobalt);color:#fff}
 .bp-cell small{font-size:10.5px;color:var(--ink-soft);margin-left:2px}
 .bp-cell.few{color:var(--ink-soft);opacity:.7}
 .bp-neg{color:var(--heat);font-weight:700}
+.bp-reasons{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px}
+.bp-reason{display:inline-flex;align-items:baseline;gap:5px;background:var(--cobalt-soft);border-radius:99px;padding:3px 10px;font-weight:600}
+.bp-reason small{font-weight:500;color:var(--ink-soft)}
+.bp-reason.neg{background:#FCE9E4} [data-theme="dark"] .bp-reason.neg{background:#3A1A14}
 .bp-cell.on{border-color:var(--cobalt);background:var(--cobalt-soft)}
 @media (hover:hover) and (pointer:fine){ .bp-cell:hover{border-color:var(--line);background:var(--soft-bg)} }
 .bp-quote{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;padding:9px 10px;border-bottom:1px solid var(--soft-bg);border-left:3px solid var(--line)}
@@ -967,7 +971,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-26-S24</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-27-S25</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1590,6 +1594,16 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
       <p style="font-size:12.5px;color:var(--ink-soft);margin:-6px 0 12px">Each cell: <b>how often the brand's buyers talk about that pillar</b> (% of its reviews), darker = a bigger reason for that brand; <b style="color:var(--heat)">−n</b> = reviews complaining about it. Buyers rate high overall (≈4.7★), so what they choose to mention is the signal. Cells under <span id="bpMinN">5</span> mentions are greyed. Click a cell for the reviews behind it.</p>
       <div style="overflow-x:auto"><table id="bpMatrix"></table></div>
       <div id="bpQuotes" style="margin-top:14px"></div>
+    </div>
+    <div class="card" style="margin-bottom:18px">
+      <h3><span class="dot" style="background:var(--aqua)"></span>Brand profile <span id="bpProfScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin:-6px 0 12px">Pick a brand: how often its buyers mention each pillar against the whole market, and which of its models drive it. <b>vs market</b> above 1.3× = what the brand stands out for.</p>
+      <div class="catbar" id="bpProfChips" style="margin-bottom:10px"></div>
+      <div id="bpProfReasons" style="margin-bottom:12px"></div>
+      <div class="grid two-col">
+        <div style="overflow-x:auto"><table id="bpProfVs"></table></div>
+        <div style="overflow-x:auto"><table id="bpProfModels"></table></div>
+      </div>
     </div>
     <div class="card">
       <h3><span class="dot" style="background:var(--cobalt)"></span>Star ratings by brand <span id="bpStarScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
@@ -5135,6 +5149,44 @@ function renderPerception(){
             <span class="bp-q">${esc(t.length>220?t.slice(0,219)+"…":t)}</span>
             <span class="bp-meta">${r.p?`<a class="rl" href="#" data-model="${esc(f.id(r.p))}">${esc(modelTitle(r.name,30))}</a>`:esc(modelTitle(r.name,30))} · ${esc(r.date||"")}</span></div>`; }).join("");
   } else quotes.innerHTML = `<div style="font-size:12.5px;color:var(--ink-soft)">Click a score to read the reviews behind it.</div>`;
+  renderBrandProfile(rows, rb);
+}
+/* One brand against the market: per pillar, the share of its reviews that
+   mention it vs the share across all brands in view (the ratio is what the
+   brand stands out for), plus its models × pillars. */
+function renderBrandProfile(rows, rb){
+  const F=bpFilter, chipsEl=document.getElementById("bpProfChips"); if(!chipsEl) return;
+  if(!rb.length){ ["bpProfChips","bpProfReasons","bpProfVs","bpProfModels"].forEach(id=>document.getElementById(id).innerHTML=""); return; }
+  if(!F.profile || !rb.some(e=>e.b===F.profile)) F.profile=(rb.find(e=>e.mine)||rb[0]).b;
+  chipsEl.innerHTML = rb.map(e=>`<button class="chip ${F.profile===e.b?'on':''}" data-bp="profile" data-pv="${esc(e.b)}">${esc(e.b)}${e.mine?" ★":""}<span class="cnt">${e.n}</span></button>`).join("");
+  const brandRows=rows.filter(r=>r.brand===F.profile), N=brandRows.length, M=rows.length;
+  const count=(list,k)=>{ const c={n:0,pos:0,neg:0}; for(const r of list){ const v=r.tags[k]; if(v===undefined) continue; c.n++; if(v>0) c.pos++; else if(v<0) c.neg++; } return c; };
+  const pills=BP_PILLARS.filter(P=>!P.retailer);
+  const stats=pills.map(P=>{ const b=count(brandRows,P.k), m=count(rows,P.k);
+    const bs=N?b.n/N:0, ms=M?m.n/M:0; return {P, b, bs, ms, idx: ms? bs/ms : null}; });
+  const stand=stats.filter(s=>s.b.n>=BP_MIN_N && s.idx>=1.3).sort((a,b)=>b.idx-a.idx);
+  const weak=stats.filter(s=>s.b.n>=BP_MIN_N && s.b.neg/s.b.n>=0.25).sort((a,b)=>b.b.neg/b.b.n-a.b.neg/a.b.n);
+  document.getElementById("bpProfScope").textContent=`· ${F.profile}: ${N} review${N===1?"":"s"} read vs ${M} in the market view`;
+  const pct=v=>Math.round(v*100)+"%";
+  document.getElementById("bpProfReasons").innerHTML =
+    `<div class="bp-reasons"><b>${esc(F.profile)} buyers stand out for:</b> ${stand.length?stand.slice(0,4).map(s=>`<span class="bp-reason">${esc(s.P.label)} <small>${s.idx.toFixed(1)}× the market</small></span>`).join(""):'<span style="color:var(--ink-soft)">nothing yet, too few reviews read or close to the market on every pillar</span>'}</div>`
+    + (weak.length?`<div class="bp-reasons" style="margin-top:6px"><b>Most complaints about:</b> ${weak.slice(0,3).map(s=>`<span class="bp-reason neg">${esc(s.P.label)} <small>${s.b.neg} of ${s.b.n} mentions</small></span>`).join("")}</div>`:"");
+  document.getElementById("bpProfVs").innerHTML = `<thead><tr><th>Pillar</th><th style="text-align:right">${esc(F.profile)}</th><th style="text-align:right">Market</th><th style="text-align:right">vs market</th><th style="text-align:right">Complaints</th></tr></thead><tbody>`
+    + stats.sort((a,b)=>b.bs-a.bs).map(s=>{ const few=s.b.n<BP_MIN_N;
+        const ix=s.idx==null?"–":`<b style="color:${!few&&s.idx>=1.3?"var(--cobalt)":!few&&s.idx<=0.7?"var(--ink-soft)":"var(--ink)"}">${s.idx.toFixed(1)}×</b>`;
+        return `<tr${few?' style="opacity:.6"':""}><td>${esc(s.P.label)}</td><td style="text-align:right">${pct(s.bs)} <small style="color:var(--ink-soft)">(${s.b.n})</small></td>
+          <td style="text-align:right">${pct(s.ms)}</td><td style="text-align:right">${ix}</td>
+          <td style="text-align:right">${s.b.neg?`<span class="bp-neg">${s.b.neg}</span>`:'<span style="color:var(--ink-faint)">0</span>'}</td></tr>`; }).join("") + "</tbody>";
+  // the brand's models × pillars (models with 3+ reviews read)
+  const byModel={};
+  for(const r of brandRows){ const k=r.p?normCode(extractModel(r.name).code)||r.url:r.url; (byModel[k]=byModel[k]||{r, rows:[]}).rows.push(r); }
+  const models=Object.values(byModel).filter(m=>m.rows.length>=3).sort((a,b)=>b.rows.length-a.rows.length).slice(0,12);
+  const top=stats.filter(s=>s.b.n).sort((a,b)=>b.b.n-a.b.n).slice(0,6).map(s=>s.P);
+  document.getElementById("bpProfModels").innerHTML = models.length && top.length
+    ? `<thead><tr><th>Model</th><th style="text-align:right">Reviews</th>${top.map(P=>`<th style="text-align:center;white-space:nowrap">${esc(P.label.split(" ")[0])}</th>`).join("")}</tr></thead><tbody>`
+      + models.map(m=>`<tr><td style="white-space:nowrap">${m.r.p?`<a class="rl" href="#" data-model="${esc(f.id(m.r.p))}">${esc(modelTitle(m.r.name,24))}</a>`:esc(modelTitle(m.r.name,24))}</td><td style="text-align:right">${m.rows.length}</td>`
+        + top.map(P=>{ const c=count(m.rows,P.k); return `<td style="text-align:center">${c.n?`${pct(c.n/m.rows.length)}${c.neg?` <small class="bp-neg">−${c.neg}</small>`:""}`:'<span style="color:var(--ink-faint)">·</span>'}</td>`; }).join("") + `</tr>`).join("") + "</tbody>"
+    : `<tbody><tr><td style="color:var(--ink-soft);padding:12px">No ${esc(F.profile)} model has 3+ reviews read yet.</td></tr></tbody>`;
 }
 
 /* ---- Shelf share: listings per brand at a retailer over time. A listing is
@@ -6681,6 +6733,7 @@ on("deptToggle","click",e=>{ const b=e.target.closest(".dept-pill"); if(b) setDe
 on("pxChips","click",e=>{ const c=e.target.closest("[data-px]"); if(!c) return;
   pxFilter[c.dataset.px] = c.dataset.px==="min" ? +c.dataset.pv : c.dataset.pv; renderPriceIndex(); });
 on("bpChips","click",e=>{ const c=e.target.closest("[data-bp]"); if(!c) return; bpFilter[c.dataset.bp]=c.dataset.pv; bpFilter.brand=bpFilter.pillar=null; renderPerception(); });
+on("bpProfChips","click",e=>{ const c=e.target.closest("[data-bp]"); if(!c) return; bpFilter.profile=c.dataset.pv; renderPerception(); });
 on("page-perception","click",e=>{
   const c=e.target.closest("[data-bp-cell]");
   if(c){ const [b,k]=c.dataset.bpCell.split("|"); const same=bpFilter.brand===b&&bpFilter.pillar===k;

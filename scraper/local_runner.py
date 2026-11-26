@@ -1712,6 +1712,19 @@ def main():
         run_enrich_ids(site=args.site, limit=args.limit)
         return
 
+    # --reviews without --plp: a catch-up pass over the products already on
+    # the backend (their listing ratings tell which have reviews), no listing scrape
+    if args.reviews and not args.plp:
+        global REVIEWS_MINUTES
+        REVIEWS_MINUTES = max(5, (args.max_minutes or 25) - 5)
+        seen = [{"site": p.get("site"), "url": p.get("url"), "name": p.get("name"),
+                 "reviews": (p.get("specs") or {}).get("__reviews"),
+                 "dept": (p.get("specs") or {}).get("__dept", "cooling")}
+                for p in get_tracked_products() if p.get("url")]
+        log(f"=== reviews catch-up: {sum(1 for s in seen if s['reviews'])} rated products on the backend ===")
+        check_reviews(seen)
+        return
+
     # Decide which subcategories are in scope for this run.
     if args.only:
         scope_subs = {s.strip() for s in args.only.split(",") if s.strip()}
