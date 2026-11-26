@@ -172,6 +172,26 @@ nav button.active{background:var(--cobalt);color:#fff}
 .topbar .search input{width:100%;padding:9px 14px 9px 38px;border:1px solid var(--line);border-radius:10px;background:var(--soft-bg);color:var(--ink);font:500 13px 'Hanken Grotesk'}
 .topbar .search::before{content:"";position:absolute;left:13px;top:50%;transform:translateY(-50%);width:15px;height:15px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236F6A60' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E") center/contain no-repeat;opacity:.65}
 .topbar .spacer{flex:1}
+/* customer ratings on products: chip, badges, the model page's review section */
+.rating-chip{display:inline-flex;align-items:center;gap:3px;margin-left:6px;font:700 11.5px 'Hanken Grotesk';color:#8A5A00;background:#FFF3DC;border-radius:99px;padding:1px 8px;white-space:nowrap;vertical-align:1px}
+.rating-chip small{font-weight:500;color:var(--ink-soft)}
+[data-theme="dark"] .rating-chip{background:#3A2A10;color:#F2C46B}
+.rb{display:inline-block;margin-left:5px;font:700 9.5px 'Hanken Grotesk';letter-spacing:.04em;text-transform:uppercase;border-radius:99px;padding:2px 7px;vertical-align:1px;white-space:nowrap}
+.rb-most{background:var(--cobalt);color:var(--on-cobalt)}
+.rb-top{background:#FFD9A8;color:#5A3600}
+[data-theme="dark"] .rb-top{background:#5A3D17;color:#FFE2BC}
+.mp-rv-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin-bottom:6px}
+.mp-rv-stars{font:700 22px 'Bricolage Grotesque';color:#B7791F}
+.mp-rv-n{font-size:12.5px;color:var(--ink-soft);margin-right:4px}
+.mp-rv-note{font-size:12px;color:var(--ink-soft);margin:4px 0 8px}
+.mp-rv-sub{font:600 11px 'Hanken Grotesk';letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);margin:12px 0 2px}
+.mp-pls{display:flex;flex-direction:column;gap:6px;margin:6px 0 4px}
+.mp-pl{display:grid;grid-template-columns:150px 1fr 34px;gap:10px;align-items:center;font-size:12.5px}
+.mp-pl.ret{opacity:.7}
+.mp-pl-l small{color:var(--ink-soft)}
+.mp-pl-bar{display:flex;height:9px;border-radius:99px;overflow:hidden;background:var(--soft-bg)}
+.mp-pl-bar i{display:block;height:100%} .mp-pl-bar .p{background:var(--cobalt)} .mp-pl-bar .z{background:var(--line)} .mp-pl-bar .n{background:var(--heat)}
+.mp-pl-n{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-soft)}
 /* brand perception: pillar cells + review quotes */
 .bp-cell{border:1px solid transparent;background:transparent;border-radius:8px;padding:4px 8px;cursor:pointer;font:inherit;color:var(--ink);white-space:nowrap}
 .bp-cell b{font:700 14px 'Bricolage Grotesque';font-variant-numeric:tabular-nums}
@@ -946,7 +966,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-26-S22</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-26-S23</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -3268,15 +3288,83 @@ function closeModel(){
   document.body.style.overflow="";
   syncRoute();
 }
+/* ---- Customer ratings of one model (its listings across retailers) ----
+   Stars per retailer = that retailer's listing rating; the model's rating is
+   the review-weighted average. Badges compare the model with its own type
+   (department + category): "Most reviewed" = top 3 by review count (the best
+   stand-in for sales we have; real sales figures aren't public), "Top rated"
+   = 4.7★+ from 15+ reviews. */
+function modelRating(members){
+  const per={};
+  for(const q of members){ const s=f.specs(q)||{}, n=+s.__reviews||0, r=+s.__rating||0;
+    if(n && r && (!per[f.site(q)] || n>per[f.site(q)].n)) per[f.site(q)]={n, r}; }
+  let n=0, sum=0; for(const s in per){ n+=per[s].n; sum+=per[s].r*per[s].n; }
+  return n ? {stars:sum/n, n, per} : null;
+}
+let _rbIdx = {key:null, top:{}};
+function ratingBadges(p, rating){
+  if(!rating) return [];
+  const all=allProducts(), key=all.length+"|"+(all[0]?f.id(all[0]):"");
+  if(_rbIdx.key!==key){
+    const models={};    // type -> model -> reviews (each retailer's listing counted once)
+    for(const q of all){ const s=f.specs(q)||{}, n=+s.__reviews||0; if(!n) continue;
+      const t=deptOf(q)+"|"+q.category, m=normCode(extractModel(f.name(q)).brand)+"|"+(normCode(extractModel(f.name(q)).code)||f.id(q));
+      const e=((models[t]=models[t]||{})[m]=models[t][m]||{});
+      e[f.site(q)]=Math.max(e[f.site(q)]||0, n); }
+    const top={};
+    for(const t in models){ const counts=Object.entries(models[t]).map(([m,e])=>[m, Object.values(e).reduce((a,b)=>a+b,0)])
+        .filter(x=>x[1]>=10).sort((a,b)=>b[1]-a[1]).slice(0,3);
+      counts.forEach(([m],i)=>{ top[t+"|"+m]=i+1; }); }
+    _rbIdx={key, top};
+  }
+  const out=[], x=extractModel(f.name(p));
+  const rank=_rbIdx.top[deptOf(p)+"|"+p.category+"|"+normCode(x.brand)+"|"+(normCode(x.code)||f.id(p))];
+  const typeName=LAUNCH_CAT[p.category]||p.category||"its type";
+  if(rank) out.push({cls:"rb-most", label:rank===1?"Most reviewed":"#"+rank+" most reviewed", title:`#${rank} by number of customer reviews among ${typeName} models (a stand-in for sales)`});
+  if(rating.stars>=4.7 && rating.n>=15) out.push({cls:"rb-top", label:"Top rated", title:`${rating.stars.toFixed(2)}★ from ${rating.n} reviews`});
+  return out;
+}
+const ratingChipHTML = r => r ? `<span class="rating-chip" title="${r.n} customer reviews">★ ${r.stars.toFixed(1)} <small>(${r.n})</small></span>` : "";
+const ratingBadgesHTML = bs => bs.map(b=>`<span class="rb ${b.cls}" title="${esc(b.title)}">${esc(b.label)}</span>`).join("");
+/* "Why buyers chose it": the brand-matrix tagging, on this model's own review texts */
+function modelReviewsHTML(members, rating, badges){
+  const urls=new Set(members.map(f.url));
+  if(state.reviews===undefined) bpLoad();
+  const rows=state.reviews ? bpRows().filter(r=>urls.has(r.url)) : [];
+  const head=`<div class="mp-sec">Customer reviews</div>
+    <div class="mp-rv-head">${rating?`<span class="mp-rv-stars">${rating.stars.toFixed(2)}★</span><span class="mp-rv-n">${rating.n} reviews</span>`
+      :'<span class="mp-rv-n">No customer ratings yet</span>'}
+      ${rating?Object.entries(rating.per).map(([s,v])=>`<span class="pill ${SITE_PILL[s]||"na"}">${SITE_LABEL[s]||s} ${v.r.toFixed(1)}★ (${v.n})</span>`).join(" "):""}
+      ${ratingBadgesHTML(badges)}</div>`;
+  if(!rating) return head;
+  if(state.reviews===undefined) return head+`<div class="mp-rv-note">Loading review texts…</div>`;
+  if(!rows.length) return head+`<div class="mp-rv-note">${rating.per.kotsovolos?"Review texts for this model haven't been read yet: the daily run reads them a batch at a time.":"Only star ratings here: the review texts are read from Kotsovolos pages."}</div>`;
+  const P={};
+  for(const r of rows) for(const k in r.tags){ const c=P[k]=P[k]||{n:0,pos:0,neg:0}; c.n++; if(r.tags[k]>0) c.pos++; else if(r.tags[k]<0) c.neg++; }
+  const list=BP_PILLARS.filter(x=>P[x.k]).sort((a,b)=>P[b.k].n-P[a.k].n);
+  const bars=list.map(x=>{ const c=P[x.k], neu=c.n-c.pos-c.neg;
+    return `<div class="mp-pl${x.retailer?" ret":""}"><span class="mp-pl-l">${esc(x.label)}${x.retailer?' <small>(retailer)</small>':""}</span>
+      <span class="mp-pl-bar" title="${c.pos} positive, ${neu} neutral, ${c.neg} negative"><i class="p" style="width:${c.pos/c.n*100}%"></i><i class="z" style="width:${neu/c.n*100}%"></i><i class="n" style="width:${c.neg/c.n*100}%"></i></span>
+      <span class="mp-pl-n">${c.n}</span></div>`; }).join("");
+  const quote=(r,cls)=>{ const t=String(r.text||"").replace(/\s+/g," "); return `<div class="bp-quote ${cls}"><span class="bp-stars">${"★".repeat(r.stars||0)}<span>${"★".repeat(5-(r.stars||0))}</span></span><span class="bp-q">${esc(t.length>200?t.slice(0,199)+"…":t)}</span><span class="bp-meta">${esc(r.date||"")} · ${SITE_LABEL[r.site]||r.site}</span></div>`; };
+  const tagged=rows.filter(r=>Object.keys(r.tags).length);
+  const likes=tagged.filter(r=>Object.values(r.tags).some(v=>v>0)).sort((a,b)=>Object.keys(b.tags).length-Object.keys(a.tags).length).slice(0,2);
+  const dislikes=tagged.filter(r=>Object.values(r.tags).some(v=>v<0)).slice(0,2);
+  return head + `<div class="mp-rv-note">${rows.length} review text${rows.length===1?"":"s"} read · ${tagged.length} mention a pillar · bars: <b style="color:var(--cobalt)">positive</b> / neutral / <b style="color:var(--heat)">negative</b></div>`
+    + (bars?`<div class="mp-pls">${bars}</div>`:"")
+    + (likes.length?`<div class="mp-rv-sub">What buyers like</div>${likes.map(r=>quote(r,"pos")).join("")}`:"")
+    + (dislikes.length?`<div class="mp-rv-sub">What buyers dislike</div>${dislikes.map(r=>quote(r,"neg")).join("")}`:"");
+}
 function renderModelPanel(p, keepScroll){
   const dept=deptOf(p), members=modelMembers(p), priced=members.filter(q=>f.price(q)!=null);
   const best=priced[0], hi=priced[priced.length-1];
   const img=members.map(q=>f.image(q)).find(Boolean);
   const mine=isMyBrand(p);
   const type=LAUNCH_CAT[p.category]||(typeof SUBCAT_LABEL!=="undefined"&&SUBCAT_LABEL[categorize(p)])||p.category||"";
+  const rating=modelRating(members), badges=ratingBadges(p, rating);
   document.getElementById("mpHead").innerHTML = `${img?`<img src="${esc(img)}" alt="" onerror="this.style.visibility='hidden'">`:'<span class="mp-ph"></span>'}
     <div style="min-width:0"><div class="mp-title">${esc(modelTitle(f.name(p),60))}${mine?' <span class="mine-tag" style="display:inline-block;background:var(--cobalt);color:#fff;font:700 9px \'Hanken Grotesk\';padding:2px 7px;border-radius:99px;vertical-align:middle">YOURS</span>':""}</div>
-    <div class="mp-sub">${esc(DEPT_NAME[dept]||dept)}${type?" · "+esc(type):""} · ${members.length} listing${members.length!==1?"s":""}</div>
+    <div class="mp-sub">${esc(DEPT_NAME[dept]||dept)}${type?" · "+esc(type):""} · ${members.length} listing${members.length!==1?"s":""}${rating?" · "+ratingChipHTML(rating):""} ${ratingBadgesHTML(badges)}</div>
     <div class="mp-sub" style="font-size:11.5px">${esc(short(f.name(p),110))}</div></div>`;
 
   // --- price history (this model's listings, one line per retailer)
@@ -3348,6 +3436,7 @@ function renderModelPanel(p, keepScroll){
   document.getElementById("mpBody").innerHTML = `<div class="mp-kpis">${kpis}</div>
     <div class="mp-sec">Retailers</div><div>${offers}${bpRow}</div>
     ${market}
+    ${modelReviewsHTML(members, rating, badges)}
     <div class="mp-sec">Price history</div><div class="mp-chart"><canvas id="mpChart"></canvas></div>
     ${tech.length?`<div class="mp-sec">Technologies & programs</div><div class="tech-row">${techChipsHTML(tech)}</div>`:""}
     <div class="mp-sec">Specs</div>${specRows?`<div class="mp-specs">${specRows}</div>`:'<div style="font-size:12.5px;color:var(--ink-soft)">No specs captured for this model yet.</div>'}
@@ -4088,6 +4177,7 @@ function benchRowHTML(row, i, dept){
               : SEC_DEPTS[dept] ? SEC_DEPTS[dept].specs(SEC_DEPTS[dept].norm(p))
               : coolSpecChips(p.__norm||(p.__norm=normalize(p)));
   const tech = deriveTech(p, dept);
+  const rating = modelRating([p, ...(row.others||[])]);
   const nm=esc(modelTitle(f.name(p),36));
   const nameHTML=url?`<a href="${esc(url)}" target="_blank" rel="noopener" title="Open on ${SITE_LABEL[f.site(p)]||f.site(p)}">${nm} <span class="rl-arrow">↗</span></a>`:nm;
   const retail = row.groupSize>1
@@ -4097,7 +4187,7 @@ function benchRowHTML(row, i, dept){
     <div class="lau-rank">${i+1}</div>
     ${lauThumbCell(p, dept==="laundry"?"t_drum":SEC_DEPTS[dept]?SEC_DEPTS[dept].icon:"e_snow")}
     <div class="lau-body">
-      <div class="lau-nm">${nameHTML}${mine?'<span class="lau-yours">YOURS</span>':''}</div>
+      <div class="lau-nm">${nameHTML}${mine?'<span class="lau-yours">YOURS</span>':''}${ratingChipHTML(rating)}${ratingBadgesHTML(ratingBadges(p, rating))}</div>
       <div class="lau-specs">${chips}</div>
       ${tech.length?`<div class="tech-row">${techChipsHTML(tech)}</div>`:""}
       <div class="lau-retail">${esc(retail)} · <span class="bx-hint">details ▾</span></div>
@@ -4936,7 +5026,8 @@ function bpLoad(){
   if(state.reviews!==undefined || _bpLoading) return;
   _bpLoading = true;
   api("/api/reviews").then(r=>{ state.reviews = r && Array.isArray(r.rows) ? r : {p:{}, rows:[]}; })
-    .catch(()=>{ state.reviews = null; }).finally(()=>{ _bpLoading=false; renderPerception(); });
+    .catch(()=>{ state.reviews = null; }).finally(()=>{ _bpLoading=false; renderPerception();
+      if(MP.id){ const mp=_prodIndex().byId[MP.id]; if(mp) renderModelPanel(mp, true); } });   // an open model page gets its reviews
 }
 /* one review -> {pillar key: +1 / 0 / -1} */
 function bpTag(text, stars){
