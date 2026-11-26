@@ -6,6 +6,15 @@
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#FEFCF8">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#17150F">
 <meta name="color-scheme" content="light dark">
+<script>
+/* Motion switch, applied before first paint: "auto" follows the computer's
+   reduced-motion setting, "on" / "off" override it (per browser). */
+(function(){
+  var pref="auto"; try{ pref=JSON.parse(localStorage.getItem("pricedge_motion"))||"auto"; }catch(_){}
+  var os=false; try{ os=matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(_){}
+  document.documentElement.dataset.motion = (pref==="off" || (pref==="auto" && os)) ? "reduce" : "full";
+})();
+</script>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -478,15 +487,21 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 @keyframes rot{to{transform:rotate(360deg)}}
 /* reduced motion = no movement, but keep fades, colour changes and a (slower) spinner,
    so loading and state changes still read */
-@media (prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
-  .ticker-track,.page{animation:none}
-  .spin,.boot-spinner{animation-duration:1.6s}
-  .loadbar.on::after{animation:none;left:0;width:100%;opacity:.5}
-  *,*::before,*::after{transition-property:opacity,color,background-color,border-color,box-shadow!important}
-  button:active,.chip:active,.fchip:active,.bchip:active,.dr-tab:active,.brand-tab:active,.export-card:active{transform:none}
-  .sidebar,.drawer{transition:none!important}
-}
+/* html[data-motion="reduce"] is set by the Motion switch: Off, or Auto when the
+   computer asks for reduced motion (Windows "Animation effects" off). */
+html[data-motion="reduce"]{scroll-behavior:auto}
+html[data-motion="reduce"] :is(.ticker-track,.page){animation:none}
+html[data-motion="reduce"] :is(.spin,.boot-spinner){animation-duration:1.6s}
+html[data-motion="reduce"] .loadbar.on::after{animation:none;left:0;width:100%;opacity:.5}
+html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-motion="reduce"] *::after{transition-property:opacity,color,background-color,border-color,box-shadow!important}
+html[data-motion="reduce"] :is(button,.chip,.fchip,.bchip,.dr-tab,.brand-tab,.export-card):active{transform:none}
+html[data-motion="reduce"] :is(.sidebar,.drawer){transition:none!important}
+html[data-motion="reduce"] .seen-flash{animation:none!important}
+/* Motion switch: the badge says the current setting */
+.motion-btn{display:grid;place-items:center}
+.motion-btn .mbadge{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);font:700 8.5px 'Hanken Grotesk';letter-spacing:.04em;text-transform:uppercase;
+  background:var(--frost);color:var(--ink-soft);border:1px solid var(--line);border-radius:99px;padding:0 5px;line-height:13px;white-space:nowrap}
+.motion-btn[data-mode="on"] .mbadge{background:var(--cobalt);border-color:var(--cobalt);color:var(--on-cobalt)}
 .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
 .toolbar .spacer{flex:1}
 .export-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
@@ -642,7 +657,6 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 .mini-row.seen-flash{animation:seenrow 1.8s var(--ease-out)}
 @keyframes seentile{from{background-color:var(--cobalt-soft);border-color:var(--cobalt)}}
 @keyframes seenrow{from{background-color:var(--cobalt-soft)}}
-@media (prefers-reduced-motion:reduce){ .seen-flash{animation:none!important} }
 .mv-mine{font:700 9px 'Hanken Grotesk';letter-spacing:.04em;color:var(--on-cobalt);background:var(--cobalt);padding:1px 6px;border-radius:99px;margin-left:6px;vertical-align:1px}
 .pulse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:20px 24px}
 .pulse-grid .chart-box{height:220px}
@@ -893,7 +907,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-26-S19</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-26-S20</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -914,6 +928,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
   <div class="search"><input id="globalSearch" type="search" enterkeyhint="search" autocomplete="off" aria-label="Search products, brands, model codes" placeholder="Search products, brands, model codes…"></div>
   <div class="spacer"></div>
   <div class="fresh" id="freshBadge" title="Data freshness — most recent scrape per retailer"></div>
+  <button class="icon-btn motion-btn" id="motionToggle" data-mode="auto" title="Motion" aria-label="Motion"><svg class="ic" viewBox="0 0 24 24"><path d="M3 8h7M2 12h8M3 16h7"/><circle cx="16.5" cy="12" r="4.5"/></svg><span class="mbadge" id="motionBadge">Auto</span></button>
   <button class="icon-btn" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode"><svg class="ic" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg></button>
   <button class="icon-btn" id="notifBtn" title="Alerts" aria-label="Alerts"><span class="ico" data-ico="alerts"></span><span class="badge" id="notifBadge" style="display:none">0</span></button>
   <button class="run-btn" id="dealRadar" title="Deal Radar"><span class="ico" data-ico="deal"></span><span class="rb-txt"> Deal Radar</span><span class="dr-count" id="dealCount"></span></button>
@@ -3880,7 +3895,7 @@ function renderToday(prefix){
 document.addEventListener("click", e=>{
   const t=e.target.closest("[data-jump]"); if(!t) return;
   const card=document.getElementById(t.dataset.jump); if(!card) return;
-  card.scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"});
+  card.scrollIntoView({behavior: motionReduced() ? "auto" : "smooth", block:"start"});
 });
 
 /* "Where you stand" band — dashboards pass withLink=true for the
@@ -5914,6 +5929,40 @@ function applyTheme(t){
   try{ if(typeof renderDashboard==="function" && state && state.products) renderDashboard(); }catch(_){}
   try{ if(typeof renderHistory==="function") renderHistory(); }catch(_){}
 }
+/* ---- Motion switch (Auto / On / Off) ----
+   Auto follows the computer's reduced-motion setting; On / Off override it
+   in this browser. Every animation checks motionReduced(); the CSS keys off
+   html[data-motion] (set before first paint in <head>). */
+const MOTION_NEXT = {auto:"on", on:"off", off:"auto"};
+const osReducedMotion = () => { try{ return matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(_){ return false; } };
+function motionReduced(){ return document.documentElement.dataset.motion==="reduce"; }
+function applyMotion(){
+  const pref = store.get("motion","auto");
+  document.documentElement.dataset.motion = (pref==="off" || (pref==="auto" && osReducedMotion())) ? "reduce" : "full";
+  const btn=document.getElementById("motionToggle"), badge=document.getElementById("motionBadge");
+  if(!btn) return;
+  btn.dataset.mode = pref;
+  if(badge) badge.textContent = {auto:"Auto", on:"On", off:"Off"}[pref];
+  const label = pref==="auto"
+    ? `Motion: Auto, follows your computer (now ${osReducedMotion()?"off: Windows animation effects are off":"on"}). Click for On.`
+    : pref==="on" ? "Motion: On. Click for Off." : "Motion: Off. Click for Auto.";
+  btn.title = label; btn.setAttribute("aria-label", label);
+}
+document.addEventListener("DOMContentLoaded", ()=>{
+  applyMotion();
+  const btn=document.getElementById("motionToggle");
+  if(btn) btn.addEventListener("click", ()=>{
+    store.set("motion", MOTION_NEXT[store.get("motion","auto")] || "auto");
+    applyMotion();
+    // show what changed: a fresh chart draw and a tint on the "What changed" tiles
+    if(!motionReduced()){
+      _chartDrawn.clear(); renderAll();
+      document.querySelectorAll(".page.visible .today-tile").forEach(t=>{ t.classList.remove("seen-flash"); void t.offsetWidth; t.classList.add("seen-flash"); });
+    }
+  });
+  try{ matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", applyMotion); }catch(_){}
+});
+
 // no saved choice yet -> follow the computer's light / dark setting
 function osTheme(){ try{ return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"; }catch(_){ return "light"; } }
 (function initTheme(){
@@ -7211,7 +7260,7 @@ function getCSS(name){ try{ return getComputedStyle(document.documentElement).ge
    chart's first draw animates (a short ease-out); redraws are instant. */
 const _chartDrawn = new Set();
 function chartAnimation(id){
-  if(_chartDrawn.has(id) || matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+  if(_chartDrawn.has(id) || motionReduced()) return false;
   _chartDrawn.add(id);
   return {duration:450, easing:"easeOutQuart"};
 }
@@ -7269,7 +7318,7 @@ function emptyChart(id,msg){
 function setCount(id,target){
   const el=document.getElementById(id); if(!el) return;
   const dur=600, t0=performance.now();
-  if(matchMedia("(prefers-reduced-motion: reduce)").matches){el.textContent=target;return;}
+  if(motionReduced()){el.textContent=target;return;}
   (function step(t){const k=Math.min(1,(t-t0)/dur);el.textContent=Math.round(target*k);if(k<1)requestAnimationFrame(step);})(t0);
 }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
