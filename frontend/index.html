@@ -172,6 +172,32 @@ nav button.active{background:var(--cobalt);color:#fff}
 .topbar .search input{width:100%;padding:9px 14px 9px 38px;border:1px solid var(--line);border-radius:10px;background:var(--soft-bg);color:var(--ink);font:500 13px 'Hanken Grotesk'}
 .topbar .search::before{content:"";position:absolute;left:13px;top:50%;transform:translateY(-50%);width:15px;height:15px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236F6A60' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E") center/contain no-repeat;opacity:.65}
 .topbar .spacer{flex:1}
+/* global search dropdown */
+.gs-panel{position:absolute;top:calc(100% + 6px);left:0;width:min(560px,calc(100vw - 32px));max-height:min(70vh,560px);overflow-y:auto;overscroll-behavior:contain;
+  background:var(--frost);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 48px rgba(40,34,24,.18);padding:6px;z-index:90}
+.gs-grp{display:flex;justify-content:space-between;gap:8px;font:600 10.5px 'Hanken Grotesk';letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding:10px 10px 4px}
+.gs-grp span{text-transform:none;letter-spacing:0;font-weight:500}
+.gs-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:transparent;border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink);font:inherit}
+.gs-item.on,.gs-chip.on{background:var(--cobalt-soft)}
+@media (hover:hover) and (pointer:fine){ .gs-item:hover{background:var(--soft-bg)} .gs-item.on:hover{background:var(--cobalt-soft)} }
+.gs-main{flex:1;min-width:0;font-size:13px;line-height:1.3}
+.gs-main b{font-weight:600}
+.gs-sub{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:1px}
+.gs-price{text-align:right;font:700 13.5px 'Bricolage Grotesque';white-space:nowrap;font-variant-numeric:tabular-nums}
+.gs-price small{display:block;font:500 10.5px 'Hanken Grotesk';color:var(--ink-soft)}
+.gs-brand{padding:8px 10px;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.gs-brand .gs-sub{display:inline;margin:0 2px 0 4px}
+.gs-chip{border:1px solid var(--line);background:var(--frost);border-radius:99px;padding:3px 10px;font:600 12px 'Hanken Grotesk';color:var(--ink);cursor:pointer}
+.gs-page .gs-sub{display:inline}
+.gs-empty{padding:16px 12px;font-size:13px;color:var(--ink-soft)}
+.gs-panel mark{background:#FFE7B8;color:inherit;border-radius:3px;padding:0 1px}
+[data-theme="dark"] .gs-panel mark{background:#5A3D17}
+/* phones: the box opens full width over the top bar while you type */
+@media(max-width:760px){
+  .topbar .search:focus-within{position:fixed;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top, 0px));z-index:95;max-width:none}
+  .topbar .search:focus-within input{box-shadow:0 10px 30px rgba(40,34,24,.22)}
+  .gs-panel{width:100%}
+}
 .icon-btn{width:38px;height:38px;border-radius:10px;border:1px solid var(--line);background:var(--frost);color:var(--ink);cursor:pointer;font-size:15px;position:relative}
 .icon-btn .badge{position:absolute;top:-5px;right:-5px;background:var(--heat);color:#fff;font:700 9px 'Hanken Grotesk';min-width:16px;height:16px;border-radius:99px;display:grid;place-items:center;padding:0 3px}
 .run-btn{
@@ -907,7 +933,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-26-S20</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-26-S21</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -925,7 +951,10 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button class="dept-pill" data-dept="cooking"><span class="ico" data-ico="cooking"></span> Cooking</button>
     <button class="dept-pill" data-dept="dishwashing"><span class="ico" data-ico="dishwashing"></span> Dish</button>
   </div>
-  <div class="search"><input id="globalSearch" type="search" enterkeyhint="search" autocomplete="off" aria-label="Search products, brands, model codes" placeholder="Search products, brands, model codes…"></div>
+  <div class="search"><input id="globalSearch" type="search" enterkeyhint="search" autocomplete="off" spellcheck="false"
+      role="combobox" aria-expanded="false" aria-controls="gsPanel" aria-autocomplete="list"
+      aria-label="Search every department: models, codes, brands, pages" placeholder="Search models, codes, brands…  /">
+    <div class="gs-panel" id="gsPanel" role="listbox" aria-label="Search results" hidden></div></div>
   <div class="spacer"></div>
   <div class="fresh" id="freshBadge" title="Data freshness — most recent scrape per retailer"></div>
   <button class="icon-btn motion-btn" id="motionToggle" data-mode="auto" title="Motion" aria-label="Motion"><svg class="ic" viewBox="0 0 24 24"><path d="M3 8h7M2 12h8M3 16h7"/><circle cx="16.5" cy="12" r="4.5"/></svg><span class="mbadge" id="motionBadge">Auto</span></button>
@@ -6483,17 +6512,129 @@ on("menuToggle","click",()=>{
   const sb=document.getElementById("sidebar"); if(sb) sb.classList.toggle("open");
 });
 on("sideBackdrop","click",()=>{ const sb=document.getElementById("sidebar"); if(sb) sb.classList.remove("open"); });
-/* global search jumps to Explore and filters there */
-on("globalSearch","input",e=>{
-  // cooking/dishwashing have no explorer yet: search their Products table instead
-  if(SEC_DEPTS[state.dept]){
-    const box=document.getElementById(SEC_DEPTS[state.dept].ids.pSearch); if(box) box.value=e.target.value||"";
-    showTab("products"); return;
+/* ===== Global search: every department at once, in a dropdown that never
+   moves you off the page you're on. Models (one row per brand + code, best
+   price across retailers), brands (models per department) and pages.
+   Matching ignores case, accents and spaces in model codes. ===== */
+const gsNorm = s => String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toUpperCase();
+const GS_FILTERS = {cooling:()=>dashFilter, laundry:()=>laundryFilter, cooking:()=>cookingFilter, dishwashing:()=>dishFilter};
+let _gsIdx = {key:null, rows:[]};
+function gsIndex(){
+  const lists={cooling:state.products||[], laundry:state.laundry||[], cooking:state.cooking||[], dishwashing:state.dishwashing||[]};
+  const key=Object.values(lists).map(l=>l.length+":"+(l[0]?f.id(l[0]):"")).join("|");
+  if(_gsIdx.key===key) return _gsIdx.rows;
+  const by=new Map();
+  for(const [d,list] of Object.entries(lists)) for(const p of list){
+    if(f.price(p)==null || isClearance(p)) continue;
+    const x=extractModel(f.name(p)), code=normCode(x.code);
+    const k=d+"|"+(code.length>=4 ? normCode(x.brand)+"|"+code : "id:"+f.id(p));
+    let e=by.get(k);
+    if(!e){ e={d, brand:cap(x.brand||""), code, best:p, sites:new Set(), mine:isMyBrand(p)}; by.set(k,e); }
+    e.sites.add(f.site(p));
+    if(f.price(p)<f.price(e.best)) e.best=p;
   }
-  expFilters.q=(e.target.value||"").toUpperCase();
-  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.page==="compare"));
-  document.querySelectorAll(".page").forEach(p=>p.classList.toggle("visible",p.id==="page-compare"));
-  renderCompare();
+  const rows=[...by.values()].map(e=>{
+    const h=gsNorm([f.name(e.best), e.brand, LAUNCH_CAT[e.best.category]||"", DEPT_NAME[e.d]].join(" "));
+    return {...e, hay:h+" "+h.replace(/[^A-Z0-9\u0391-\u03A9]/g,""), price:f.price(e.best)};
+  });
+  _gsIdx={key, rows};
+  return rows;
+}
+function gsSearch(q){
+  const nq=gsNorm(q).trim(); if(nq.length<2) return null;
+  const toks=nq.split(/\s+/).filter(Boolean), compact=nq.replace(/[^A-Z0-9\u0391-\u03A9]/g,"");
+  const rows=gsIndex(), models=[];
+  for(const r of rows){
+    const codeHit = compact.length>=3 && r.code ? (r.code.startsWith(compact)?100 : r.code.includes(compact)?70 : 0) : 0;
+    const all = toks.every(t=>r.hay.includes(t));
+    if(!codeHit && !all) continue;
+    models.push({r, s: codeHit + (all?40:0) + (r.brand && gsNorm(r.brand).startsWith(toks[0])?10:0) + (r.d===state.dept?5:0) + (r.mine?3:0)});
+  }
+  models.sort((a,b)=>b.s-a.s || a.r.price-b.r.price);
+  // brands: the first word starts a brand name
+  const bmap={};
+  if(toks[0].length>=2) for(const r of rows){
+    if(!r.brand || !gsNorm(r.brand).startsWith(toks[0])) continue;
+    const b=bmap[r.brand]=bmap[r.brand]||{brand:r.brand, mine:r.mine, n:0, d:{}};
+    b.n++; b.d[r.d]=(b.d[r.d]||0)+1;
+  }
+  const brands=Object.values(bmap).sort((a,b)=>b.n-a.n).slice(0,3);
+  // pages and departments by name
+  const pages=[];
+  for(const [d,name] of Object.entries(DEPT_NAME)) if(gsNorm(name).includes(nq)) pages.push({kind:"dept", d, label:name+" department"});
+  document.querySelectorAll("#nav [data-page]").forEach(b=>{
+    const label=b.textContent.trim().replace(/\d+\+?$/,"").trim();
+    if(b.style.display!=="none" && gsNorm(label).includes(nq)) pages.push({kind:"page", page:b.dataset.page, label});
+  });
+  return {models:models.slice(0,8), total:models.length, brands, pages:pages.slice(0,4), q};
+}
+function gsRender(res){
+  const panel=document.getElementById("gsPanel"), input=document.getElementById("globalSearch");
+  if(!res){ panel.hidden=true; input.setAttribute("aria-expanded","false"); return; }
+  let i=0; const id=()=>`gs-opt-${i++}`;
+  const hl=s=>{ let out=esc(s); for(const t of gsNorm(res.q).split(/\s+/).filter(t=>t.length>=2)){
+      out=out.replace(new RegExp("("+t.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+")","gi"),"<mark>$1</mark>"); } return out; };
+  const grp=(t,meta)=>`<div class="gs-grp">${t}${meta?`<span>${meta}</span>`:""}</div>`;
+  let html="";
+  if(res.models.length){
+    html+=grp("Models", res.total>res.models.length?`top ${res.models.length} of ${res.total}`:"");
+    html+=res.models.map(({r})=>`<button class="gs-item" id="${id()}" role="option" data-gs data-model="${esc(f.id(r.best))}">
+        <span class="gs-main"><b>${hl(modelTitle(f.name(r.best),46))}</b>${r.mine?'<span class="mv-mine">YOURS</span>':""}
+          <span class="gs-sub">${esc(DEPT_NAME[r.d])} · ${esc(LAUNCH_CAT[r.best.category]||"")} · ${[...r.sites].map(s=>SITE_LABEL[s]||s).join(", ")}</span></span>
+        <span class="gs-price">${fmt(r.price)}<small>${SITE_LABEL[f.site(r.best)]||""}</small></span></button>`).join("");
+  }
+  if(res.brands.length){
+    html+=grp("Brands");
+    html+=res.brands.map(b=>`<div class="gs-brand"><b>${hl(b.brand)}</b>${b.mine?'<span class="mv-mine">YOURS</span>':""}<span class="gs-sub">${b.n} model${b.n===1?"":"s"} · open in Benchmark:</span>
+        ${Object.entries(b.d).sort((x,y)=>y[1]-x[1]).map(([d,n])=>`<button class="gs-chip" id="${id()}" role="option" data-gs data-gs-brand="${esc(b.brand)}" data-gs-dept="${d}">${esc(DEPT_NAME[d])} ${n}</button>`).join("")}</div>`).join("");
+  }
+  if(res.pages.length){
+    html+=grp("Go to");
+    html+=res.pages.map(p=>`<button class="gs-item gs-page" id="${id()}" role="option" data-gs ${p.kind==="dept"?`data-gs-dept-only="${p.d}"`:`data-goto="${p.page}"`}><span class="gs-main"><b>${esc(p.label)}</b></span><span class="gs-sub">↵</span></button>`).join("");
+  }
+  panel.innerHTML = html || `<div class="gs-empty">Nothing matches “${esc(res.q)}” in any department.</div>`;
+  panel.hidden=false; input.setAttribute("aria-expanded","true");
+  gsMove(0, true);
+}
+let _gsActive=-1;
+function gsMove(delta, reset){
+  const items=[...document.querySelectorAll("#gsPanel [data-gs]")], input=document.getElementById("globalSearch");
+  if(!items.length){ _gsActive=-1; input.removeAttribute("aria-activedescendant"); return; }
+  _gsActive = reset ? 0 : (_gsActive+delta+items.length)%items.length;
+  items.forEach((el,k)=>el.classList.toggle("on", k===_gsActive));
+  input.setAttribute("aria-activedescendant", items[_gsActive].id);
+  items[_gsActive].scrollIntoView({block:"nearest"});
+}
+function gsClose(clear){
+  const input=document.getElementById("globalSearch");
+  gsRender(null); if(clear) input.value="";
+}
+let _gsT=null;
+on("globalSearch","input",e=>{ clearTimeout(_gsT); const v=e.target.value; _gsT=setTimeout(()=>gsRender(gsSearch(v)), 90); });
+on("globalSearch","focus",e=>{ if(e.target.value.trim().length>=2) gsRender(gsSearch(e.target.value)); });
+on("globalSearch","keydown",e=>{
+  const open=!document.getElementById("gsPanel").hidden;
+  if(e.key==="ArrowDown"){ e.preventDefault(); if(open) gsMove(1); else gsRender(gsSearch(e.target.value)); }
+  else if(e.key==="ArrowUp"){ if(open){ e.preventDefault(); gsMove(-1); } }
+  else if(e.key==="Enter"){ const el=document.querySelectorAll("#gsPanel [data-gs]")[_gsActive]; if(open && el){ e.preventDefault(); el.click(); } }
+  else if(e.key==="Escape"){ if(open) gsClose(false); else { e.target.value=""; e.target.blur(); } }
+});
+on("gsPanel","mousedown",e=>e.preventDefault());   // keep focus in the box while clicking a result
+on("gsPanel","click",e=>{
+  const b=e.target.closest("[data-gs-brand]"), d=e.target.closest("[data-gs-dept-only]");
+  if(b){ const dept=b.dataset.gsDept, F=GS_FILTERS[dept] && GS_FILTERS[dept]();
+    if(F && F.brands){ F.brands.clear(); F.brands.add(b.dataset.gsBrand); }
+    if(state.dept!==dept) setDept(dept); showTab("benchmark"); }
+  else if(d){ setDept(d.dataset.gsDeptOnly); }
+  // model rows open the model panel through the shared [data-model] handler, pages through [data-goto]
+  if(e.target.closest("[data-gs]")){ gsClose(true); document.getElementById("globalSearch").blur(); }
+});
+document.addEventListener("click",e=>{ if(!e.target.closest(".topbar .search")) gsRender(null); });
+// "/" or Ctrl/Cmd+K jumps to the search box from anywhere that isn't a text field
+document.addEventListener("keydown",e=>{
+  const typing=/^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName||"")) || e.target.isContentEditable;
+  if((e.key==="/" && !typing) || ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==="k")){
+    e.preventDefault(); const i=document.getElementById("globalSearch"); i.focus(); i.select(); }
 });
 on("notifBtn","click",()=>{
   document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.page==="alerts"));
