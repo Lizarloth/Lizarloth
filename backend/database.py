@@ -151,6 +151,24 @@ class MarketStat(Base):
     )
 
 
+class Review(Base):
+    """One customer review as the retailer's product page shows it (scraper/
+    reviews.py, run by local_runner --reviews). No reviewer names are kept.
+    key = a hash of url + date + title + text, so a re-read never duplicates."""
+    __tablename__ = "reviews"
+    id = Column(Integer, primary_key=True, index=True)
+    key = Column(String, unique=True, index=True, nullable=False)
+    site = Column(String, index=True, nullable=False)
+    url = Column(String, index=True, nullable=False)
+    product_name = Column(String, nullable=True)
+    stars = Column(Integer, nullable=True)
+    title = Column(String, nullable=True)
+    text = Column(Text, nullable=True)
+    review_date = Column(String, nullable=True)      # YYYY-MM-DD as the page shows it
+    verified = Column(Boolean, default=False)
+    first_seen = Column(DateTime, default=datetime.utcnow)
+
+
 class Alert(Base):
     __tablename__ = "alerts"
     id = Column(Integer, primary_key=True, index=True)

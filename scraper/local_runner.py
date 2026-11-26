@@ -1065,6 +1065,36 @@ _DEPT_SPEC_LABELS = {
 }
 
 
+FEEFO_RATINGS = "https://api.feefo.com/api/20/products/ratings"
+_FEEFO = {}        # Plaisio SKU -> (stars, review count), or None when unrated
+
+
+def _attach_plaisio_ratings(results):
+    """Plaisio's product pages show Feefo customer ratings. Feefo's public
+    ratings API answers up to 50 SKUs per call, so each push batch costs one
+    request; every SKU is asked once per run."""
+    want = [str(r["sku"]) for r in results
+            if r.get("site") == "plaisio" and r.get("sku") and str(r["sku"]) not in _FEEFO]
+    for i in range(0, len(want), 50):
+        chunk = want[i:i + 50]
+        for s in chunk:
+            _FEEFO[s] = None
+        try:
+            resp = requests.get(FEEFO_RATINGS, timeout=30, params={
+                "merchant_identifier": "plaisio-greece", "review_count": "true", "since_period": "all",
+                "product_sku": ",".join(chunk), "page_size": 100})
+            for p in resp.json().get("products") or []:
+                if p.get("review_count"):
+                    _FEEFO[str(p["sku"])] = (round(float(p["rating"]), 2), int(p["review_count"]))
+        except Exception as e:
+            log(f"    ! plaisio ratings (feefo): {str(e)[:60]}")
+    for r in results:
+        v = _FEEFO.get(str(r.get("sku"))) if r.get("site") == "plaisio" else None
+        if v:
+            r.setdefault("specs", {})
+            r["specs"]["__rating"], r["specs"]["__reviews"] = v
+
+
 def _plp_row_to_result(row, canonical_subcat):
     """Fetcher row -> backend result, plus the technology / program tags
     (scraper/features.py) for any department that carries them. Stored as
@@ -1073,6 +1103,10 @@ def _plp_row_to_result(row, canonical_subcat):
     for key, spec in (("tech_tags", "__tech"), ("program_tags", "__progs")):
         if row.get(key):
             res["specs"][spec] = row[key]
+    # customer rating shown on the retailer's listing (Kotsovolos): average stars + review count
+    if row.get("reviews"):
+        res["specs"]["__rating"] = row["rating"]
+        res["specs"]["__reviews"] = row["reviews"]
     return res
 
 
@@ -1293,6 +1327,39 @@ def _push_market(items, _tries=4):
             time.sleep(delay); delay = min(delay * 2, 30)
 
 
+REVIEWS_MINUTES = 20      # time budget for reading review texts (Kotsovolos product pages)
+
+
+def check_reviews(seen):
+    """Customer review texts for the Brand perception page: your models first,
+    then the most-reviewed rivals; only products whose review count grew."""
+    import reviews
+    def mine(r):
+        house = _HOUSE_PLUS if r["dept"] in ("cooking", "dishwashing") else _HOUSE
+        return any(b in (r["name"] or "").upper() for b in house)
+    targets = sorted((r for r in seen if r.get("reviews")), key=lambda r: (not mine(r), -(r["reviews"] or 0)))
+    reviews.run(targets, _push_reviews, log=log, budget_minutes=REVIEWS_MINUTES,
+                make_driver=lambda: make_chrome(headless=True), accept_cookies=accept_cookies)
+
+
+def _push_reviews(items, _tries=4):
+    delay = 4
+    for attempt in range(1, _tries + 1):
+        try:
+            r = requests.post(f"{API_URL}/api/ingest/reviews",
+                              headers={"X-Ingest-Token": INGEST_TOKEN, "Content-Type": "application/json"},
+                              json={"items": items}, timeout=120)
+            if r.status_code == 404:
+                log("    reviews push: backend has no /api/ingest/reviews yet (redeploy Railway)"); return
+            r.raise_for_status()
+            log(f"    reviews pushed {len(items)} -> {r.json()}")
+            return
+        except requests.exceptions.RequestException as e:
+            if attempt == _tries:
+                log(f"    reviews push failed ({str(e)[:40]})"); return
+            time.sleep(delay); delay = min(delay * 2, 30)
+
+
 def check_stock(seen):
     targets = _stock_targets(seen)
     if not targets:
@@ -1332,7 +1399,7 @@ def _push_stock(items, _tries=4):
 
 
 def run_plp(sites, scope_subs, headless=True, enrich_prices=False, check_stock_after=False,
-            market_after=False):
+            market_after=False, reviews_after=False):
     """FAST catalogue path. For each site, pull the whole category list (price +
     basic specs) via the standalone API fetchers, map to result rows, enrich,
     and push in batches. Replaces both the crawl and the per-PDP price scrape
@@ -1355,11 +1422,13 @@ def run_plp(sites, scope_subs, headless=True, enrich_prices=False, check_stock_a
             _derive_pillars(r)
             if enrich_prices and r.get("unbeatable") and r.get("url") and r.get("price"):
                 reprice_targets.append((r["url"], r["price"]))
-            if (check_stock_after or market_after) and r.get("url"):
+            if (check_stock_after or market_after or reviews_after) and r.get("url"):
                 seen.append({"site": r.get("site"), "url": r["url"], "sku": r.get("sku"),
                              "category": r.get("category"), "name": r.get("name"),
                              "price": r.get("price"),
+                             "reviews": (r.get("specs") or {}).get("__reviews"),
                              "dept": (r.get("specs") or {}).get("__dept", "cooling")})
+        _attach_plaisio_ratings(buf)
         resp = push_results(buf)
         grand["saved"] += resp.get("saved", 0)
         grand["new_products"] += resp.get("new_products", 0)
@@ -1588,6 +1657,8 @@ def run_plp(sites, scope_subs, headless=True, enrich_prices=False, check_stock_a
         check_market(seen)
     if check_stock_after and seen:
         check_stock(seen)
+    if reviews_after and seen:
+        check_reviews(seen)
     return grand
 
 
@@ -1620,6 +1691,10 @@ def main():
     ap.add_argument("--market", action="store_true",
                     help="with --plp: afterwards read every shop's offer for your models and their "
                          "nearest rivals from BestPrice (lowest, median, shop count, Public's price).")
+    ap.add_argument("--reviews", action="store_true",
+                    help="with --plp: afterwards read customer review texts from Kotsovolos product "
+                         "pages (your models first, then the most-reviewed rivals; only products "
+                         "with new reviews) for the Brand perception page.")
     ap.add_argument("--stop-if-used", action="store_true", dest="stop_if_used",
                     help="for the idle-only scheduled run: stop the whole run as soon as the "
                          "keyboard or mouse is used.")
@@ -1670,7 +1745,8 @@ def main():
             log(f"Public paused until {PUBLIC_PAUSED_UNTIL} (bot block) - skipping it")
         log(f"=== PLP catalogue mode (fast price path) — sites: {sites} ===")
         grand = run_plp(sites, scope_subs, headless=True, enrich_prices=args.enrich_prices,
-                        check_stock_after=args.check_stock, market_after=args.market)
+                        check_stock_after=args.check_stock, market_after=args.market,
+                        reviews_after=args.reviews)
         log(f"DONE (PLP) -> {grand}")
         # Retire delisted/zombie products — only after a FULL sweep (all sites,
         # all categories), so partial runs (--site / --only) never wrongly retire

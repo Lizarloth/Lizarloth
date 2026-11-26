@@ -294,6 +294,16 @@ def dump_entry(session, cat_name="washing_machine"):
     print(json.dumps(e.get("attributes", []), ensure_ascii=False, indent=1)[:4000])
 
 
+def _xfield(entry, key):
+    """An x_* field: on the entry itself or in its UserData block."""
+    if entry.get(key) not in (None, ""):
+        return entry.get(key)
+    for ud in entry.get("UserData") or []:
+        if isinstance(ud, dict) and ud.get(key) not in (None, ""):
+            return ud.get(key)
+    return None
+
+
 def parse_entry(entry, cat_name, dept="cooling"):
     name = entry.get("name", "") or ""
     desc = entry.get("shortDescription", "") or ""
@@ -365,6 +375,14 @@ def parse_entry(entry, cat_name, dept="cooling"):
         "url": url,
         "_leaf": leaf,
     }
+    # customer rating + review count, as the listing tile shows them (Yotpo average)
+    score, total = _xfield(entry, "x_product_score"), _xfield(entry, "x_total_reviews")
+    try:
+        n = int(float(total or 0))
+        if n > 0 and score not in (None, ""):
+            base["rating"], base["reviews"] = round(float(score), 2), n
+    except (TypeError, ValueError):
+        pass
     # technology + program tags from the flags/free-text attributes (all departments)
     base.update(features.extract(attrs_all, dept))
 

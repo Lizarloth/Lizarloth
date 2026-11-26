@@ -172,6 +172,18 @@ nav button.active{background:var(--cobalt);color:#fff}
 .topbar .search input{width:100%;padding:9px 14px 9px 38px;border:1px solid var(--line);border-radius:10px;background:var(--soft-bg);color:var(--ink);font:500 13px 'Hanken Grotesk'}
 .topbar .search::before{content:"";position:absolute;left:13px;top:50%;transform:translateY(-50%);width:15px;height:15px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236F6A60' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E") center/contain no-repeat;opacity:.65}
 .topbar .spacer{flex:1}
+/* brand perception: pillar cells + review quotes */
+.bp-cell{border:1px solid transparent;background:transparent;border-radius:8px;padding:4px 8px;cursor:pointer;font:inherit;color:var(--ink);white-space:nowrap}
+.bp-cell b{font:700 14px 'Bricolage Grotesque';font-variant-numeric:tabular-nums}
+.bp-cell small{font-size:10.5px;color:var(--ink-soft);margin-left:2px}
+.bp-cell.few{color:var(--ink-soft);font-size:11.5px}
+.bp-cell.on{border-color:var(--cobalt);background:var(--cobalt-soft)}
+@media (hover:hover) and (pointer:fine){ .bp-cell:hover{border-color:var(--line);background:var(--soft-bg)} }
+.bp-quote{display:grid;grid-template-columns:auto 1fr;gap:2px 12px;padding:9px 10px;border-bottom:1px solid var(--soft-bg);border-left:3px solid var(--line)}
+.bp-quote.pos{border-left-color:var(--cobalt)} .bp-quote.neg{border-left-color:var(--heat)}
+.bp-stars{color:#E0A13A;font-size:12px;letter-spacing:1px;white-space:nowrap} .bp-stars span{color:var(--line)}
+.bp-q{font-size:13px;line-height:1.45}
+.bp-meta{grid-column:2;font-size:11.5px;color:var(--ink-soft)}
 /* global search dropdown */
 .gs-panel{position:absolute;top:calc(100% + 6px);left:0;width:min(560px,calc(100vw - 32px));max-height:min(70vh,560px);overflow-y:auto;overscroll-behavior:contain;
   background:var(--frost);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 48px rgba(40,34,24,.18);padding:6px;z-index:90}
@@ -917,6 +929,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="pindex"><span class="ico" data-ico="segments"></span> Price index</button>
     <button data-page="shelf"><span class="ico" data-ico="brands"></span> Shelf share</button>
     <button data-page="gaps"><span class="ico" data-ico="mysku"></span> Range gaps</button>
+    <button data-page="perception"><span class="ico" data-ico="brands"></span> Brand perception</button>
     <button data-page="brands"><span class="ico" data-ico="brands"></span> My Brands</button>
     <button data-page="segments"><span class="ico" data-ico="segments"></span> Segments</button>
     <button data-page="compare"><span class="ico" data-ico="compare"></span> Compare</button>
@@ -933,7 +946,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-26-S21</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-26-S22</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1541,6 +1554,27 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
       <div style="overflow-x:auto"><table>
         <thead><tr><th>Segment</th><th style="text-align:right">Rival models</th><th>Main rival brands</th><th style="text-align:right">Rival prices (min · median · max)</th><th style="text-align:right">Your models</th><th style="text-align:right" title="Your median price against the rivals' median">You vs rivals</th><th>Status</th></tr></thead>
         <tbody id="gpTable"></tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- BRAND PERCEPTION -->
+  <section class="page" id="page-perception">
+    <h2 class="page-title" id="bpTitle">Brand perception</h2>
+    <p class="page-sub">What Greek buyers say about each brand, from the customer reviews on <b>Kotsovolos</b> and <b>Plaisio</b> product pages (verified buyers of the exact models we track). Stars come from both retailers; the pillar scores come from the review texts Pricedge has read so far on Kotsovolos.</p>
+    <div class="catbar" id="bpChips"></div>
+    <div class="grid metrics" id="bpMetrics"></div>
+    <div class="card" style="margin-bottom:18px">
+      <h3><span class="dot" style="background:var(--warn)"></span>Why people buy: pillar scores <span id="bpPillarScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin:-6px 0 12px">Each cell: <b>share of positive mentions</b> (0–100) of that pillar in the brand's reviews, with the number of reviews that mention it. Cells with fewer than <span id="bpMinN">5</span> mentions are shown as “few”. Click a cell for the reviews behind it.</p>
+      <div style="overflow-x:auto"><table id="bpMatrix"></table></div>
+      <div id="bpQuotes" style="margin-top:14px"></div>
+    </div>
+    <div class="card">
+      <h3><span class="dot" style="background:var(--cobalt)"></span>Star ratings by brand <span id="bpStarScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Brand</th><th style="text-align:right">Rated models</th><th style="text-align:right">Kotsovolos</th><th style="text-align:right">Plaisio</th><th style="text-align:right">All reviews</th><th style="text-align:right" title="Review-weighted average">Average ★</th></tr></thead>
+        <tbody id="bpStars"></tbody>
       </table></div>
     </div>
   </section>
@@ -3351,6 +3385,7 @@ function renderAll(){
   if(vis("page-promofreq")) safeRender("promofreq",renderPromoFreq);
   if(vis("page-shelf")) safeRender("shelf",renderShelf);
   if(vis("page-gaps")) safeRender("gaps",renderGaps);
+  if(vis("page-perception")) safeRender("perception",renderPerception);
   if(_pendingModel && allProducts().length){ const id=_pendingModel; _pendingModel=null; setTimeout(()=>openModel(id),0); }
   else if(MP.id){ const mp=_prodIndex().byId[MP.id]; if(mp) setTimeout(()=>renderModelPanel(mp, true),0); }   // fresh data (history, launches) lands in the open panel
   safeRender("freshness",renderFreshness);
@@ -4861,6 +4896,149 @@ function renderPromoFreq(){
           const v=c[0]/c[1];
           return `<td style="text-align:center;font-size:11.5px;background:rgba(201,71,47,${(0.06+v*0.5).toFixed(2)})" title="${c[0]} of ${c[1]} listing-days">${Math.round(v*100)}</td>`; }).join("")}</tr>`).join("") + "</tbody>"
     : "";
+}
+
+/* ---- Brand perception: customer reviews from the retailers' product pages.
+   Stars per brand from the listing ratings (specs __rating / __reviews, both
+   retailers). Pillar scores from the review texts (/api/reviews, Kotsovolos):
+   a review counts for a pillar when its text uses one of the pillar's words
+   (Greek, accents ignored). Direction: the pillar's own positive / negative
+   phrases first ("αθόρυβο" vs "θορυβώδες"), else the review's stars
+   (4–5 positive, 1–2 negative, 3 neutral). Score = positive share, neutral = half. */
+const BP_PILLARS = [
+  {k:"design", label:"Design & looks", any:["ΟΜΟΡΦ","ΠΑΝΕΜΟΡΦ","ΕΜΦΑΝΙΣ","ΣΧΕΔΙΑΣ","ΚΟΜΨ","ΑΙΣΘΗΤΙΚ","ΧΡΩΜΑ","ΣΤΥΛ","DESIGN","ΜΟΝΤΕΡΝ","ΩΡΑΙΟ ","ΩΡΑΙΑ ","ΤΑΙΡΙΑΖ","ΔΕΝΕΙ"],
+   pos:["ΟΜΟΡΦ","ΠΑΝΕΜΟΡΦ","ΚΟΜΨ","ΜΟΝΤΕΡΝ","ΩΡΑΙΟ ","ΩΡΑΙΑ "], neg:["ΑΣΧΗΜ","ΦΘΗΝΙΑΡΙΚ"]},
+  {k:"value", label:"Price & value", any:["ΤΙΜΗ","ΤΙΜΗΣ","ΛΕΦΤΑ","ΧΡΗΜΑΤΑ","ΦΘΗΝ","ΑΚΡΙΒ","ΑΞΙΖΕΙ","ΠΡΟΣΦΟΡΑ","ΣΧΕΣΗ ΠΟΙΟΤΗΤΑΣ","ΟΙΚΟΝΟΜΙΚ"],
+   pos:["ΑΞΙΖΕΙ","ΚΑΛΗ ΤΙΜΗ","ΣΧΕΣΗ ΠΟΙΟΤΗΤΑΣ","ΟΙΚΟΝΟΜΙΚ","ΓΙΑ ΤΑ ΛΕΦΤΑ","ΓΙΑ ΤΑ ΧΡΗΜΑΤΑ","ΣΕ ΠΡΟΣΦΟΡΑ","ΣΕ ΚΑΛΗ ΤΙΜΗ"], neg:["ΑΚΡΙΒ","ΔΕΝ ΑΞΙΖΕΙ"]},
+  {k:"build", label:"Build & materials", any:["ΠΟΙΟΤΗΤ","ΚΑΤΑΣΚΕΥ","ΥΛΙΚ","ΠΛΑΣΤΙΚ","ΣΤΙΒΑΡ","ΓΕΡΟ","ΦΙΝΙΡΙΣΜ","ΜΕΤΑΛΛ","ΓΥΑΛΙΝ","ΣΑΘΡ","ΤΡΙΖ"],
+   pos:["ΣΤΙΒΑΡ","ΓΕΡΟ","ΚΑΛΗ ΠΟΙΟΤΗΤΑ","ΑΡΙΣΤΗ ΠΟΙΟΤΗΤΑ","ΠΟΙΟΤΙΚ","ΚΑΛΗ ΚΑΤΑΣΚΕΥΗ"], neg:["ΣΑΘΡ","ΤΡΙΖ","ΚΑΚΗ ΠΟΙΟΤΗΤΑ","ΦΘΗΝΟ ΠΛΑΣΤΙΚ","ΚΑΚΗ ΚΑΤΑΣΚΕΥΗ"]},
+  {k:"tech", label:"Technology & features", any:["ΛΕΙΤΟΥΡΓΙ","ΠΡΟΓΡΑΜΜ","ΕΦΑΡΜΟΓ","WIFI","WI-FI","APP ","INVERTER","NO FROST","ΤΕΧΝΟΛΟΓ","ΑΤΜΟ","ΟΘΟΝ","ΕΞΥΠΝ","SMART","ΑΙΣΘΗΤΗΡ","ΧΡΟΝΟΔΙΑΚΟΠ"],
+   pos:[], neg:[]},
+  {k:"perf", label:"Performance", any:["ΨΥΞΗ","ΨΥΧΕΙ","ΠΑΓΩΝ","ΚΡΥΩΝ","ΠΛΕΝΕΙ","ΠΛΥΣΙΜ","ΣΤΕΓΝ","ΑΠΟΔΟΣ","ΚΑΘΑΡΙΖΕΙ","ΜΑΓΕΙΡ","ΨΗΝΕΙ","ΖΕΣΤΑΙΝ","ΑΠΟΡΡΟΦ"],
+   pos:["ΔΥΝΑΤΗ ΨΥΞΗ","ΠΛΕΝΕΙ ΤΕΛΕΙΑ","ΠΛΕΝΕΙ ΠΟΛΥ ΚΑΛΑ","ΑΡΙΣΤΗ ΑΠΟΔΟΣΗ","ΚΑΛΗ ΨΥΞΗ"], neg:["ΔΕΝ ΨΥΧΕΙ","ΔΕΝ ΠΛΕΝΕΙ","ΔΕΝ ΣΤΕΓΝ","ΑΔΥΝΑΜ"]},
+  {k:"noise", label:"Noise", any:["ΘΟΡΥΒ","ΑΘΟΡΥΒ","ΗΣΥΧ","ΑΚΟΥΓΕΤΑΙ","ΒΟΥΙΖ","ΔΟΝΗΣ","ΚΡΑΔΑΣΜ"],
+   pos:["ΑΘΟΡΥΒ","ΗΣΥΧ","ΔΕΝ ΚΑΝΕΙ ΘΟΡΥΒΟ","ΔΕΝ ΑΚΟΥΓΕΤΑΙ","ΧΑΜΗΛΟ ΘΟΡΥΒΟ","ΧΑΜΗΛΟΣ ΘΟΡΥΒΟΣ","ΚΑΘΟΛΟΥ ΘΟΡΥΒΟ"], neg:["ΘΟΡΥΒΩΔ","ΚΑΝΕΙ ΘΟΡΥΒΟ","ΘΟΡΥΒΟ ΚΑΝΕΙ","ΒΟΥΙΖ","ΔΟΝΗΣ","ΚΡΑΔΑΣΜ"]},
+  {k:"space", label:"Space & capacity", any:["ΧΩΡΟΣ","ΧΩΡΟ ","ΧΩΡΑΕΙ","ΧΩΡΗΤΙΚ","ΜΕΓΕΘΟΣ","ΕΥΡΥΧΩΡ","ΡΑΦΙ","ΣΥΡΤΑΡ","ΣΕΡΒΙΤΣΙ"],
+   pos:["ΕΥΡΥΧΩΡ","ΑΡΚΕΤΟΣ ΧΩΡΟΣ","ΑΡΚΕΤΟ ΧΩΡΟ","ΧΩΡΑΕΙ","ΜΕΓΑΛΗ ΧΩΡΗΤΙΚ","ΠΟΛΥ ΧΩΡΟ"], neg:["ΜΙΚΡΟΣ ΧΩΡΟΣ","ΛΙΓΟΣ ΧΩΡΟΣ","ΔΕΝ ΧΩΡΑΕΙ","ΣΤΕΝΟ"]},
+  {k:"energy", label:"Energy use", any:["ΚΑΤΑΝΑΛΩΣ","ΡΕΥΜΑ","ΕΝΕΡΓΕΙΑΚ","ΚΙΛΟΒΑΤ"],
+   pos:["ΧΑΜΗΛΗ ΚΑΤΑΝΑΛΩΣ","ΛΙΓΟ ΡΕΥΜΑ","ΟΙΚΟΝΟΜΙΑ ΡΕΥΜΑΤ","ΜΙΚΡΗ ΚΑΤΑΝΑΛΩΣ"], neg:["ΥΨΗΛΗ ΚΑΤΑΝΑΛΩΣ","ΠΟΛΥ ΡΕΥΜΑ","ΚΑΙΕΙ ΡΕΥΜΑ","ΜΕΓΑΛΗ ΚΑΤΑΝΑΛΩΣ"]},
+  {k:"reliab", label:"Reliability", any:["ΧΑΛΑΣ","ΒΛΑΒ","ΠΡΟΒΛΗΜ","ΑΞΙΟΠΙΣΤ","ΔΙΑΡΚ","ΑΝΤΙΚΑΤΑΣΤ","ΕΠΙΣΚΕΥ","ΣΕΡΒΙΣ","ΕΛΑΤΤΩΜΑΤ"],
+   pos:["ΚΑΝΕΝΑ ΠΡΟΒΛΗΜΑ","ΧΩΡΙΣ ΠΡΟΒΛΗΜ","ΑΞΙΟΠΙΣΤ"], neg:["ΧΑΛΑΣ","ΒΛΑΒ","ΕΛΑΤΤΩΜΑΤ","ΕΠΙΣΚΕΥ"]},
+  {k:"ease", label:"Ease of use", any:["ΕΥΚΟΛ","ΔΥΣΚΟΛ","ΠΡΑΚΤΙΚ","ΧΕΙΡΙΣΜ","ΚΑΘΑΡΙΣΜ"],
+   pos:["ΕΥΚΟΛ","ΠΡΑΚΤΙΚ"], neg:["ΔΥΣΚΟΛ","ΠΟΛΥΠΛΟΚ"]},
+  {k:"service", label:"Delivery & store", retailer:true, any:["ΠΑΡΑΔΟΣ","ΠΑΡΑΔΟΘ","ΤΟΠΟΘΕΤ","ΕΓΚΑΤΑΣΤ","ΚΑΤΑΣΤΗΜ","ΥΠΑΛΛΗΛ","ΕΞΥΠΗΡΕΤ","ΚΩΤΣΟΒΟΛ","ΠΛΑΙΣΙ","ΜΕΤΑΦΟΡ","ΠΩΛΗΤ"],
+   pos:["ΓΡΗΓΟΡΗ ΠΑΡΑΔΟΣ","ΑΜΕΣΗ ΠΑΡΑΔΟΣ","ΕΞΑΙΡΕΤΙΚΗ ΕΞΥΠΗΡΕΤ","ΑΨΟΓ","ΠΟΛΥ ΚΑΛΗ ΕΞΥΠΗΡΕΤ"], neg:["ΚΑΘΥΣΤΕΡ","ΑΡΓΟΠΟΡ","ΚΑΚΗ ΕΞΥΠΗΡΕΤ"]},
+];
+const BP_MIN_N = 5;
+const bpFilter = {type:"all", pillar:null, brand:null};
+let _bpLoading = false;
+function bpLoad(){
+  if(state.reviews!==undefined || _bpLoading) return;
+  _bpLoading = true;
+  api("/api/reviews").then(r=>{ state.reviews = r && Array.isArray(r.rows) ? r : {p:{}, rows:[]}; })
+    .catch(()=>{ state.reviews = null; }).finally(()=>{ _bpLoading=false; renderPerception(); });
+}
+/* one review -> {pillar key: +1 / 0 / -1} */
+function bpTag(text, stars){
+  const t=" "+gsNorm(text).replace(/\s+/g," ")+" ", out={};
+  const byStars = stars>=4 ? 1 : stars<=2 ? -1 : 0;
+  for(const P of BP_PILLARS){
+    if(!P.any.some(w=>t.includes(w))) continue;
+    let t2=t; for(const p of P.pos) t2=t2.split(p).join(" ");     // "δεν κάνει θόρυβο" must not read as "κάνει θόρυβο"
+    const pos=P.pos.some(p=>t.includes(p)), neg=P.neg.some(n=>t2.includes(n));
+    out[P.k] = pos&&!neg ? 1 : neg&&!pos ? -1 : byStars;
+  }
+  return out;
+}
+let _bpCache = {key:null, rows:null};
+function bpRows(){
+  // tie each review to its product (brand, department, type) by url; keep the tags
+  const R=state.reviews; if(!R) return [];
+  const key=R.rows.length+"|"+allProducts().length;
+  if(_bpCache.key===key) return _bpCache.rows;
+  const byUrl={}; for(const p of allProducts()) byUrl[f.url(p)]=p;
+  for(const r of state.delisted||[]) if(!byUrl[r.url]) byUrl[r.url]=r;
+  const rows=R.rows.map(([url,stars,date,title,text,site])=>{
+    const p=byUrl[url], name=(p&&f.name(p))||R.p[url]||"";
+    const brand=cap(extractModel(name).brand||"");
+    return {url, stars, date, text:text||title, site, p, name, brand,
+            dept: p?deptOf(p):null, type: p?(LAUNCH_CAT[p.category]||p.category||""):"",
+            mine: p?isMyBrand(p):myBrandsFor(state.dept).some(b=>name.toUpperCase().includes(b)),
+            tags: bpTag(text||title, stars||0)};
+  });
+  _bpCache={key, rows};
+  return rows;
+}
+function renderPerception(){
+  const host=document.getElementById("bpMatrix"); if(!host) return;
+  const dept=state.dept, F=bpFilter;
+  document.getElementById("bpTitle").textContent="Brand perception · "+(DEPT_NAME[dept]||"");
+  document.getElementById("bpMinN").textContent=BP_MIN_N;
+  bpLoad();
+  // ---- star ratings (listing ratings, both retailers) ----
+  const prods=deptListOf(dept).filter(p=>!isClearance(p));
+  const types=[...new Set(prods.map(p=>LAUNCH_CAT[p.category]||p.category||"Other"))].sort();
+  if(F.type!=="all" && !types.includes(F.type)) F.type="all";
+  const inType=p=>F.type==="all" || (LAUNCH_CAT[p.category]||p.category||"Other")===F.type;
+  const chip=(k,v,label,on)=>`<button class="chip ${on?'on':''}" data-bp="${k}" data-pv="${esc(v)}">${esc(label)}</button>`;
+  document.getElementById("bpChips").innerHTML = chip("type","all","All types",F.type==="all") + types.map(t=>chip("type",t,t,F.type===t)).join("");
+  const B={};
+  for(const p of prods.filter(inType)){
+    const s=f.specs(p)||{}, n=+s.__reviews||0, r=+s.__rating||0; if(!n||!r) continue;
+    const b=smBrand(p)||"Other", e=B[b]=B[b]||{b, models:0, n:0, sum:0, site:{}, mine:isMyBrand(p)};
+    e.models++; e.n+=n; e.sum+=r*n;
+    const st=e.site[f.site(p)]=e.site[f.site(p)]||{n:0,sum:0}; st.n+=n; st.sum+=r*n;
+  }
+  const brands=Object.values(B).sort((a,b)=>b.n-a.n);
+  const avg=e=>e&&e.n?e.sum/e.n:null, star=v=>v==null?"–":v.toFixed(2)+"★";
+  document.getElementById("bpStarScope").textContent=`· ${brands.reduce((a,e)=>a+e.n,0).toLocaleString("en-GB")} reviews on ${brands.reduce((a,e)=>a+e.models,0)} listings`;
+  document.getElementById("bpStars").innerHTML = brands.slice(0,30).map(e=>`<tr><td><b>${esc(e.b)}</b>${e.mine?' <span class="mv-mine">YOURS</span>':""}</td>
+      <td style="text-align:right">${e.models}</td>
+      <td style="text-align:right">${e.site.kotsovolos?`${star(avg(e.site.kotsovolos))} <span style="color:var(--ink-soft);font-size:11.5px">(${e.site.kotsovolos.n})</span>`:"–"}</td>
+      <td style="text-align:right">${e.site.plaisio?`${star(avg(e.site.plaisio))} <span style="color:var(--ink-soft);font-size:11.5px">(${e.site.plaisio.n})</span>`:"–"}</td>
+      <td style="text-align:right">${e.n}</td><td style="text-align:right"><b>${star(avg(e))}</b></td></tr>`).join("")
+    || `<tr><td colspan="6" style="color:var(--ink-soft);padding:20px;text-align:center">No ratings yet: they arrive with the next listing run.</td></tr>`;
+  // ---- pillar matrix (review texts) ----
+  const metrics=document.getElementById("bpMetrics"), quotes=document.getElementById("bpQuotes");
+  if(state.reviews===undefined){ host.innerHTML=`<tbody><tr><td style="color:var(--ink-soft);padding:16px">Loading reviews…</td></tr></tbody>`; return; }
+  const rows=bpRows().filter(r=>r.dept===dept && (F.type==="all" || r.type===F.type));
+  const m1=(label,val,foot,cls)=>`<div class="stat-card ${cls}"><div class="metric-value">${val}</div><div class="metric-label">${label}</div><div class="metric-foot">${foot}</div></div>`;
+  const tagged=rows.filter(r=>Object.keys(r.tags).length);
+  const mineRows=rows.filter(r=>r.mine);
+  metrics.innerHTML = m1("Review texts read", rows.length.toLocaleString("en-GB"), `${new Set(rows.map(r=>r.url)).size} models · Kotsovolos`, "sc-blue")
+    + m1("Mention a pillar", rows.length?Math.round(tagged.length/rows.length*100)+"%":"–", "the rest are short (“very good”)", "sc-aqua")
+    + m1("Your brands", mineRows.length, "reviews of your models", "sc-mint")
+    + m1("Average stars", rows.length?(rows.reduce((a,r)=>a+(r.stars||0),0)/rows.length).toFixed(2)+"★":"–", "of the reviews read", "sc-heat");
+  if(!rows.length){
+    host.innerHTML=`<tbody><tr><td style="color:var(--ink-soft);padding:16px">No review texts for this department yet: the daily run reads them a batch at a time (your models first).</td></tr></tbody>`;
+    quotes.innerHTML=""; return;
+  }
+  const RB={};
+  for(const r of rows){ if(!r.brand) continue; const e=RB[r.brand]=RB[r.brand]||{b:r.brand, mine:r.mine, n:0, p:{}};
+    e.n++; for(const k in r.tags){ const c=e.p[k]=e.p[k]||{n:0,pos:0,neu:0}; c.n++; if(r.tags[k]>0) c.pos++; else if(r.tags[k]===0) c.neu++; } }
+  const rb=Object.values(RB).filter(e=>e.n>=3).sort((a,b)=>(b.mine-a.mine)||(b.n-a.n)).slice(0,18);
+  const score=c=>Math.round((c.pos+c.neu*0.5)/c.n*100);
+  const col=v=>v>=80?"var(--cobalt)":v>=60?"var(--ink)":v>=40?"#9C5600":"var(--heat)";
+  document.getElementById("bpPillarScope").textContent=`· ${rb.length} brands with 3+ reviews read`;
+  host.innerHTML = `<thead><tr><th>Brand</th><th style="text-align:right">Reviews</th>${BP_PILLARS.map(P=>`<th style="text-align:center;white-space:nowrap${P.retailer?";color:var(--ink-soft)":""}" title="${P.retailer?"About the retailer, not the brand":""}">${esc(P.label)}</th>`).join("")}</tr></thead><tbody>`
+    + rb.map(e=>`<tr><td style="white-space:nowrap"><b>${esc(e.b)}</b>${e.mine?' <span class="mv-mine">YOURS</span>':""}</td><td style="text-align:right">${e.n}</td>`
+      + BP_PILLARS.map(P=>{ const c=e.p[P.k]; const on=F.brand===e.b&&F.pillar===P.k;
+          if(!c) return `<td style="text-align:center;color:var(--ink-faint)">·</td>`;
+          if(c.n<BP_MIN_N) return `<td style="text-align:center"><button class="bp-cell few${on?" on":""}" data-bp-cell="${esc(e.b)}|${P.k}" title="${c.n} mention${c.n===1?"":"s"}: too few to score">few <small>${c.n}</small></button></td>`;
+          const v=score(c);
+          return `<td style="text-align:center"><button class="bp-cell${on?" on":""}" data-bp-cell="${esc(e.b)}|${P.k}" title="${c.pos} positive, ${c.neu} neutral, ${c.n-c.pos-c.neu} negative of ${c.n}"><b style="color:${col(v)}">${v}</b> <small>${c.n}</small></button></td>`; }).join("")
+      + `</tr>`).join("") + "</tbody>";
+  // reviews behind the selected cell
+  if(F.brand && F.pillar){
+    const P=BP_PILLARS.find(p=>p.k===F.pillar);
+    const list=rows.filter(r=>r.brand===F.brand && r.tags[F.pillar]!==undefined)
+      .sort((a,b)=>(a.tags[F.pillar]-b.tags[F.pillar]) || String(b.date).localeCompare(String(a.date)));
+    quotes.innerHTML = `<div class="sec-head" style="margin:6px 2px 8px"><h2 style="font-size:15px">${esc(F.brand)} · ${esc(P.label)}</h2><span class="meta">${list.length} review${list.length===1?"":"s"} · negative first · <a href="#" class="rl" data-bp-close>close</a></span></div>`
+      + list.slice(0,24).map(r=>{ const tone=r.tags[F.pillar]; const t=String(r.text||"").replace(/\s+/g," ");
+          return `<div class="bp-quote ${tone>0?"pos":tone<0?"neg":""}"><span class="bp-stars">${"★".repeat(r.stars||0)}<span>${"★".repeat(5-(r.stars||0))}</span></span>
+            <span class="bp-q">${esc(t.length>220?t.slice(0,219)+"…":t)}</span>
+            <span class="bp-meta">${r.p?`<a class="rl" href="#" data-model="${esc(f.id(r.p))}">${esc(modelTitle(r.name,30))}</a>`:esc(modelTitle(r.name,30))} · ${esc(r.date||"")}</span></div>`; }).join("");
+  } else quotes.innerHTML = `<div style="font-size:12.5px;color:var(--ink-soft)">Click a score to read the reviews behind it.</div>`;
 }
 
 /* ---- Shelf share: listings per brand at a retailer over time. A listing is
@@ -6406,6 +6584,14 @@ document.addEventListener("click",e=>{ const g=e.target.closest("[data-goto]"); 
 on("deptToggle","click",e=>{ const b=e.target.closest(".dept-pill"); if(b) setDept(b.dataset.dept); });
 on("pxChips","click",e=>{ const c=e.target.closest("[data-px]"); if(!c) return;
   pxFilter[c.dataset.px] = c.dataset.px==="min" ? +c.dataset.pv : c.dataset.pv; renderPriceIndex(); });
+on("bpChips","click",e=>{ const c=e.target.closest("[data-bp]"); if(!c) return; bpFilter[c.dataset.bp]=c.dataset.pv; bpFilter.brand=bpFilter.pillar=null; renderPerception(); });
+on("page-perception","click",e=>{
+  const c=e.target.closest("[data-bp-cell]");
+  if(c){ const [b,k]=c.dataset.bpCell.split("|"); const same=bpFilter.brand===b&&bpFilter.pillar===k;
+    bpFilter.brand=same?null:b; bpFilter.pillar=same?null:k; renderPerception();
+    if(!same) document.getElementById("bpQuotes").scrollIntoView({block:"nearest", behavior:motionReduced()?"auto":"smooth"}); return; }
+  if(e.target.closest("[data-bp-close]")){ e.preventDefault(); bpFilter.brand=bpFilter.pillar=null; renderPerception(); }
+});
 on("shChips","click",e=>{ const c=e.target.closest("[data-sh]"); if(!c) return; shFilter[c.dataset.sh]=c.dataset.pv; renderShelf(); });
 on("gpChips","click",e=>{ const c=e.target.closest("[data-gp]"); if(!c) return;
   const k=c.dataset.gp; gpFilter[k] = k==="min" ? +c.dataset.pv : k==="colour" ? c.dataset.pv==="1" : c.dataset.pv; renderGaps(); });

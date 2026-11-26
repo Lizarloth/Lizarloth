@@ -11,7 +11,7 @@ import json
 import os
 
 from database import (init_db, get_db, Product, PriceHistory, Alert, Srp, ProductMatch, MatchOverride,
-                      MatchSuggestion, MarketStat)
+                      MatchSuggestion, MarketStat, Review)
 # The scraper module stays on the local PC by design — retailer sites flag
 # datacenter IPs, so all scraping runs from a residential connection via
 # local_runner.py. The backend must still boot without it: fall back to a
@@ -774,6 +774,48 @@ def get_market(days: int = 30, db: Session = Depends(get_db)):
                  offer_count=r.offer_count, public=r.public_price, public_avail=r.public_avail,
                  offers=json.loads(r.offers or "[]"))
     return out
+
+
+class ReviewsPayload(BaseModel):
+    items: list[dict]       # [{key, site, url, product_name, stars, title, text, date, verified}]
+
+
+@app.post("/api/ingest/reviews")
+def ingest_reviews(payload: ReviewsPayload, request: Request, db: Session = Depends(get_db)):
+    """Customer reviews read off retailer product pages (scraper/reviews.py).
+    Keyed by a hash of url + date + title + text: re-reading a page adds only
+    the reviews not stored yet."""
+    token = os.getenv("INGEST_TOKEN", "")
+    if not token or request.headers.get("X-Ingest-Token") != token:
+        raise HTTPException(401, "Invalid or missing X-Ingest-Token")
+    keys = [str(it.get("key") or "") for it in payload.items]
+    have = {k for (k,) in db.query(Review.key).filter(Review.key.in_([k for k in keys if k])).all()}
+    added = 0
+    for it in payload.items:
+        k = str(it.get("key") or "")
+        if not k or k in have or not it.get("url"):
+            continue
+        have.add(k)
+        stars = it.get("stars")
+        db.add(Review(key=k, site=it.get("site") or "", url=it["url"], product_name=it.get("product_name"),
+                      stars=int(stars) if isinstance(stars, (int, float)) else None,
+                      title=(it.get("title") or "")[:300], text=(it.get("text") or "")[:4000],
+                      review_date=it.get("date"), verified=bool(it.get("verified"))))
+        added += 1
+    db.commit()
+    return {"received": len(payload.items), "added": added}
+
+
+@app.get("/api/reviews")
+def get_reviews(db: Session = Depends(get_db)):
+    """Every stored review, compact: {"p": {url: product_name}, "rows": [[url, stars, date, title, text, site]]}.
+    The dashboard ties each url to its product (brand, department, type) and
+    tags the text by purchase pillar itself."""
+    names, rows = {}, []
+    for r in db.query(Review).order_by(Review.url, Review.review_date.desc()).all():
+        names.setdefault(r.url, r.product_name)
+        rows.append([r.url, r.stars, r.review_date, r.title or "", r.text or "", r.site])
+    return {"p": names, "rows": rows}
 
 
 @app.get("/api/ingest/missing-ids")
