@@ -634,6 +634,15 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 .today-tile.alert .n{color:var(--heat)}
 .today-tile.calm .n{color:var(--ink-soft)}
 @media(max-width:980px){.today{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* change highlights: a chip that stays for the session, a tint that plays once (colour only, no movement) */
+.seen-chip{display:inline-block;margin:2px 0 1px;padding:1px 7px;border-radius:99px;background:var(--soft-bg);color:var(--ink);font:600 11px 'Hanken Grotesk';white-space:nowrap}
+.seen-new{font:700 9px 'Hanken Grotesk';letter-spacing:.04em;color:var(--ink);background:#FFD9A8;padding:1px 6px;border-radius:99px;margin-left:6px;vertical-align:1px}
+[data-theme="dark"] .seen-new{background:#5A3D17;color:#FFE2BC}
+.today-tile.seen-flash{animation:seentile 1.8s var(--ease-out)}
+.mini-row.seen-flash{animation:seenrow 1.8s var(--ease-out)}
+@keyframes seentile{from{background-color:var(--cobalt-soft);border-color:var(--cobalt)}}
+@keyframes seenrow{from{background-color:var(--cobalt-soft)}}
+@media (prefers-reduced-motion:reduce){ .seen-flash{animation:none!important} }
 .mv-mine{font:700 9px 'Hanken Grotesk';letter-spacing:.04em;color:var(--on-cobalt);background:var(--cobalt);padding:1px 6px;border-radius:99px;margin-left:6px;vertical-align:1px}
 .pulse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:20px 24px}
 .pulse-grid .chart-box{height:220px}
@@ -884,7 +893,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-26-S18</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-26-S19</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -2161,7 +2170,7 @@ async function loadAll(){
     api("/api/products/launches?days=90").then(rows=>{
       state.launches = Array.isArray(rows) ? rows : [];
       renderAll();
-    }).catch(()=>{});
+    }).catch(()=>{ state.launches = null; });   // null = unavailable (undefined = still loading)
     // whole-market offers per model from BestPrice (older backends: skip)
     api("/api/market?days=30").then(m=>{
       state.market = (m && typeof m==="object" && !Array.isArray(m)) ? m : {};
@@ -3766,18 +3775,71 @@ function stripIndexHTML(dept, list, sparkId){
   return `<div class="l-stat"><div class="v mine">${pi?pi.idx.toFixed(1):"–"}</div><div class="k">${pi?`price index · ${pi.nMine} yours vs ${pi.nRivals} rivals · 100 = parity`:"price index — needs yours + rivals in view"}</div><canvas id="${sparkId}" style="width:100%;height:28px;display:block;margin-top:6px"></canvas></div>`;
 }
 function moverRowsHTML(list){
-  return list.map(m=>{ const nm=esc(modelTitle(m.name||"—",30));
-    return `<div class="mini-row">
+  const mk=_seen.marks[state.dept];   // set by renderToday just before
+  return list.map(m=>{ const nm=esc(modelTitle(m.name||"—",30)), k=moverKey(m);
+    const isNew=mk && mk.newMoves.has(k), fa=seenFlashAttr(state.dept+":mv:"+k, !!(mk && mk.flashMoves.has(k)));
+    return `<div class="mini-row${fa?" seen-flash":""}"${fa}>
     <span class="pill ${SITE_PILL[normSite(m.site)]||"na"}">${SITE_LABEL[normSite(m.site)]||m.site||""}</span>
-    <span class="mini-name" title="${esc(m.name||"")} · was ${fmt(m.was)}, now ${fmt(m.price)}">${m.id!=null?`<a class="rl" href="#" data-model="${esc(m.id)}">${nm}</a>`:nm}${moverIsMine(m)?'<span class="mv-mine">YOURS</span>':""}</span>
+    <span class="mini-name" title="${esc(m.name||"")} · was ${fmt(m.was)}, now ${fmt(m.price)}">${m.id!=null?`<a class="rl" href="#" data-model="${esc(m.id)}">${nm}</a>`:nm}${moverIsMine(m)?'<span class="mv-mine">YOURS</span>':""}${isNew?'<span class="seen-new" title="Not shown on your last visit">NEW</span>':""}</span>
     <span class="radar-delta ${m.delta<0?"down":"up"}" style="font-size:13px">${m.delta<0?"▼":"▲"} ${fmt(Math.abs(m.delta))}<small>${m.pct>0?"+":"−"}${Math.abs(m.pct).toFixed(0)}%</small></span></div>`; }).join("");
 }
 
 /* "What changed": the four things worth a look today, each a jump to the
    card that lists them. prefix = the department's card ids (cool/lau/cook/dish). */
-function renderToday(prefix, list){
+/* ---- Change highlights: what's different since you last looked ----
+   Per browser (localStorage, a per-viewer convenience): the four "What
+   changed" numbers and the price moves this browser showed you, saved when
+   you leave the tab. Next time, a tile whose number moved carries a
+   "since last visit" chip for the session, price moves you hadn't seen are
+   tagged NEW, and anything that changes on screen (first view, or the
+   2-minute refresh) gets a one-off tint. */
+const SEEN_KEY = "seen.v1", SEEN_FLASH_MS = 1800;
+const _seen = {base:null, shown:{}, marks:{}, flashAt:{}};
+// re-renders rebuild the tiles: carry a running tint on from where it was instead of cutting or restarting it
+function seenFlashAttr(id, start){
+  const now=performance.now();
+  if(start) _seen.flashAt[id]=now;
+  const t=_seen.flashAt[id]; if(t==null || now-t>SEEN_FLASH_MS) return "";
+  return ` style="animation-delay:-${Math.round(now-t)}ms"`;
+}
+function seenBase(dept){
+  if(!_seen.base) _seen.base = store.get(SEEN_KEY, {}) || {};
+  return _seen.base[dept] || null;
+}
+function saveSeen(){
+  const all = store.get(SEEN_KEY, {}) || {};
+  for(const d in _seen.shown) all[d] = _seen.shown[d];
+  store.set(SEEN_KEY, all);
+}
+document.addEventListener("visibilitychange", ()=>{ if(document.visibilityState==="hidden") saveSeen(); });
+addEventListener("pagehide", saveSeen);
+function seenDiff(dept, vals, moveKeys){
+  const base=seenBase(dept), prev=_seen.shown[dept];
+  const out={chip:{}, flash:new Set(), newMoves:new Set(), flashMoves:new Set(), since:base?base.at:null, first:!base};
+  // early boot renders run before history / launches arrive: compare and record nothing until both are in
+  if(!(state.history||[]).length || state.launches===undefined){ out.loading=true; _seen.marks[dept]=out; return out; }
+  if(base){
+    for(const k in vals){ const b=(base.vals||{})[k]; if(vals[k]!=null && b!=null && vals[k]!==b) out.chip[k]=vals[k]-b; }
+    const bm=new Set(base.moves||[]); moveKeys.forEach(k=>{ if(!bm.has(k)) out.newMoves.add(k); });
+  }
+  // the tint marks what changes on screen: against the last render, or on first view against last visit
+  const ref = prev || base;
+  if(ref){
+    for(const k in vals){ const r=(ref.vals||{})[k]; if(vals[k]!=null && r!=null && vals[k]!==r) out.flash.add(k); }
+    const rm=new Set(ref.moves||[]); moveKeys.forEach(k=>{ if(!rm.has(k)) out.flashMoves.add(k); });
+  }
+  _seen.shown[dept] = {at:new Date().toISOString(), vals, moves:moveKeys.slice(0,400)};
+  _seen.marks[dept] = out;
+  return out;
+}
+const moverKey = m => m.id+":"+m.price;
+
+/* The tiles count the whole department (filters don't apply), so a filter
+   change never reads as a change in the market. */
+function renderToday(prefix){
   const el=document.getElementById(prefix+"Today"); if(!el) return;
   const dept=state.dept;
+  const list=deptListOf(dept).filter(p=>!isClearance(p));
   const mv=computeMovers(state.history);
   const cuts=mv.filter(m=>m.delta<0), rivalCuts=cuts.filter(m=>!moverIsMine(m)), myCuts=cuts.filter(moverIsMine);
   const rises=mv.filter(m=>m.delta>0);
@@ -3790,20 +3852,28 @@ function renderToday(prefix, list){
   const rivals=list.filter(p=>!isMyBrand(p) && f.price(p)!=null && !isClearance(p));
   const onPromo=rivals.filter(promoNow);
   const avgDepth=onPromo.length ? onPromo.reduce((a,p)=>a+promoNow(p).depth,0)/onPromo.length : 0;
-  const tile=(target,n,title,sub,tone,go)=>`<button class="today-tile ${tone}" data-jump="${target}">
-      <span class="n">${n}</span><span class="t">${title}</span><span class="s">${sub}</span><span class="go">${go} ↓</span></button>`;
+  const promoPct=rivals.length?Math.round(onPromo.length/rivals.length*100):null;
+  const hl=seenDiff(dept, {cuts:rivalCuts.length, stock:noStock, launch:launches.length, promo:promoPct}, mv.map(moverKey));
+  const chip=(k,unit)=>{ const d=hl.chip[k]; if(!d) return "";
+    return `<span class="seen-chip" title="Since your last visit">${d>0?"▲":"▼"} ${Math.abs(d)}${unit||""} since last visit</span>`; };
+  const tile=(k,target,n,title,sub,tone,go,unit)=>{ const fa=seenFlashAttr(dept+":"+k, hl.flash.has(k));
+    return `<button class="today-tile ${tone}${fa?" seen-flash":""}"${fa} data-jump="${target}">
+      <span class="n">${n}</span>${chip(k,unit)}<span class="t">${title}</span><span class="s">${sub}</span><span class="go">${go} ↓</span></button>`; };
   el.innerHTML =
-      tile(prefix+"MovesCard", rivalCuts.length, "Rival price cuts",
+      tile("cuts", prefix+"MovesCard", rivalCuts.length, "Rival price cuts",
            `${myCuts.length} of yours cut too · ${rises.length} rise${rises.length===1?"":"s"}`, rivalCuts.length?"alert":"calm", "See price moves")
-    + tile(prefix+"StockCard", noStock, "Your models without ready stock",
+    + tile("stock", prefix+"StockCard", noStock, "Your models without ready stock",
            eol?`${eol} more being cleared by the retailer`:"none being cleared", noStock?"alert":"calm", "See stock watch")
-    + tile(prefix+"LaunchCard", launches.length, "Rival launches this week",
+    + tile("launch", prefix+"LaunchCard", launches.length, "Rival launches this week",
            launches.length?[...new Set(launches.map(g=>cap(extractModel(g.r.name||"").brand||"")).filter(Boolean))].slice(0,3).join(", "):"nothing new listed", launches.length?"":"calm", "See launches")
-    + tile(prefix+"PromoCard", rivals.length?Math.round(onPromo.length/rivals.length*100)+"%":"–", "Rivals on promo now",
-           onPromo.length?`${onPromo.length} listings · average −${avgDepth.toFixed(0)}%`:"no rival promos in view", "", "See promotions");
+    + tile("promo", prefix+"PromoCard", promoPct!=null?promoPct+"%":"–", "Rivals on promo now",
+           onPromo.length?`${onPromo.length} listings · average −${avgDepth.toFixed(0)}%`:"no rival promos", "", "See promotions", " pts");
   const meta=document.getElementById(prefix+"TodayMeta");
   const last=(state.histDays||[]).slice(-1)[0];
-  if(meta) meta.textContent = `price moves over the last ${MOVER_DAYS} days${last?` · latest scrape ${new Date(last+"T00:00:00Z").toLocaleDateString("en-GB",{day:"numeric",month:"short",timeZone:"UTC"})}`:""}`;
+  const when=t=>new Date(t).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
+  if(meta) meta.textContent = `whole department · price moves over the last ${MOVER_DAYS} days`
+    + (last?` · latest scrape ${new Date(last+"T00:00:00Z").toLocaleDateString("en-GB",{day:"numeric",month:"short",timeZone:"UTC"})}`:"")
+    + (hl.loading ? "" : hl.first ? " · highlights start from your next visit" : ` · compared with your last visit, ${when(hl.since)}`);
   const sum=document.getElementById(prefix+"MovesSum");
   if(sum) sum.textContent = `· ${cuts.length} drop${cuts.length===1?"":"s"}, ${rises.length} rise${rises.length===1?"":"s"} in the last ${MOVER_DAYS} days · all brands`;
 }
