@@ -884,7 +884,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-26-S17</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-26-S18</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -4326,7 +4326,7 @@ function renderAvailChart(id, list){
   charts[id]=new Chart(document.getElementById(id),{type:"bar",
     data:{labels, datasets:buckets.map(b=>({label:b, backgroundColor:AVAIL_COLOR[b], borderWidth:0, maxBarThickness:26,
       data:shown.map(s=>rep[s]?+(100*(cnt[s][b]||0)/rep[s]).toFixed(1):0), counts:shown.map(s=>cnt[s][b]||0)}))},
-    options:{indexAxis:"y", responsive:true, maintainAspectRatio:false,
+    options:{indexAxis:"y", responsive:true, maintainAspectRatio:false, animation:chartAnimation(id),
       scales:{x:{stacked:true,max:100,grid:{color:getCSS("--grid")},ticks:{callback:v=>v+"%",font:{family:"JetBrains Mono",size:10},color:txt}},
               y:{stacked:true,grid:{display:false},ticks:{font:{family:"Hanken Grotesk",size:11},color:txt}}},
       plugins:{legend:{position:"bottom",labels:{font:{family:"Hanken Grotesk",size:11},color:txt,usePointStyle:true,boxHeight:6}},
@@ -7137,8 +7137,17 @@ function brandStockChart(id, list){
     {indexAxis:"y", scales:{x:{stacked:true}, y:{stacked:true}}, plugins:{legend:{display:true, position:"bottom"}}});
 }
 function getCSS(name){ try{ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#888"; }catch(_){ return "#888"; } }
+/* Charts redraw on every filter click and on the 2-minute refresh, so only a
+   chart's first draw animates (a short ease-out); redraws are instant. */
+const _chartDrawn = new Set();
+function chartAnimation(id){
+  if(_chartDrawn.has(id) || matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
+  _chartDrawn.add(id);
+  return {duration:450, easing:"easeOutQuart"};
+}
 function makeChart(id,type,data,extra={}){
   if(charts[id]) charts[id].destroy();
+  const animation = chartAnimation(id);
   const money = extra.money!==false && (type==="line");
   const horiz = extra.indexAxis==="y";
   const txt = getCSS("--ink-soft") || "#64748B";
@@ -7150,7 +7159,7 @@ function makeChart(id,type,data,extra={}){
     y:{grid:{color:horiz?"transparent":getCSS("--grid")},beginAtZero:!horiz,stacked:!!sy.stacked,ticks: horiz?catTicks:valTicks}
   };
   charts[id]=new Chart(document.getElementById(id),{type,data,options:{
-    responsive:true,maintainAspectRatio:false,
+    responsive:true,maintainAspectRatio:false,animation,
     indexAxis: extra.indexAxis||"x",
     interaction: (type==="line")?{mode:"index",intersect:false}:{mode:"nearest",intersect:true},
     plugins:{
