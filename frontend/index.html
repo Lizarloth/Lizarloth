@@ -638,6 +638,10 @@ html[data-motion="reduce"] *,html[data-motion="reduce"] *::before,html[data-moti
 html[data-motion="reduce"] :is(button,.chip,.fchip,.bchip,.dr-tab,.brand-tab,.export-card):active{transform:none}
 html[data-motion="reduce"] :is(.sidebar,.drawer){transition:none!important}
 html[data-motion="reduce"] .seen-flash{animation:none!important}
+/* page entrance (pageEntrance): cards rise in, staggered; the hidden state is set by script only */
+.rv{opacity:0;transform:translateY(10px)}
+.rv.rv-in{opacity:1;transform:none;transition:opacity .36s var(--ease-out) var(--rvd,0s),transform .42s var(--ease-out) var(--rvd,0s)}
+html[data-motion="reduce"] .rv{opacity:1;transform:none}
 /* Motion switch: the badge says the current setting */
 .motion-btn{display:grid;place-items:center}
 .motion-btn .mbadge{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);font:700 8.5px 'Hanken Grotesk';letter-spacing:.04em;text-transform:uppercase;
@@ -1045,7 +1049,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S38</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S39</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -2237,6 +2241,7 @@ async function loadAll(){
     if(lb) lb.classList.remove("on");
     firstLoad=false;
     renderAll();   // app is usable now
+    pageEntrance({cards:false});   // the numbers arrive: count them up once
     const bl=document.getElementById("bootLoader"); if(bl) bl.classList.add("hide");
     // history + alerts load in the background and re-render when ready
     Promise.all([loadHistory(), api("/api/alerts?limit=50")])
@@ -2434,6 +2439,7 @@ function showTab(tab){
   renderAll();
   window.scrollTo(0,0);
   syncRoute();
+  pageEntrance();
 }
 
 function applyDeptNav(){
@@ -6173,6 +6179,80 @@ function applyTheme(t){
 const MOTION_NEXT = {auto:"on", on:"off", off:"auto"};
 const osReducedMotion = () => { try{ return matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(_){ return false; } };
 function motionReduced(){ return document.documentElement.dataset.motion==="reduce"; }
+
+/* ---- Page entrance: when a page opens, its cards rise in one after another
+   (ones further down as they scroll into view) and its headline numbers count
+   up. Only on opening a page, never on a data refresh; skipped when motion is
+   off. Content never depends on it: the hidden state is added by script just
+   before it animates, and a timer forces everything visible. */
+let _rvIO=null, _rvTimer=null;
+function _rvClear(){
+  if(_rvIO){ _rvIO.disconnect(); _rvIO=null; } clearTimeout(_rvTimer);
+  document.querySelectorAll(".rv").forEach(el=>el.classList.remove("rv","rv-in"));
+}
+function pageEntrance({cards=true, numbers=true}={}){
+  _rvClear();
+  if(motionReduced()) return;
+  const page=document.querySelector(".page.visible"); if(!page) return;
+  if(numbers) countUpIn(page);
+  if(!cards) return;
+  // top-level cards only (a card inside a card moves with its parent)
+  const all=[...page.querySelectorAll(".card, .today-tile, .grid.metrics > .stat-card")].filter(el=>el.offsetParent!==null);
+  const els=all.filter(el=>!all.some(o=>o!==el && o.contains(el)));
+  els.forEach(el=>el.classList.add("rv"));
+  _rvIO=new IntersectionObserver(entries=>{
+    let i=0;
+    for(const e of entries){ if(!e.isIntersecting) continue;
+      const el=e.target; _rvIO.unobserve(el);
+      el.style.setProperty("--rvd", Math.min(i++,6)*45+"ms"); el.classList.add("rv-in");
+      el.addEventListener("transitionend", function done(ev){
+        if(ev.target!==el || ev.propertyName!=="transform") return;   // its own rise, not a child's hover
+        el.removeEventListener("transitionend", done); el.classList.remove("rv","rv-in"); el.style.removeProperty("--rvd"); });
+    }
+  }, {threshold:0.05, rootMargin:"0px 0px -4% 0px"});
+  els.forEach(el=>_rvIO.observe(el));
+  // fail-safe: nothing stays hidden if an observer or transition never fires
+  _rvTimer=setTimeout(()=>document.querySelectorAll(".rv:not(.rv-in)").forEach(el=>{
+    const r=el.getBoundingClientRect(); if(r.top<innerHeight) el.classList.remove("rv"); }), 1500);
+}
+/* Count-up for the headline numbers: same format back (€1.099,00 / 1,454 /
+   −50.0% / 4.72★ / +82), easeOutCubic, ~0.75 s, staggered. Stops if a render
+   replaces the text meanwhile. */
+function _numFmt(m){
+  let sign=""; if(/^[+\-−]/.test(m)){ sign=m[0]; m=m.slice(1); }
+  let th="", dec="";
+  const dot=m.includes("."), com=m.includes(",");
+  if(dot&&com){ dec=m.lastIndexOf(".")>m.lastIndexOf(",")?".":","; th=dec==="."?",":"."; }
+  else if(dot||com){ const c=dot?".":",", parts=m.split(c); if(parts.length>2 || parts[parts.length-1].length===3) th=c; else dec=c; }
+  const decs=dec?m.length-m.lastIndexOf(dec)-1:0;
+  const value=parseFloat((th?m.split(th).join(""):m).replace(dec||"\u0000","."));
+  return {sign, th, dec, decs, value};
+}
+function _numOut(v,F){
+  let [i,d]=v.toFixed(F.decs).split(".");
+  if(F.th) i=i.replace(/\B(?=(\d{3})+(?!\d))/g,F.th);
+  return F.sign+i+(d!==undefined?F.dec+d:"");
+}
+function countUpIn(page){
+  const targets=[...page.querySelectorAll(".today-tile .n, .stat-card .metric-value")].filter(el=>el.offsetParent!==null).slice(0,12);
+  targets.forEach((el,k)=>{
+    // the first text node holding a number (values can sit inside a coloured span)
+    const w=document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let node, m;
+    while((node=w.nextNode())){ m=node.nodeValue.match(/[+\-−]?\d[\d.,]*\d|[+\-−]?\d/); if(m) break; }
+    if(!node || !m) return;
+    const F=_numFmt(m[0]); if(!(F.value>0) || !isFinite(F.value)) return;
+    const before=node.nodeValue.slice(0,m.index), after=node.nodeValue.slice(m.index+m[0].length), final=node.nodeValue;
+    let last=before+_numOut(0,F)+after; node.nodeValue=last;
+    const dur=700+k*40, delay=k*60, t0=performance.now()+delay;
+    requestAnimationFrame(function step(now){
+      if(!node.isConnected || node.nodeValue!==last) return;          // re-rendered meanwhile: leave the new text
+      const t=Math.max(0,Math.min(1,(now-t0)/dur));
+      last = t>=1 ? final : before+_numOut(F.value*(1-Math.pow(1-t,3)),F)+after;
+      node.nodeValue=last;
+      if(t<1) requestAnimationFrame(step);
+    });
+  });
+}
 function applyMotion(){
   const pref = store.get("motion","auto");
   document.documentElement.dataset.motion = (pref==="off" || (pref==="auto" && osReducedMotion())) ? "reduce" : "full";
