@@ -150,6 +150,8 @@ nav button.active .ic2,.dept-pill.on .ic2,.run-btn .ic2{--dt-body:#fff;--dt-det:
 /* About is full-bleed and dark: the content column lets go of its width and padding,
    the hero fills the screen under the top bar, the rest sits on the same black */
 main:has(> #page-about.visible){max-width:none;padding:0}
+/* a page shared by every department hides the department switch */
+body.on-global :is(#deptToggle,.side-dept){visibility:hidden}
 #page-about{background:#050505;color:#f2f2f2;padding-bottom:72px;
   --frost:rgba(255,255,255,.035);--line:rgba(255,255,255,.1);--ink:#f2f2f2;--ink-soft:#9d9d9d;--ink-faint:#6e6e6e;
   --soft-bg:rgba(255,255,255,.06);--shadow:none;--cobalt:#5CC8C8;--cobalt-soft:rgba(92,200,200,.12);--mint:#5BBF8F}
@@ -1161,7 +1163,7 @@ html[data-motion="reduce"] .rv{opacity:1;transform:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S44</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S45</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -2527,16 +2529,19 @@ function deptHides(tab){ const d=DEPT_PAGES[state.dept]; return !!(d && d.hide.h
 const ROUTE_DEPTS = ["cooling","laundry","cooking","dishwashing"];
 // pages merged into others (Nov 2026): Compare -> Benchmark, My SKUs -> Price index, Segments -> Segments & gaps
 const RETIRED_TABS = {compare:"benchmark", mysku:"pindex", segments:"gaps"};
+/* pages that are the same in every department: one address ("#about"), no department switch shown */
+const GLOBAL_TABS = new Set(["about"]);
 let _routing = false;
 function syncRoute(replace){
   if(_routing) return;
   const tab = document.querySelector("#nav [data-page].active")?.dataset.page || "dashboard";
-  const h = "#"+state.dept+"/"+tab+(MP.id?"/m"+MP.id:"");
+  const h = GLOBAL_TABS.has(tab) ? "#"+tab : "#"+state.dept+"/"+tab+(MP.id?"/m"+MP.id:"");
   if(location.hash !== h) history[replace?"replaceState":"pushState"](null, "", h);
   try{ localStorage.setItem("pricedge_dept", state.dept); }catch(_){}
 }
 function applyRoute(){
-  const [d, t, m] = location.hash.replace(/^#/,"").split("/");
+  let [d, t, m] = location.hash.replace(/^#/,"").split("/");
+  if(GLOBAL_TABS.has(d)){ t=d; d=null; }          // "#about": the page alone, department unchanged
   const mid = m && /^m.+/.test(m) ? m.slice(1) : null;
   if(!mid && MP.id){ _routing=true; try{ closeModel(); } finally { _routing=false; } }
   let dept = ROUTE_DEPTS.includes(d) ? d : null;
@@ -2557,6 +2562,7 @@ window.addEventListener("popstate", applyRoute);
 
 function showTab(tab){
   document.querySelectorAll("#nav [data-page]").forEach(b=>b.classList.toggle("active", b.dataset.page===tab));
+  document.body.classList.toggle("on-global", GLOBAL_TABS.has(tab));
   const dp = DEPT_PAGES[state.dept];
   const id = (dp && dp.tabs.has(tab)) ? "page-"+dp.prefix+"-"+tab : "page-"+tab;
   document.querySelectorAll(".page").forEach(pg=>pg.classList.toggle("visible", pg.id===id));
