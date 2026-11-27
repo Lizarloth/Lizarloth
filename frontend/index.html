@@ -23,7 +23,7 @@
 <meta name="description" content="Pricedge — internal competitive price-intelligence dashboard for the Greek major-appliance market.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2048%2048'%3E%3Cpath%20d='M0%2011%20A11%2011%200%200%201%2011%200%20L32%200%20L48%2016%20L48%2037%20A11%2011%200%200%201%2037%2048%20L11%2048%20A11%2011%200%200%201%200%2037%20Z'%20fill='%230B6E6E'/%3E%3Cpath%20d='M32%200%20L48%2016%20L34.5%2016%20A2.5%202.5%200%200%201%2032%2013.5%20Z'%20fill='%23083D3A'/%3E%3Cpath%20d='M17%2036%20V13%20H25%20A6.8%206.8%200%200%201%2025%2026.6%20H17'%20fill='none'%20stroke='%23F4F1EA'%20stroke-width='4.4'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..48,500;12..48,600;12..48,700;12..48,800&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..48,500;12..48,600;12..48,700;12..48,800&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&family=Instrument+Serif:ital@1&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 :root{
@@ -146,6 +146,91 @@ nav button.active .ic2,.dept-pill.on .ic2,.run-btn .ic2{--dt-body:#fff;--dt-det:
 .about-lock{display:flex;align-items:center;gap:16px;margin-bottom:18px}
 .about-lock .about-mark{width:52px;height:52px;flex:none}
 .about-lock .about-mark svg{width:52px;height:52px;display:block}
+/* ---------- About: cinematic hero (after MotionSites "Agent Wave") ---------- */
+.ab-hero{position:relative;isolation:isolate;overflow:hidden;border-radius:20px;background:#000;color:#fff;
+  min-height:clamp(520px,calc(100vh - 140px),760px);display:grid;grid-template-rows:auto 1fr auto;margin-bottom:28px}
+.ab-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:0;transition:opacity 1.4s ease}
+.ab-video.on{opacity:1}
+.ab-scrim{position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(120% 80% at 50% 30%,rgba(0,0,0,0) 0%,rgba(0,0,0,.3) 55%,rgba(0,0,0,.78) 100%),
+             linear-gradient(180deg,rgba(0,0,0,.35) 0%,rgba(0,0,0,0) 22%,rgba(0,0,0,.42) 46%,rgba(0,0,0,.6) 70%,rgba(0,0,0,.88) 100%)}
+.ab-top{display:flex;align-items:center;gap:12px;padding:22px 28px}
+.ab-top .about-mark svg{width:34px;height:34px;display:block}
+.ab-copy{align-self:end;display:flex;flex-direction:column;align-items:center;text-align:center;max-width:920px;width:100%;margin:0 auto;padding:0 24px 30px}
+.ab-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 14px;border-radius:6px;margin-bottom:20px;
+  background:linear-gradient(90deg,#7d7d7d 0%,#2a2a2a 52%,#0a0a0a 100%);color:#f2f2f2;font:500 12.5px 'Hanken Grotesk';letter-spacing:-.01em}
+.ab-badge svg{width:16px;height:16px;fill:#fff;filter:drop-shadow(0 0 3px rgba(255,255,255,.45))}
+.ab-h1{display:flex;flex-direction:column;align-items:center;font:600 clamp(30px,4.3vw,56px)/1.1 'Bricolage Grotesque';letter-spacing:-.035em;color:#fff}
+.ab-line{display:block;overflow:hidden;padding:.06em .15em .14em}
+.ab-line>span{display:inline-block;text-wrap:balance}
+.ab-h1 em{font:italic 400 1.1em/1 'Instrument Serif',Georgia,serif;letter-spacing:-.02em;color:#E0A155;padding-right:.04em}
+.ab-lede{max-width:560px;margin-top:16px;color:#a9a9a9;font-size:15.5px;line-height:1.55;letter-spacing:-.01em}
+.ab-actions{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-top:24px}
+.ab-btn{position:relative;overflow:hidden;isolation:isolate;height:42px;padding:0 18px;border-radius:8px;cursor:pointer;
+  font:600 13.5px 'Hanken Grotesk';letter-spacing:-.01em;transition:box-shadow .35s ease,border-color .35s ease,background .35s ease}
+.ab-btn::after{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;transform:translateX(-130%);
+  background:linear-gradient(115deg,transparent 20%,rgba(255,255,255,.45) 48%,transparent 76%);transition:transform .65s ease}
+.ab-btn.solid{background:linear-gradient(180deg,#fff 0%,#e7e7e7 48%,#cfcfcf 100%);color:#111;border:1px solid #fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.95)}
+.ab-btn.ghost{background:linear-gradient(135deg,rgba(255,255,255,.12),rgba(0,0,0,.5) 46%,rgba(150,170,200,.1));color:#fff;
+  border:1px solid rgba(198,198,198,.55);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+@media (hover:hover) and (pointer:fine){
+  .ab-btn:hover::after{transform:translateX(130%)}
+  .ab-btn.solid:hover{box-shadow:inset 0 1px 0 #fff,0 0 26px rgba(224,161,85,.35),0 8px 18px rgba(255,255,255,.12)}
+  .ab-btn.ghost:hover{border-color:rgba(230,220,200,.8);box-shadow:0 0 24px rgba(224,161,85,.22)}
+}
+.ab-btn:focus-visible{outline:2px solid #E0A155;outline-offset:3px}
+.ab-stats{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px 28px;padding:18px 34px 26px;border-top:1px solid rgba(255,255,255,.1)}
+.ab-stat{display:flex;flex-direction:column;gap:2px;min-width:120px}
+.ab-stat b{font:600 clamp(20px,2vw,26px)/1.1 'Bricolage Grotesque';letter-spacing:-.02em;font-variant-numeric:tabular-nums;color:#fff}
+.ab-stat span{font-size:12px;color:#9a9a9a}
+/* entrance: plays only while .play is on the hero (set each time About opens); rest state is fully visible */
+@keyframes ab-soft{from{opacity:0;transform:translateY(14px)}}
+@keyframes ab-mask{from{opacity:0;transform:translateY(105%)}}
+@keyframes ab-pop{0%{opacity:0;transform:scale(.9)}70%{opacity:1;transform:scale(1.03)}}
+@keyframes ab-up{from{opacity:0;transform:translateY(18px) scale(.94)}}
+@keyframes ab-side{from{opacity:0;transform:translateX(22px)}}
+@keyframes ab-em{from{opacity:.3;filter:blur(5px)}}
+.ab-hero.play .ab-in{animation:ab-soft 1.05s cubic-bezier(.16,1,.3,1) var(--d,.08s) both}
+.ab-hero.play .ab-mask{animation-name:ab-mask}
+.ab-hero.play .ab-pop{animation-name:ab-pop}
+.ab-hero.play .ab-up{animation-name:ab-up}
+.ab-hero.play .ab-side{animation-name:ab-side}
+.ab-hero.play .ab-h1 em{animation:ab-em 1.2s ease .7s both}
+.ab-hero.play .ab-stat{animation:ab-soft .9s cubic-bezier(.16,1,.3,1) both}
+/* manifesto: words light up as it scrolls through the view */
+.ab-manifesto{padding:26px 8px 34px}
+.ab-manifesto p{max-width:900px;margin:0 auto;text-align:center;font:600 clamp(20px,2.3vw,30px)/1.38 'Bricolage Grotesque';letter-spacing:-.02em;color:var(--ink)}
+.ab-manifesto .w{opacity:.18;transition:opacity .25s ease}
+.ab-manifesto .w.lit{opacity:1}
+/* feature cards */
+.ab-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+@media(max-width:1100px){.ab-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.ab-cards{grid-template-columns:1fr}}
+.ab-card{position:relative;display:flex;flex-direction:column;gap:8px;text-align:left;padding:20px 20px 44px;border-radius:16px;cursor:pointer;
+  background:var(--frost);border:1px solid var(--line);color:var(--ink);font:inherit;transition:border-color .25s ease,transform .3s var(--ease-out),box-shadow .3s ease}
+.ab-card-n{font:600 11px 'JetBrains Mono';color:var(--ink-faint);letter-spacing:.08em}
+.ab-card b{font:700 17px 'Bricolage Grotesque';letter-spacing:-.01em}
+.ab-card span:not(.ab-card-n){font-size:13px;line-height:1.5;color:var(--ink-soft)}
+.ab-card i{position:absolute;left:20px;bottom:16px;font-style:normal;color:var(--cobalt);font-weight:700;transition:transform .3s var(--ease-out)}
+@media (hover:hover) and (pointer:fine){
+  .ab-card:hover{border-color:var(--cobalt);transform:translateY(-3px);box-shadow:0 10px 28px rgba(0,0,0,.12)}
+  .ab-card:hover i{transform:translateX(6px)}
+}
+.ab-card:focus-visible{outline:2px solid var(--cobalt);outline-offset:2px}
+@media(max-width:640px){
+  .ab-hero{border-radius:14px;min-height:560px}
+  .ab-video{object-position:center 30%}
+  .ab-scrim{background:linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,.55) 32%,rgba(0,0,0,.74) 60%,rgba(0,0,0,.9) 100%)}
+  .ab-h1{font-size:clamp(25px,7.4vw,30px)}
+  .ab-lede{font-size:14.5px;color:#c4c4c4}
+  .ab-top{padding:16px 18px}
+  .ab-copy{padding:0 16px 22px}
+  .ab-actions{flex-direction:column;width:100%}
+  .ab-btn{width:100%}
+  .ab-stats{padding:16px 18px 20px;display:grid;grid-template-columns:1fr 1fr}
+}
+html[data-motion="reduce"] .ab-hero .ab-in,html[data-motion="reduce"] .ab-hero .ab-stat,html[data-motion="reduce"] .ab-h1 em{animation:none!important}
+html[data-motion="reduce"] .ab-manifesto .w{opacity:1}
 .about-tag{font:500 11px 'JetBrains Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);margin-top:8px}
 .side-sec{font:600 11px 'Hanken Grotesk';letter-spacing:.1em;text-transform:uppercase;color:var(--side-mute);padding:14px 12px 6px}
 nav{display:flex;flex-direction:column;gap:3px}
@@ -1049,7 +1134,7 @@ html[data-motion="reduce"] .rv{opacity:1;transform:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S39</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S41</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1678,20 +1763,43 @@ html[data-motion="reduce"] .rv{opacity:1;transform:none}
 
   <!-- ABOUT -->
   <section class="page" id="page-about">
-    <div class="about-lock">
-      <div class="about-mark"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M0 11 A11 11 0 0 1 11 0 L32 0 L48 16 L48 37 A11 11 0 0 1 37 48 L11 48 A11 11 0 0 1 0 37 Z" fill="#0B6E6E"/>
-        <path d="M32 0 L48 16 L34.5 16 A2.5 2.5 0 0 1 32 13.5 Z" fill="#083D3A"/>
-        <path d="M17 36 V13 H25 A6.8 6.8 0 0 1 25 26.6 H17" stroke="#F4F1EA" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg></div>
-      <div><span class="bwm light" style="font-size:34px"><span class="x1">Pric</span><span class="s"><span class="x1">e</span><svg viewBox="0 0 30 8" preserveAspectRatio="none" aria-hidden="true"><path d="M1 7 L29 2" stroke="#C77D33" stroke-width="2.6" stroke-linecap="round"/></svg></span><span class="x2">dge</span></span><div class="about-tag">Price intelligence · GR</div></div>
-    </div>
-    <p class="page-sub">Competitive price intelligence for the Greek appliance market.</p>
-    <div class="grid two-col">
-      <div class="card">
-        <h3><span class="dot"></span>What Pricedge does</h3>
-        <p style="font-size:14px;line-height:1.6;color:var(--ink)">Pricedge continuously tracks product pricing, availability and specifications across leading Greek retailers, then turns that into a clear competitive picture — price parity across stores, market segments by size and class, brand positioning, and timely alerts when the market moves. It is built for brand and category teams who need to understand where their products stand and act quickly.</p>
+    <div class="ab-hero">
+      <video class="ab-video" id="abVideo" muted loop playsinline preload="none" aria-hidden="true" tabindex="-1"
+        data-src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260702_135039_b04d00db-6ee2-4e2a-a7f5-b2dfd3d24fd2.mp4"></video>
+      <div class="ab-scrim" aria-hidden="true"></div>
+      <div class="ab-top ab-in" style="--d:.06s">
+        <div class="about-mark"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M0 11 A11 11 0 0 1 11 0 L32 0 L48 16 L48 37 A11 11 0 0 1 37 48 L11 48 A11 11 0 0 1 0 37 Z" fill="#0B6E6E"/>
+          <path d="M32 0 L48 16 L34.5 16 A2.5 2.5 0 0 1 32 13.5 Z" fill="#083D3A"/>
+          <path d="M17 36 V13 H25 A6.8 6.8 0 0 1 25 26.6 H17" stroke="#F4F1EA" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg></div>
+        <span class="bwm dark" style="font-size:22px"><span class="x1">Pric</span><span class="s"><span class="x1">e</span><svg viewBox="0 0 30 8" preserveAspectRatio="none" aria-hidden="true"><path d="M1 7 L29 2" stroke="#C77D33" stroke-width="2.6" stroke-linecap="round"/></svg></span><span class="x2">dge</span></span>
       </div>
+      <div class="ab-copy">
+        <span class="ab-badge ab-in ab-pop" style="--d:.18s"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.6C12.55 2.6 12.88 3.15 13.08 4.7c.62 4.7 1.52 5.6 6.22 6.22 1.55.2 2.1.53 2.1 1.08s-.55.88-2.1 1.08c-4.7.62-5.6 1.52-6.22 6.22-.2 1.55-.53 2.1-1.08 2.1s-.88-.55-1.08-2.1c-.62-4.7-1.52-5.6-6.22-6.22C3.15 12.88 2.6 12.55 2.6 12s.55-.88 2.1-1.08c4.7-.62 5.6-1.52 6.22-6.22C11.12 3.15 11.45 2.6 12 2.6Z"/></svg>Price intelligence · Greece</span>
+        <h1 class="ab-h1">
+          <span class="ab-line"><span class="ab-in ab-mask" style="--d:.36s">Every shelf price in Greece,</span></span>
+          <span class="ab-line"><span class="ab-in ab-mask" style="--d:.54s"><em>read</em> before the market moves.</span></span>
+        </h1>
+        <p class="ab-lede ab-in" style="--d:.76s">Pricedge reads Kotsovolos, Public and Plaisio every day, matches the same model across them, and shows a white-goods brand where it stands: price, promotions, shelf space and what buyers say.</p>
+        <div class="ab-actions">
+          <button class="ab-btn solid ab-in ab-up" style="--d:.9s" data-goto="dashboard">Open the dashboard</button>
+          <button class="ab-btn ghost ab-in ab-side" style="--d:1.02s" data-goto="pindex">See the Price index</button>
+        </div>
+      </div>
+      <div class="ab-stats" id="abStats"></div>
+    </div>
+
+    <div class="ab-manifesto"><p id="abManifesto">Built for the questions a white-goods brand team asks every Monday. Are we the cheapest for what we offer? Who cut their price this week, and did anyone follow? Which shelf are we missing while a rival fills it? Why do buyers pick the other brand? Every number here links back to the listing it came from.</p></div>
+
+    <div class="ab-cards" id="abCards">
+      <button class="ab-card" data-goto="pindex"><span class="ab-card-n">01</span><b>Price index</b><span>Each of your models against rivals with the same specs and colour, at every retailer.</span><i aria-hidden="true">→</i></button>
+      <button class="ab-card" data-goto="gaps"><span class="ab-card-n">02</span><b>Segments &amp; gaps</b><span>Who holds the entry price in every size and type, and where your range has holes.</span><i aria-hidden="true">→</i></button>
+      <button class="ab-card" data-goto="perception"><span class="ab-card-n">03</span><b>Brand perception</b><span>What thousands of Greek reviews say, topic by topic, and what really moves the stars.</span><i aria-hidden="true">→</i></button>
+      <button class="ab-card" data-goto="alerts"><span class="ab-card-n">04</span><b>Alerts</b><span>A same-spec rival priced below you, or a new low review of your model, the day it happens.</span><i aria-hidden="true">→</i></button>
+    </div>
+
+    <div class="grid two-col" style="margin-top:18px">
       <div class="card">
         <h3><span class="dot" style="background:var(--mint)"></span>Contact</h3>
         <p style="font-size:14px;line-height:1.9;color:var(--ink)">
@@ -1700,10 +1808,10 @@ html[data-motion="reduce"] .rv{opacity:1;transform:none}
           <svg class="ic" style="vertical-align:-2px"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg> <a href="mailto:stefanos.pappas95@gmail.com" style="color:var(--cobalt);text-decoration:none">stefanos.pappas95@gmail.com</a>
         </p>
       </div>
-    </div>
-    <div class="card" style="margin-top:18px">
+      <div class="card">
       <h3><span class="dot" style="background:var(--ink-soft)"></span>Disclaimer</h3>
       <p style="font-size:12.5px;line-height:1.6;color:var(--ink-soft)">Pricing, availability and product information shown in Pricedge are collected from publicly available retailer listings and are provided for informational and analytical purposes only. Figures are indicative and may differ from the prices displayed on each retailer's own website at any given moment; always confirm current pricing with the retailer directly. Pricedge is an independent monitoring tool and is not affiliated with, endorsed by, or representing any of the retailers referenced. All product names, brands and trademarks are the property of their respective owners.</p>
+    </div>
     </div>
   </section>
 </main>
@@ -3381,7 +3489,9 @@ function renderAll(){
   if(vis("page-shelf")) safeRender("shelf",renderShelf);
   if(vis("page-gaps")) safeRender("gaps",renderGaps);
   if(vis("page-perception")) safeRender("perception",renderPerception);
-  if(vis("page-products")) safeRender("products",renderProducts);   // Coverage: same page in every department, scoped to it
+  if(vis("page-products")) safeRender("products",renderProducts);
+  if(vis("page-about")) safeRender("about",renderAbout);
+  aboutVideo(vis("page-about"));   // Coverage: same page in every department, scoped to it
   if(_pendingModel && allProducts().length){ const id=_pendingModel; _pendingModel=null; setTimeout(()=>openModel(id),0); }
   else if(MP.id){ const mp=_prodIndex().byId[MP.id]; if(mp) setTimeout(()=>renderModelPanel(mp, true),0); }   // fresh data (history, launches) lands in the open panel
   safeRender("freshness",renderFreshness);
@@ -4791,6 +4901,7 @@ function bpLoad(){
   api("/api/reviews").then(r=>{ state.reviews = r && Array.isArray(r.rows) ? r : {p:{}, rows:[]}; })
     .catch(()=>{ state.reviews = null; }).finally(()=>{ _bpLoading=false; renderPerception();
       safeRender("revAlerts",renderReviewAlerts);
+      if(document.getElementById("page-about")?.classList.contains("visible")) safeRender("about",renderAbout);
       if(MP.id){ const mp=_prodIndex().byId[MP.id]; if(mp) renderModelPanel(mp, true); } });   // an open model page gets its reviews
 }
 /* one review -> {pillar key: +1 / 0 / -1} */
@@ -6180,6 +6291,59 @@ const MOTION_NEXT = {auto:"on", on:"off", off:"auto"};
 const osReducedMotion = () => { try{ return matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(_){ return false; } };
 function motionReduced(){ return document.documentElement.dataset.motion==="reduce"; }
 
+/* ---- About page: live numbers under the hero, the background video (loaded
+   only once About is opened, paused when it closes), the entrance, and the
+   manifesto that lights up word by word as it scrolls through the view. */
+function renderAbout(){
+  const el=document.getElementById("abStats"); if(!el) return;
+  bpLoad();
+  const all=allProducts();
+  const brands=new Set(all.map(p=>cap(extractModel(f.name(p)).brand||"")).filter(Boolean)).size;
+  const stats=[
+    [all.length, "listings tracked"],
+    [brands, "brands compared"],
+    [(state.history||[]).length, "price points stored"],
+    [state.reviews && state.reviews.rows ? state.reviews.rows.length : 0, "customer reviews read"],
+    [3, "retailers, read daily"],
+  ];
+  el.innerHTML=stats.map(([n,l],i)=>`<div class="ab-stat" style="animation-delay:${(1.1+i*.12).toFixed(2)}s"><b>${n?n.toLocaleString("en-GB"):"–"}</b><span>${l}</span></div>`).join("");
+  aboutManifestoWords();
+}
+function aboutVideo(on){
+  const v=document.getElementById("abVideo"); if(!v) return;
+  if(!on || motionReduced()){ if(!v.paused) v.pause(); return; }
+  if(!v.src){ v.src=v.dataset.src; v.addEventListener("playing", ()=>v.classList.add("on"), {once:true}); }
+  const p=v.play(); if(p && p.catch) p.catch(()=>{});      // autoplay refused: the scrim on black still reads well
+}
+function aboutEntrance(){
+  const hero=document.querySelector("#page-about .ab-hero"); if(!hero) return;
+  hero.classList.remove("play");
+  if(motionReduced()) return;
+  void hero.offsetWidth; hero.classList.add("play");
+  countUpIn(hero, ".ab-stat b", 1150);
+}
+function aboutManifestoWords(){
+  const p=document.getElementById("abManifesto"); if(!p || p.dataset.split) return;
+  p.innerHTML=p.textContent.trim().split(/\s+/).map(w=>`<span class="w">${esc(w)}</span>`).join(" ");
+  p.dataset.split="1";
+}
+let _abTick=false;
+function aboutScroll(){
+  if(_abTick) return; _abTick=true;
+  requestAnimationFrame(()=>{ _abTick=false;
+    const p=document.getElementById("abManifesto"), page=document.getElementById("page-about");
+    if(!p || !page || !page.classList.contains("visible")) return;
+    const words=p.querySelectorAll(".w"); if(!words.length) return;
+    const r=p.getBoundingClientRect(), vh=innerHeight;
+    // 0 when the paragraph's top reaches 85% of the view, 1 when its bottom reaches 45%
+    const t=Math.max(0, Math.min(1, (vh*.85-r.top)/((vh*.85-vh*.45)+r.height)));
+    const lit=motionReduced()?words.length:Math.round(t*words.length);
+    words.forEach((w,i)=>w.classList.toggle("lit", i<lit));
+  });
+}
+window.addEventListener("scroll", aboutScroll, {passive:true});
+window.addEventListener("resize", aboutScroll, {passive:true});
+
 /* ---- Page entrance: when a page opens, its cards rise in one after another
    (ones further down as they scroll into view) and its headline numbers count
    up. Only on opening a page, never on a data refresh; skipped when motion is
@@ -6197,7 +6361,8 @@ function pageEntrance({cards=true, numbers=true}={}){
   if(numbers) countUpIn(page);
   if(!cards) return;
   // top-level cards only (a card inside a card moves with its parent)
-  const all=[...page.querySelectorAll(".card, .today-tile, .grid.metrics > .stat-card")].filter(el=>el.offsetParent!==null);
+  if(page.id==="page-about"){ aboutEntrance(); aboutScroll(); }
+  const all=[...page.querySelectorAll(".card, .ab-card, .today-tile, .grid.metrics > .stat-card")].filter(el=>el.offsetParent!==null);
   const els=all.filter(el=>!all.some(o=>o!==el && o.contains(el)));
   els.forEach(el=>el.classList.add("rv"));
   _rvIO=new IntersectionObserver(entries=>{
@@ -6233,8 +6398,8 @@ function _numOut(v,F){
   if(F.th) i=i.replace(/\B(?=(\d{3})+(?!\d))/g,F.th);
   return F.sign+i+(d!==undefined?F.dec+d:"");
 }
-function countUpIn(page){
-  const targets=[...page.querySelectorAll(".today-tile .n, .stat-card .metric-value")].filter(el=>el.offsetParent!==null).slice(0,12);
+function countUpIn(page, sel=".today-tile .n, .stat-card .metric-value", base=0){
+  const targets=[...page.querySelectorAll(sel)].filter(el=>el.offsetParent!==null).slice(0,12);
   targets.forEach((el,k)=>{
     // the first text node holding a number (values can sit inside a coloured span)
     const w=document.createTreeWalker(el, NodeFilter.SHOW_TEXT); let node, m;
@@ -6243,7 +6408,7 @@ function countUpIn(page){
     const F=_numFmt(m[0]); if(!(F.value>0) || !isFinite(F.value)) return;
     const before=node.nodeValue.slice(0,m.index), after=node.nodeValue.slice(m.index+m[0].length), final=node.nodeValue;
     let last=before+_numOut(0,F)+after; node.nodeValue=last;
-    const dur=700+k*40, delay=k*60, t0=performance.now()+delay;
+    const dur=700+k*40, delay=base+k*60, t0=performance.now()+delay;
     requestAnimationFrame(function step(now){
       if(!node.isConnected || node.nodeValue!==last) return;          // re-rendered meanwhile: leave the new text
       const t=Math.max(0,Math.min(1,(now-t0)/dur));
