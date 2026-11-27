@@ -1134,7 +1134,7 @@ html[data-motion="reduce"] .rv{opacity:1;transform:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S41</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S42</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1475,7 +1475,7 @@ html[data-motion="reduce"] .rv{opacity:1;transform:none}
     </div>
     <details class="card cov-admin">
       <summary><h3 style="margin:0">Add or remove a listing by hand <span id="mpgCount" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3></summary>
-      <p class="ph-note">The daily scrape finds every product in each category by itself; you rarely need this. Covers every department.</p>
+      <p class="ph-note">The daily collection identifies every product in each category automatically, so manual changes are rarely required. Applies to all departments.</p>
       <div class="grid two-col">
         <div>
           <input id="mpgSearch" type="search" placeholder="Filter by name, brand or code…" aria-label="Filter tracked products" style="margin-bottom:10px">
@@ -1781,7 +1781,7 @@ html[data-motion="reduce"] .rv{opacity:1;transform:none}
           <span class="ab-line"><span class="ab-in ab-mask" style="--d:.36s">Every shelf price in Greece,</span></span>
           <span class="ab-line"><span class="ab-in ab-mask" style="--d:.54s"><em>read</em> before the market moves.</span></span>
         </h1>
-        <p class="ab-lede ab-in" style="--d:.76s">Pricedge reads Kotsovolos, Public and Plaisio every day, matches the same model across them, and shows a white-goods brand where it stands: price, promotions, shelf space and what buyers say.</p>
+        <p class="ab-lede ab-in" style="--d:.76s">Pricedge monitors Kotsovolos, Public and Plaisio daily, matches each model across retailers, and gives white appliance brands a clear view of their market position: pricing, promotions, shelf presence and customer sentiment.</p>
         <div class="ab-actions">
           <button class="ab-btn solid ab-in ab-up" style="--d:.9s" data-goto="dashboard">Open the dashboard</button>
           <button class="ab-btn ghost ab-in ab-side" style="--d:1.02s" data-goto="pindex">See the Price index</button>
@@ -1790,13 +1790,13 @@ html[data-motion="reduce"] .rv{opacity:1;transform:none}
       <div class="ab-stats" id="abStats"></div>
     </div>
 
-    <div class="ab-manifesto"><p id="abManifesto">Built for the questions a white-goods brand team asks every Monday. Are we the cheapest for what we offer? Who cut their price this week, and did anyone follow? Which shelf are we missing while a rival fills it? Why do buyers pick the other brand? Every number here links back to the listing it came from.</p></div>
+    <div class="ab-manifesto"><p id="abManifesto">Designed around the questions white appliance brand teams face each week. Is our pricing competitive for the specification we offer? Which competitors have changed their prices, and has the market followed? Where is our range absent while a competitor holds the shelf? What leads customers to choose another brand? Every figure links back to its source listing.</p></div>
 
     <div class="ab-cards" id="abCards">
-      <button class="ab-card" data-goto="pindex"><span class="ab-card-n">01</span><b>Price index</b><span>Each of your models against rivals with the same specs and colour, at every retailer.</span><i aria-hidden="true">→</i></button>
-      <button class="ab-card" data-goto="gaps"><span class="ab-card-n">02</span><b>Segments &amp; gaps</b><span>Who holds the entry price in every size and type, and where your range has holes.</span><i aria-hidden="true">→</i></button>
-      <button class="ab-card" data-goto="perception"><span class="ab-card-n">03</span><b>Brand perception</b><span>What thousands of Greek reviews say, topic by topic, and what really moves the stars.</span><i aria-hidden="true">→</i></button>
-      <button class="ab-card" data-goto="alerts"><span class="ab-card-n">04</span><b>Alerts</b><span>A same-spec rival priced below you, or a new low review of your model, the day it happens.</span><i aria-hidden="true">→</i></button>
+      <button class="ab-card" data-goto="pindex"><span class="ab-card-n">01</span><b>Price index</b><span>Each of your models compared with competitors of identical specification and colour, at every retailer.</span><i aria-hidden="true">→</i></button>
+      <button class="ab-card" data-goto="gaps"><span class="ab-card-n">02</span><b>Segments &amp; gaps</b><span>The entry price in every size and type, which brand holds it, and where your range is not represented.</span><i aria-hidden="true">→</i></button>
+      <button class="ab-card" data-goto="perception"><span class="ab-card-n">03</span><b>Brand perception</b><span>Thousands of Greek customer reviews analysed by topic, and the factors that influence ratings.</span><i aria-hidden="true">→</i></button>
+      <button class="ab-card" data-goto="alerts"><span class="ab-card-n">04</span><b>Alerts</b><span>Notification on the day a competitor of identical specification is priced below you, or your model receives a low review.</span><i aria-hidden="true">→</i></button>
     </div>
 
     <div class="grid two-col" style="margin-top:18px">
@@ -5215,12 +5215,12 @@ function renderDrivers(rows, rb, dept){
       <span class="bp-drv-e ${d.effect<0?"neg":"pos"}"><i style="width:${Math.min(100,Math.abs(d.effect)/0.15*100).toFixed(0)}%"></i>${eff(d.effect)}</span></button>`;
   const block=(title,list,empty)=>`<div class="bp-drv-col"><div class="sw-sub">${title}</div>${list.length?list.slice(0,8).map(row).join(""):`<div class="bp-drv-empty">${empty}</div>`}</div>`;
   const head = cost[0]
-    ? `<b>${esc(cost[0].P.label)}</b> costs ${esc(who)} the most: reviews that mention it average <b>${st(cost[0].avgW)}</b> against ${st(cost[0].avgO)}, pulling the ${st(avg)} average down <b>${Math.abs(cost[0].effect).toFixed(2)}★</b>.`
-      + (earn[0]?` <b>${esc(earn[0].P.label)}</b> earns the most (${eff(earn[0].effect)}).`:"")
-    : S.length ? `Nothing costs ${esc(who)} a measurable share of its rating yet.` : "";
+    ? `<b>${esc(cost[0].P.label)}</b> has the largest negative effect on the rating of ${esc(who)}: reviews that mention it average <b>${st(cost[0].avgW)}</b> against ${st(cost[0].avgO)}, lowering the ${st(avg)} average by <b>${Math.abs(cost[0].effect).toFixed(2)}★</b>.`
+      + (earn[0]?` <b>${esc(earn[0].P.label)}</b> has the largest positive effect (${eff(earn[0].effect)}).`:"")
+    : S.length ? `No topic has a measurable negative effect on the rating of ${esc(who)} yet.` : "";
   el.innerHTML = !S.length ? `<div class="empty">No review texts for this scope yet.</div>`
     : `<p class="bp-drv-head">${head}</p>
-      <div class="bp-drv-grid">${block("Costing stars",cost,"no topic with 5+ mentions pulls the rating down")}${block("Earning stars",earn,"no topic with 5+ mentions lifts the rating")}${block("Talked about, little effect",flat,"none")}</div>
+      <div class="bp-drv-grid">${block("Lowering the rating",cost,"No topic with 5+ mentions lowers the rating.")}${block("Raising the rating",earn,"No topic with 5+ mentions raises the rating.")}${block("Frequently mentioned, limited effect",flat,"None.")}</div>
       <p class="ph-note">${S.length} reviews, average ${st(avg)}. <b>Effect</b> = share of reviews mentioning the topic × the difference in stars, i.e. how far the topic moves the overall average. Topics under ${BP_MIN_N} mentions are left out. Click a row for the reviews.</p>`;
 }
 
@@ -5880,8 +5880,8 @@ function renderHistory(){
   document.getElementById("phListSum").textContent=`· ${moved} of ${list.length} moved since ${since}`;
   const shown=list.slice(0,histState.n);
   listEl.innerHTML = shown.map(m=>{
-    const flag = m.now<=m.lo && m.lo<m.hi ? `<span class="ph-flag lo">period low</span>`
-               : m.now>=m.hi && m.lo<m.hi ? `<span class="ph-flag hi">period high</span>` : "";
+    const flag = m.now<=m.lo && m.lo<m.hi ? `<span class="ph-flag lo">lowest in period</span>`
+               : m.now>=m.hi && m.lo<m.hi ? `<span class="ph-flag hi">highest in period</span>` : "";
     return `<button class="ph-row${m.key===histState.sel?" on":""}" data-phk="${esc(m.key)}" aria-pressed="${m.key===histState.sel}">
       <span class="ph-nm"><b>${esc(m.brand)} ${esc(m.code||short(m.name,20))}</b><span class="ph-sub">${Object.keys(m.sites).length} retailer${Object.keys(m.sites).length>1?"s":""} · ${m.changes} change${m.changes===1?"":"s"}${m.promoDays?` · promo ${m.promoDays} d`:""}</span>${flag}</span>
       ${phSpark(m.cheap)}
@@ -5902,7 +5902,7 @@ function renderHistory(){
   document.getElementById("phStats").innerHTML =
       m1("Cheapest now", fmt(m.now), nowSite?`at ${SITE_LABEL[nowSite]}`:"", "sc-blue")
     + m1(`Change since ${since}`, `<span style="color:${phCol(m.pct)}">${m.changes?phPct(m.pct):"±0%"}</span>`, `from ${fmt(m.first)}`, "sc-aqua")
-    + m1(`Low since ${since}`, fmt(m.lo), m.now<=m.lo&&m.lo<m.hi?"that's today's price":phDay(m.loDay), "sc-mint")
+    + m1(`Low since ${since}`, fmt(m.lo), m.now<=m.lo&&m.lo<m.hi?"current price":phDay(m.loDay), "sc-mint")
     + m1(`High since ${since}`, fmt(m.hi), phDay(m.hiDay), "sc-heat")
     + (rivNow ? m1("vs same-spec rivals", `<span style="color:${phCol((m.now-rivNow)/rivNow*100)}">${phPct((m.now-rivNow)/rivNow*100)}</span>`, `their median ${fmt(rivNow)} · ${riv.n} rivals`, "sc-blue") : "");
   const datasets=sites.map(s=>({label:SITE_LABEL[s], data:m.sites[s], borderColor:SITE_COLOR[s], backgroundColor:"transparent", stepped:true, spanGaps:true, pointRadius:0, borderWidth:2}));
@@ -6302,9 +6302,9 @@ function renderAbout(){
   const stats=[
     [all.length, "listings tracked"],
     [brands, "brands compared"],
-    [(state.history||[]).length, "price points stored"],
+    [(state.history||[]).length, "price records"],
     [state.reviews && state.reviews.rows ? state.reviews.rows.length : 0, "customer reviews read"],
-    [3, "retailers, read daily"],
+    [3, "retailers monitored daily"],
   ];
   el.innerHTML=stats.map(([n,l],i)=>`<div class="ab-stat" style="animation-delay:${(1.1+i*.12).toFixed(2)}s"><b>${n?n.toLocaleString("en-GB"):"–"}</b><span>${l}</span></div>`).join("");
   aboutManifestoWords();
