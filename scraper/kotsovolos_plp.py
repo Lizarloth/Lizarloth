@@ -533,7 +533,7 @@ def fix_urls(session, rows):
 _IMAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kotsovolos_images.json")
 _IMAGES = None
 _IMAGE_BUDGET = [0]
-IMAGE_LOOKUPS_PER_RUN = 400
+IMAGE_LOOKUPS_PER_RUN = 900
 IMAGE_RETRY_DAYS = 14
 
 
