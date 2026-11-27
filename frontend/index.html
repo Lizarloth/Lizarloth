@@ -132,7 +132,7 @@ nav button.active .ic2,.dept-pill.on .ic2,.run-btn .ic2{--dt-body:#fff;--dt-det:
   overflow-y:auto;overscroll-behavior:contain;
 }
 .sidebar .logo{display:flex;align-items:center;gap:10px;font-family:'Bricolage Grotesque';font-weight:700;font-size:19px;color:#fff;padding:4px 8px 18px}
-.sidebar .logo small{display:block;font:500 10.5px 'Hanken Grotesk';color:var(--side-mute);letter-spacing:.12em;text-transform:uppercase}
+.sidebar .logo small{display:block;font:500 11px 'Hanken Grotesk';color:var(--side-mute);letter-spacing:.12em;text-transform:uppercase}
 .logo-mark{width:32px;height:32px;display:grid;place-items:center}
 .logo-mark svg{width:32px;height:32px;display:block}
 /* two-tone Pricedge wordmark: shared 'e' seam */
@@ -146,7 +146,7 @@ nav button.active .ic2,.dept-pill.on .ic2,.run-btn .ic2{--dt-body:#fff;--dt-det:
 .about-lock{display:flex;align-items:center;gap:16px;margin-bottom:18px}
 .about-lock .about-mark{width:52px;height:52px;flex:none}
 .about-lock .about-mark svg{width:52px;height:52px;display:block}
-.about-tag{font:500 10px 'JetBrains Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);margin-top:8px}
+.about-tag{font:500 11px 'JetBrains Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);margin-top:8px}
 .side-sec{font:600 11px 'Hanken Grotesk';letter-spacing:.1em;text-transform:uppercase;color:var(--side-mute);padding:14px 12px 6px}
 nav{display:flex;flex-direction:column;gap:3px}
 nav button{
@@ -176,7 +176,7 @@ nav button.active{background:var(--cobalt);color:#fff}
 .rating-chip{display:inline-flex;align-items:center;gap:3px;margin-left:6px;font:700 11.5px 'Hanken Grotesk';color:#8A5A00;background:#FFF3DC;border-radius:99px;padding:1px 8px;white-space:nowrap;vertical-align:1px}
 .rating-chip small{font-weight:500;color:var(--ink-soft)}
 [data-theme="dark"] .rating-chip{background:#3A2A10;color:#F2C46B}
-.rb{display:inline-block;margin-left:5px;font:700 9.5px 'Hanken Grotesk';letter-spacing:.04em;text-transform:uppercase;border-radius:99px;padding:2px 7px;vertical-align:1px;white-space:nowrap}
+.rb{display:inline-block;margin-left:5px;font:700 11px 'Hanken Grotesk';letter-spacing:.04em;text-transform:uppercase;border-radius:99px;padding:2px 7px;vertical-align:1px;white-space:nowrap}
 .rb-most{background:var(--cobalt);color:var(--on-cobalt)}
 .rb-top{background:#FFD9A8;color:#5A3600}
 [data-theme="dark"] .rb-top{background:#5A3D17;color:#FFE2BC}
@@ -195,9 +195,20 @@ nav button.active{background:var(--cobalt);color:#fff}
 /* brand perception: pillar cells + review quotes */
 .bp-cell{border:1px solid transparent;background:transparent;border-radius:8px;padding:4px 8px;cursor:pointer;font:inherit;color:var(--ink);white-space:nowrap}
 .bp-cell b{font:700 14px 'Bricolage Grotesque';font-variant-numeric:tabular-nums}
-.bp-cell small{font-size:10.5px;color:var(--ink-soft);margin-left:2px}
-.bp-cell.few{color:var(--ink-soft);opacity:.7}
+.bp-cell small{font-size:11px;color:var(--ink-soft);margin-left:2px}
+.bp-cell.few{color:var(--ink-soft)}
+.bp-few-row td{color:var(--ink-soft)}
 .bp-neg{color:var(--heat);font-weight:700}
+.bp-cards{display:none}
+@media(max-width:760px){
+  .bp-matrix-wrap{display:none}
+  .bp-cards{display:flex;flex-direction:column;gap:10px}
+  .bp-card{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+  .bp-card-h{display:flex;align-items:baseline;gap:6px;margin-bottom:6px}
+  .bp-card-h span:last-child{margin-left:auto;font-size:12px;color:var(--ink-soft)}
+  .bp-card-p{display:flex;flex-wrap:wrap;gap:6px}
+  .bp-card-p .bp-cell{border-color:var(--line);font-size:12.5px;min-height:36px}
+}
 .bp-reasons{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px}
 .bp-reason{display:inline-flex;align-items:baseline;gap:5px;background:var(--cobalt-soft);border-radius:99px;padding:3px 10px;font-weight:600}
 .bp-reason small{font-weight:500;color:var(--ink-soft)}
@@ -212,7 +223,7 @@ nav button.active{background:var(--cobalt);color:#fff}
 /* global search dropdown */
 .gs-panel{position:absolute;top:calc(100% + 6px);left:0;width:min(560px,calc(100vw - 32px));max-height:min(70vh,560px);overflow-y:auto;overscroll-behavior:contain;
   background:var(--frost);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 48px rgba(40,34,24,.18);padding:6px;z-index:90}
-.gs-grp{display:flex;justify-content:space-between;gap:8px;font:600 10.5px 'Hanken Grotesk';letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding:10px 10px 4px}
+.gs-grp{display:flex;justify-content:space-between;gap:8px;font:600 11px 'Hanken Grotesk';letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft);padding:10px 10px 4px}
 .gs-grp span{text-transform:none;letter-spacing:0;font-weight:500}
 .gs-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:0;background:transparent;border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink);font:inherit}
 .gs-item.on,.gs-chip.on{background:var(--cobalt-soft)}
@@ -221,7 +232,7 @@ nav button.active{background:var(--cobalt);color:#fff}
 .gs-main b{font-weight:600}
 .gs-sub{display:block;font-size:11.5px;color:var(--ink-soft);margin-top:1px}
 .gs-price{text-align:right;font:700 13.5px 'Bricolage Grotesque';white-space:nowrap;font-variant-numeric:tabular-nums}
-.gs-price small{display:block;font:500 10.5px 'Hanken Grotesk';color:var(--ink-soft)}
+.gs-price small{display:block;font:500 11px 'Hanken Grotesk';color:var(--ink-soft)}
 .gs-brand{padding:8px 10px;font-size:13px;display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 .gs-brand .gs-sub{display:inline;margin:0 2px 0 4px}
 .gs-chip{border:1px solid var(--line);background:var(--frost);border-radius:99px;padding:3px 10px;font:600 12px 'Hanken Grotesk';color:var(--ink);cursor:pointer}
@@ -248,7 +259,7 @@ nav button.active{background:var(--cobalt);color:#fff}
 
 /* data-freshness badge (last scrape per retailer) */
 .fresh{display:flex;gap:6px;align-items:center}
-.fresh .fr{font:600 10.5px 'JetBrains Mono',monospace;padding:3px 8px;border-radius:99px;white-space:nowrap;cursor:default}
+.fresh .fr{font:600 11px 'JetBrains Mono',monospace;padding:3px 8px;border-radius:99px;white-space:nowrap;cursor:default}
 .fresh .fr-ok{background:#E2F8EE;color:#0B7A52}
 .fresh .fr-warn{background:#FFF1E6;color:#9C5600}
 .fresh .fr-bad{background:#FDE8E8;color:#B42424}
@@ -331,7 +342,7 @@ main{max-width:1240px;margin:0 auto;padding:28px 28px 80px}
 .mini-row{display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px solid var(--soft-bg)}
 .mini-row:last-child{border-bottom:0}
 .mini-name{flex:1;min-width:0;overflow-wrap:break-word;font-size:13px;color:var(--ink)}
-@media(max-width:480px){.mini-row{gap:7px;padding:8px 2px}.mini-row .sw-d{min-width:0!important;font-size:10.5px}}
+@media(max-width:480px){.mini-row{gap:7px;padding:8px 2px}.mini-row .sw-d{min-width:0!important;font-size:11px}}
 .mini-price{font:700 13.5px 'Bricolage Grotesque';color:var(--ink)}
 
 /* chart containers — fixed height stops Chart.js from growing unbounded */
@@ -418,7 +429,7 @@ tbody tr{transition:background-color .15s ease}
 .radar-delta{text-align:right;font:700 14px 'Bricolage Grotesque';white-space:nowrap}
 .radar-delta.down{color:var(--mint)} .radar-delta.up{color:var(--heat)}
 .radar-delta small{display:block;font:500 11px 'JetBrains Mono';color:var(--ink-soft)}
-.conf{display:inline-block;margin-top:5px;padding:2px 8px;border-radius:99px;font:600 10.5px 'Hanken Grotesk';cursor:help}
+.conf{display:inline-block;margin-top:5px;padding:2px 8px;border-radius:99px;font:600 11px 'Hanken Grotesk';cursor:help}
 .conf.c-ok{background:#E2F8EE;color:#0B7A52}
 .conf.c-warn{background:#FFF1E6;color:#A35200}
 .conf.c-neu{background:var(--soft-bg);color:var(--ink-soft)}
@@ -490,17 +501,17 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 .ab-rival-main{font-size:13px}
 .ab-rival-sub{font-size:11.5px;color:var(--ink-soft);margin-top:2px}
 .ab-edges{font-size:11px;color:var(--ink-soft)}
-.ab-edge{background:var(--warn);color:#fff;font-weight:700;font-size:10px;padding:1px 6px;border-radius:99px}
+.ab-edge{background:var(--warn);color:#1B1A17;font-weight:700;font-size:11px;padding:1px 7px;border-radius:99px}
 
 /* Benchmark */
 .bench-item{display:flex;flex-direction:column}
 .bench-item .lau-row[data-bx]{cursor:pointer}
 .bench-det{border:1px solid var(--line);border-radius:12px;background:var(--frost);padding:12px 14px;margin:4px 0 2px}
 .bd-sec{margin-bottom:10px;font-size:12.5px}
-.bd-k{font:600 10.5px 'Hanken Grotesk';letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:3px}
+.bd-k{font:600 11px 'Hanken Grotesk';letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:3px}
 .bd-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px 14px}
 .bd-cell{font-size:12px;display:flex;flex-direction:column}
-.bd-cell span{color:var(--ink-soft);font-size:10.5px}
+.bd-cell span{color:var(--ink-soft);font-size:11px}
 .bd-cell b{font-weight:600}
 .bx-hint{color:var(--cobalt);font-weight:600}
 .l-stand a[data-gobench]{color:#5EEAD4;font-weight:700;text-decoration:none;white-space:nowrap;margin-left:8px}
@@ -508,7 +519,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 
 /* technology chips (derived per SKU) */
 .tech-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
-.tech-chip{font:600 10.5px 'Hanken Grotesk';color:var(--cobalt);background:var(--cobalt-soft);border:1px solid var(--line);border-radius:6px;padding:2px 7px;white-space:nowrap}
+.tech-chip{font:600 11px 'Hanken Grotesk';color:var(--cobalt);background:var(--cobalt-soft);border:1px solid var(--line);border-radius:6px;padding:2px 7px;white-space:nowrap}
 .tech-chip.prog{color:var(--teal);background:var(--teal-soft)}   /* programs, set apart from technologies */
 
 /* Match review */
@@ -520,7 +531,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 .mr-card img{width:60px;height:60px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:8px}
 .mr-nm{font:600 13px 'Hanken Grotesk';line-height:1.35}
 .mr-meta{display:flex;align-items:center;gap:8px;font:700 13.5px 'Bricolage Grotesque'}
-.mr-ids{font:500 10.5px 'JetBrains Mono';color:var(--ink-soft);word-break:break-all}
+.mr-ids{font:500 11px 'JetBrains Mono';color:var(--ink-soft);word-break:break-all}
 
 /* Dashboard filter bar */
 .dash-filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0 4px}
@@ -568,7 +579,8 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
 .toolbar .spacer{flex:1}
 .export-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
-.export-card{cursor:pointer}
+.export-card{cursor:pointer;display:block;width:100%;text-align:left;font:inherit;color:var(--ink)}
+.export-card p{color:var(--ink-soft);font-size:13px}
 .export-card .ico{font-size:26px;margin-bottom:10px}
 .export-card h4{font-family:'Bricolage Grotesque';font-size:15px;margin-bottom:4px}
 /* ---------- category bar & filters ---------- */
@@ -594,7 +606,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 .bp-cell.high{color:var(--heat)}
 .bp-cell.na{color:var(--ink-faint);font-weight:400;font-size:12px}
 .bp-spread{text-align:right;font:700 13px 'Bricolage Grotesque'}
-.bp-flag{display:inline-block;margin-top:2px;padding:1px 7px;border-radius:99px;font:600 10px 'Hanken Grotesk'}
+.bp-flag{display:inline-block;margin-top:2px;padding:1px 7px;border-radius:99px;font:600 11px 'Hanken Grotesk'}
 .bp-flag.parity{background:#E2F8EE;color:#0E9263}
 .bp-flag.watch{background:#FFF1E6;color:#C2630E}
 .bp-flag.erosion{background:#FDE8E8;color:#C42B2B}
@@ -613,7 +625,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 .lad-row.mine{background:rgba(11,110,110,.08);border-radius:8px;border-bottom:1px solid transparent}
 .lad-rank{font:700 12px 'JetBrains Mono';color:var(--ink-soft);text-align:center}
 .lad-name b{font-weight:600}
-.lad-name .mine-tag{display:inline-block;margin-left:6px;background:var(--cobalt);color:#fff;font:700 9px 'Hanken Grotesk';padding:1px 6px;border-radius:99px;vertical-align:middle}
+.lad-name .mine-tag{display:inline-block;margin-left:6px;background:var(--cobalt);color:#fff;font:700 11px 'Hanken Grotesk';padding:1px 6px;border-radius:99px;vertical-align:middle}
 .lad-name span{font-size:11px;color:var(--ink-soft);font-family:'JetBrains Mono'}
 .rl{color:var(--cobalt);text-decoration:none}
 .rl b{color:var(--cobalt)}
@@ -631,7 +643,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 /* ===== LAUNDRY — redesigned surface ===== */
 .l-hero{background:var(--frost);border:1px solid var(--line);border-radius:18px;padding:22px 22px 0;overflow:hidden;position:relative;box-shadow:var(--shadow)}
 .l-hero::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--cobalt),var(--teal))}
-.l-eyebrow{font:600 10.5px 'JetBrains Mono';letter-spacing:.14em;text-transform:uppercase;color:var(--teal)}
+.l-eyebrow{font:600 11px 'JetBrains Mono';letter-spacing:.14em;text-transform:uppercase;color:var(--teal)}
 .l-h1{font:700 27px 'Bricolage Grotesque';line-height:1.08;letter-spacing:-.5px;margin:8px 0 6px;color:var(--ink)}
 .l-lede{font-size:13.5px;line-height:1.5;color:var(--ink-soft);max-width:48ch;margin:0 0 18px}
 .l-statstrip{display:flex;border-top:1px solid var(--line-soft);margin:0 -22px}
@@ -644,7 +656,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 .l-stand{margin-top:14px;background:linear-gradient(110deg,#0C3B3B,#0B6E6E);color:#fff;border-radius:16px;padding:18px 20px;display:flex;align-items:center;gap:16px}
 .l-stand .badge{flex:none;width:54px;height:54px;border-radius:14px;background:rgba(255,255,255,.14);display:grid;place-items:center;font:700 19px 'Bricolage Grotesque'}
 .l-stand .txt{flex:1;min-width:0}
-.l-stand .lbl{font:600 10.5px 'JetBrains Mono';letter-spacing:.1em;text-transform:uppercase;color:#9FD3CC}
+.l-stand .lbl{font:600 11px 'JetBrains Mono';letter-spacing:.1em;text-transform:uppercase;color:#9FD3CC}
 .l-stand .line{font-size:14px;line-height:1.4;margin-top:3px}
 .l-stand .good{color:#5EEAD4;font-weight:700}
 
@@ -676,17 +688,17 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 .lau-nm{font-weight:600;font-size:14px;line-height:1.25;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .lau-nm a{color:var(--ink);text-decoration:none}
 .lau-nm a:hover{color:var(--cobalt)}
-.lau-yours{font:600 9px 'JetBrains Mono';letter-spacing:.06em;color:#fff;background:var(--cobalt);padding:2px 6px;border-radius:5px}
+.lau-yours{font:600 11px 'JetBrains Mono';letter-spacing:.06em;color:#fff;background:var(--cobalt);padding:2px 6px;border-radius:5px}
 .lau-specs{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
 .lau-spec{font:500 11.5px 'Hanken Grotesk';color:var(--ink-soft);background:var(--ice);border-radius:7px;padding:2px 8px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
 /* EU energy colours run from green to yellow to red: dark text reads on all of them, white doesn't on yellow */
 .lau-spec.energy,.eb{font-weight:700;color:#1B1A17!important;text-shadow:none!important}
 .lau-spec.load{background:var(--teal-soft);color:var(--teal);font-weight:600}
-.lau-retail{font:500 10.5px 'JetBrains Mono';color:var(--ink-soft);opacity:.75;margin-top:7px}
+.lau-retail{font:500 11px 'JetBrains Mono';color:var(--ink-soft);opacity:.75;margin-top:7px}
 .lau-price{text-align:right;white-space:nowrap}
 .l-was{display:block;font-size:11px;color:var(--ink-soft);opacity:.8;text-decoration:line-through;margin-bottom:1px}
 .l-now{font:700 17px 'Bricolage Grotesque'}
-.l-off{display:inline-block;font:700 10px 'JetBrains Mono';color:var(--heat);background:rgba(201,71,47,.1);border-radius:5px;padding:1px 5px;margin-top:3px}
+.l-off{display:inline-block;font:700 11px 'JetBrains Mono';color:var(--heat);background:rgba(201,71,47,.1);border-radius:5px;padding:1px 5px;margin-top:3px}
 /* inline was/off (products table, compare, mini-lists) */
 .was{text-decoration:line-through;color:var(--ink-soft);font-weight:500;font-size:.8em;margin-right:5px;white-space:nowrap}
 .off{color:var(--heat);font-weight:700;font-size:.72em;margin-left:5px;background:rgba(201,71,47,.12);padding:1px 5px;border-radius:5px;white-space:nowrap}
@@ -714,13 +726,13 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 @media(max-width:980px){.today{grid-template-columns:repeat(2,minmax(0,1fr))}}
 /* change highlights: a chip that stays for the session, a tint that plays once (colour only, no movement) */
 .seen-chip{display:inline-block;margin:2px 0 1px;padding:1px 7px;border-radius:99px;background:var(--soft-bg);color:var(--ink);font:600 11px 'Hanken Grotesk';white-space:nowrap}
-.seen-new{font:700 9px 'Hanken Grotesk';letter-spacing:.04em;color:var(--ink);background:#FFD9A8;padding:1px 6px;border-radius:99px;margin-left:6px;vertical-align:1px}
+.seen-new{font:700 11px 'Hanken Grotesk';letter-spacing:.04em;color:var(--ink);background:#FFD9A8;padding:1px 6px;border-radius:99px;margin-left:6px;vertical-align:1px}
 [data-theme="dark"] .seen-new{background:#5A3D17;color:#FFE2BC}
 .today-tile.seen-flash{animation:seentile 1.8s var(--ease-out)}
 .mini-row.seen-flash{animation:seenrow 1.8s var(--ease-out)}
 @keyframes seentile{from{background-color:var(--cobalt-soft);border-color:var(--cobalt)}}
 @keyframes seenrow{from{background-color:var(--cobalt-soft)}}
-.mv-mine{font:700 9px 'Hanken Grotesk';letter-spacing:.04em;color:var(--on-cobalt);background:var(--cobalt);padding:1px 6px;border-radius:99px;margin-left:6px;vertical-align:1px}
+.mv-mine{font:700 11px 'Hanken Grotesk';letter-spacing:.04em;color:var(--on-cobalt);background:var(--cobalt);padding:1px 6px;border-radius:99px;margin-left:6px;vertical-align:1px}
 .pulse-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr));gap:20px 24px}
 .pulse-grid .chart-box{height:220px}
 .pulse-grid .chart-box.short{height:170px}
@@ -766,12 +778,12 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 .exp-count{font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:10px}
 .er-row{display:grid;grid-template-columns:30px 48px 1.8fr 168px 64px 70px 1fr;gap:10px;align-items:center;padding:10px 8px;border-bottom:1px solid var(--soft-bg);font-size:13px}
 .er-row.mine{background:rgba(11,110,110,.08);border-radius:10px;border-bottom:1px solid transparent}
-.er-row.head{font:600 10.5px 'Hanken Grotesk';letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);border-bottom:2px solid var(--line)}
+.er-row.head{font:600 11px 'Hanken Grotesk';letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);border-bottom:2px solid var(--line)}
 .er-rank{text-align:center;font:700 12px 'JetBrains Mono';color:var(--ink-soft)}
 .er-img{width:40px;height:40px;object-fit:contain;background:#fff;border:1px solid var(--line);border-radius:8px}
 .er-img.ph{display:grid;place-items:center;font-size:16px;color:var(--ink-faint)}
 .er-name b{font-weight:600}
-.er-name .mine-tag{display:inline-block;margin-left:6px;background:var(--cobalt);color:#fff;font:700 9px 'Hanken Grotesk';padding:1px 6px;border-radius:99px;vertical-align:middle}
+.er-name .mine-tag{display:inline-block;margin-left:6px;background:var(--cobalt);color:#fff;font:700 11px 'Hanken Grotesk';padding:1px 6px;border-radius:99px;vertical-align:middle}
 .er-name span{font-size:11px;color:var(--ink-soft)}
 .er-price{font:700 14px 'Bricolage Grotesque';text-align:right;white-space:nowrap}
 .er-energy{text-align:center}
@@ -834,14 +846,14 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 .sw-d{font:600 11px 'JetBrains Mono';color:var(--ink-soft);white-space:nowrap;min-width:58px;text-align:right}
 .sw-sub{font:600 11px 'Hanken Grotesk';letter-spacing:.04em;text-transform:uppercase;color:var(--ink-soft);margin:10px 0 4px}
 .sw-sub b{color:var(--ink)}
-.sw-else{font:500 10.5px 'Hanken Grotesk';color:var(--mint);margin-left:4px}
+.sw-else{font:500 11px 'Hanken Grotesk';color:var(--mint);margin-left:4px}
 .avail-note{font-size:11.5px;color:var(--ink-soft);margin:8px 2px 0;line-height:1.45}
 
 /* ===== Navigation & look-and-feel pass (2026-11) ===== */
 /* Cooling hero now matches the light department hero used by the others */
 .hero{background:var(--frost);color:var(--ink);border:1px solid var(--line);box-shadow:var(--shadow);position:relative;overflow:hidden}
 .hero::before{content:"";position:absolute;inset:0 0 auto 0;height:3px;background:linear-gradient(90deg,var(--cobalt),var(--teal))}
-.hero-eyebrow{font:600 10.5px 'JetBrains Mono';letter-spacing:.14em;color:var(--teal)}
+.hero-eyebrow{font:600 11px 'JetBrains Mono';letter-spacing:.14em;color:var(--teal)}
 .hero-title{color:var(--ink);font-size:27px;letter-spacing:-.5px}
 .hero-sub{color:var(--ink-soft)}
 .hero-num{color:var(--cobalt)}
@@ -867,7 +879,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 /* sidebar: current department + tap-outside backdrop on small screens */
 .side-dept{margin:0 8px 6px;padding:8px 12px;border-radius:10px;background:rgba(255,255,255,.06);
   font:600 12.5px 'Hanken Grotesk';color:#fff;display:flex;align-items:center;gap:8px}
-.side-dept small{font:600 10.5px 'Hanken Grotesk';letter-spacing:.1em;text-transform:uppercase;color:var(--side-mute)}
+.side-dept small{font:600 11px 'Hanken Grotesk';letter-spacing:.1em;text-transform:uppercase;color:var(--side-mute)}
 .side-backdrop{display:none}
 .mp-backdrop{position:fixed;inset:0;background:rgba(20,18,14,.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:80}
 .mp-backdrop.open{opacity:1;pointer-events:auto}
@@ -889,7 +901,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 .mp-offer:last-child{border-bottom:0}
 .mp-offer .mp-o-main{flex:1;min-width:140px;font-size:12.5px;color:var(--ink-soft)}
 .mp-offer .mp-price{font:700 15px 'Hanken Grotesk';color:var(--ink);white-space:nowrap}
-.mp-offer .mp-best{font:700 10px 'Hanken Grotesk';color:#fff;background:var(--mint);border-radius:6px;padding:2px 6px;margin-left:6px}
+.mp-offer .mp-best{font:700 11px 'Hanken Grotesk';color:#fff;background:var(--mint);border-radius:6px;padding:2px 6px;margin-left:6px}
 .mp-specs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 14px}
 .mp-specs div{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;border-bottom:1px dashed var(--soft-bg);padding:4px 0}
 .mp-specs span{color:var(--ink-soft)} .mp-specs b{color:var(--ink);text-align:right;font-weight:600;overflow-wrap:anywhere}
@@ -971,7 +983,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:10px">build 2026-11-27-S25</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S26</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1592,7 +1604,8 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <div class="card" style="margin-bottom:18px">
       <h3><span class="dot" style="background:var(--warn)"></span>Why people buy: pillar scores <span id="bpPillarScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
       <p style="font-size:12.5px;color:var(--ink-soft);margin:-6px 0 12px">Each cell: <b>how often the brand's buyers talk about that pillar</b> (% of its reviews), darker = a bigger reason for that brand; <b style="color:var(--heat)">−n</b> = reviews complaining about it. Buyers rate high overall (≈4.7★), so what they choose to mention is the signal. Cells under <span id="bpMinN">5</span> mentions are greyed. Click a cell for the reviews behind it.</p>
-      <div style="overflow-x:auto"><table id="bpMatrix"></table></div>
+      <div class="bp-matrix-wrap" style="overflow-x:auto"><table id="bpMatrix"></table></div>
+      <div class="bp-cards" id="bpCards"></div>
       <div id="bpQuotes" style="margin-top:14px"></div>
     </div>
     <div class="card" style="margin-bottom:18px">
@@ -1680,12 +1693,12 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <h2 class="page-title">Export</h2>
     <p class="page-sub">Download your data for Excel or further analysis.</p>
     <div class="grid export-grid">
-      <div class="card lift export-card" onclick="doExport('csv')"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></div><h4>Price history — CSV</h4><p>All tracked prices, comma separated.</p></div>
-      <div class="card lift export-card" onclick="doExport('excel')"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M4 20V11M10 20V5M16 20v-8M22 20H2"/></svg></div><h4>Price history — Excel</h4><p>Styled .xlsx with one sheet per retailer.</p></div>
-      <div class="card lift export-card" onclick="doExport('monthly')"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div><h4>Competitor monthly prices — Excel</h4><p>Cooling, laundry & dish rivals: one price per month, with your closest model.</p></div>
-      <div class="card lift export-card" onclick="exportDailyBrief()"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7M9 8h3"/></svg></div><h4>Daily brief — Excel</h4><p>Your models at every retailer, price changes, stock issues, new listings, rivals on promo.</p></div>
-      <div class="card lift export-card" onclick="exportSpecMatch()"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M4 6h7M4 12h7M4 18h7M14 6h6M14 12h6M14 18h6"/></svg></div><h4>Your models vs competition — same specs</h4><p>Whirlpool, Indesit & Beko against rivals with matching specs: gaps, median, rank.</p></div>
-      <div class="card lift export-card" onclick="exportMatches()"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M9.5 14.5l5-5"/><path d="M11 6.2l1.6-1.6a4 4 0 0 1 5.7 5.7l-1.6 1.6"/><path d="M13 17.8l-1.6 1.6a4 4 0 0 1-5.7-5.7l1.6-1.6"/></svg></div><h4>Match matrix — CSV</h4><p>The Compare table: one model per row, RRP per retailer.</p></div>
+      <button type="button" class="card lift export-card" onclick="doExport('csv')"><div class="ico"><svg class="ic" viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></div><h4>Price history — CSV</h4><p>All tracked prices, comma separated.</p></button>
+      <button type="button" class="card lift export-card" onclick="doExport('excel')"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M4 20V11M10 20V5M16 20v-8M22 20H2"/></svg></div><h4>Price history — Excel</h4><p>Styled .xlsx with one sheet per retailer.</p></button>
+      <button type="button" class="card lift export-card" onclick="doExport('monthly')"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg></div><h4>Competitor monthly prices — Excel</h4><p>Cooling, laundry & dish rivals: one price per month, with your closest model.</p></button>
+      <button type="button" class="card lift export-card" onclick="exportDailyBrief()"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h7M9 8h3"/></svg></div><h4>Daily brief — Excel</h4><p>Your models at every retailer, price changes, stock issues, new listings, rivals on promo.</p></button>
+      <button type="button" class="card lift export-card" onclick="exportSpecMatch()"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M4 6h7M4 12h7M4 18h7M14 6h6M14 12h6M14 18h6"/></svg></div><h4>Your models vs competition — same specs</h4><p>Whirlpool, Indesit & Beko against rivals with matching specs: gaps, median, rank.</p></button>
+      <button type="button" class="card lift export-card" onclick="exportMatches()"><div class="ico"><svg viewBox="0 0 24 24" class="ic"><path d="M9.5 14.5l5-5"/><path d="M11 6.2l1.6-1.6a4 4 0 0 1 5.7 5.7l-1.6 1.6"/><path d="M13 17.8l-1.6 1.6a4 4 0 0 1-5.7-5.7l1.6-1.6"/></svg></div><h4>Match matrix — CSV</h4><p>The Compare table: one model per row, RRP per retailer.</p></button>
     </div>
 
     <div class="card" style="margin-top:22px">
@@ -2682,7 +2695,7 @@ function renderLBrands(){
       if(sr&&sr.srp){
         const idx=x/sr.srp*100, breach=sr.map&&x<sr.map-0.005, mg=estMargin(x,sr.srp);
         const col=breach?"var(--heat)":idx<90?"var(--warn)":"var(--ink-soft)";
-        sub=`<div style="font:600 10px 'JetBrains Mono';color:${col};margin-top:1px" title="SRP ${fmt(sr.srp)}${sr.map?' · MAP '+fmt(sr.map):''}${mg!=null?' · est. retailer margin now ≈ '+mg+'% (vs '+BRAND_SETTINGS.marginPct+'% at SRP)':''}">${idx.toFixed(0)}% SRP${breach?' ⚠':''}</div>`;
+        sub=`<div style="font:600 11px 'JetBrains Mono';color:${col};margin-top:1px" title="SRP ${fmt(sr.srp)}${sr.map?' · MAP '+fmt(sr.map):''}${mg!=null?' · est. retailer margin now ≈ '+mg+'% (vs '+BRAND_SETTINGS.marginPct+'% at SRP)':''}">${idx.toFixed(0)}% SRP${breach?' ⚠':''}</div>`;
       }
       return `<div class="bp-cell ${c}">${fmt(x)}${sub}</div>`;};
     const mapBreach = sr&&sr.map&&v.some(x=>x!=null&&x<sr.map-0.005);
@@ -3160,7 +3173,7 @@ function renderSecBrands(D){
       if(sr&&sr.srp){
         const idx=x/sr.srp*100, breach=sr.map&&x<sr.map-0.005, mg=estMargin(x,sr.srp);
         const col=breach?"var(--heat)":idx<90?"var(--warn)":"var(--ink-soft)";
-        sub=`<div style="font:600 10px 'JetBrains Mono';color:${col};margin-top:1px" title="SRP ${fmt(sr.srp)}${sr.map?' · MAP '+fmt(sr.map):''}${mg!=null?' · est. retailer margin now ≈ '+mg+'% (vs '+BRAND_SETTINGS.marginPct+'% at SRP)':''}">${idx.toFixed(0)}% SRP${breach?' ⚠':''}</div>`;
+        sub=`<div style="font:600 11px 'JetBrains Mono';color:${col};margin-top:1px" title="SRP ${fmt(sr.srp)}${sr.map?' · MAP '+fmt(sr.map):''}${mg!=null?' · est. retailer margin now ≈ '+mg+'% (vs '+BRAND_SETTINGS.marginPct+'% at SRP)':''}">${idx.toFixed(0)}% SRP${breach?' ⚠':''}</div>`;
       }
       return `<div class="bp-cell ${c}">${fmt(x)}${sub}</div>`;};
     const mapBreach = sr&&sr.map&&v.some(x=>x!=null&&x<sr.map-0.005);
@@ -3378,7 +3391,7 @@ function renderModelPanel(p, keepScroll){
   const type=LAUNCH_CAT[p.category]||(typeof SUBCAT_LABEL!=="undefined"&&SUBCAT_LABEL[categorize(p)])||p.category||"";
   const rating=modelRating(members), badges=ratingBadges(p, rating);
   document.getElementById("mpHead").innerHTML = `${img?`<img src="${esc(img)}" alt="" onerror="this.style.visibility='hidden'">`:'<span class="mp-ph"></span>'}
-    <div style="min-width:0"><div class="mp-title">${esc(modelTitle(f.name(p),60))}${mine?' <span class="mine-tag" style="display:inline-block;background:var(--cobalt);color:#fff;font:700 9px \'Hanken Grotesk\';padding:2px 7px;border-radius:99px;vertical-align:middle">YOURS</span>':""}</div>
+    <div style="min-width:0"><div class="mp-title">${esc(modelTitle(f.name(p),60))}${mine?' <span class="mine-tag" style="display:inline-block;background:var(--cobalt);color:#fff;font:700 11px \'Hanken Grotesk\';padding:2px 7px;border-radius:99px;vertical-align:middle">YOURS</span>':""}</div>
     <div class="mp-sub">${esc(DEPT_NAME[dept]||dept)}${type?" · "+esc(type):""} · ${members.length} listing${members.length!==1?"s":""}${rating?" · "+ratingChipHTML(rating):""} ${ratingBadgesHTML(badges)}</div>
     <div class="mp-sub" style="font-size:11.5px">${esc(short(f.name(p),110))}</div></div>`;
 
@@ -3443,7 +3456,7 @@ function renderModelPanel(p, keepScroll){
     .filter(q=>{ const c=normCode(extractModel(f.name(q)).code)||String(f.id(q)); if(seen.has(c)) return false; seen.add(c); return true; })
     .slice(0,6);
   const rivals=pool.map(q=>{ const d=ref?((f.price(q)/ref-1)*100):null;
-    return `<div class="mini-row mp-rival" data-model="${esc(f.id(q))}"><span class="pill ${SITE_PILL[f.site(q)]||"na"}">${SITE_LABEL[f.site(q)]||f.site(q)}</span>
+    return `<div class="mini-row mp-rival" data-model="${esc(f.id(q))}" tabindex="0" role="button" aria-label="Open ${esc(modelTitle(f.name(q),40))}"><span class="pill ${SITE_PILL[f.site(q)]||"na"}">${SITE_LABEL[f.site(q)]||f.site(q)}</span>
       <span class="mini-name">${esc(modelTitle(f.name(q),34))}</span>
       <span class="sw-d" style="min-width:70px">${fmt(f.price(q))}</span>
       <span class="sw-d" style="color:${d!=null&&d<0?"var(--heat)":"var(--ink-soft)"}">${d==null?"":(d<0?"−":"+")+Math.abs(d).toFixed(0)+"%"}</span></div>`; }).join("");
@@ -3494,47 +3507,44 @@ function renderAll(){
   else if(MP.id){ const mp=_prodIndex().byId[MP.id]; if(mp) setTimeout(()=>renderModelPanel(mp, true),0); }   // fresh data (history, launches) lands in the open panel
   safeRender("freshness",renderFreshness);
   safeRender("ticker",renderTicker);
+  // pages draw only while open (showTab calls this after switching, so the
+  // new page always draws); alerts, matches, launches and the deal count
+  // also feed the bell / sidebar counters, so they always run
+  const onPage=(id,name,fn)=>{ if(vis(id)) safeRender(name,fn); };
+  const counters=()=>{ safeRender("alerts",renderAlerts); safeRender("dealCount",updateDealCount);
+    safeRender("matches",renderMatches); safeRender("launches",renderLaunchPage); };
   if(state.dept==="laundry"){
-    safeRender("l-dashboard",renderLDashboard);
-    safeRender("benchmark",renderBenchmark);
-    safeRender("l-brands",renderLBrands);
-    safeRender("l-segments",renderLSegments);
-    safeRender("l-compare",renderLCompare);
-    safeRender("l-products",renderLProducts);
-    safeRender("history",renderHistory);
-    safeRender("alerts",renderAlerts);
-    safeRender("dealCount",updateDealCount);
-    safeRender("matches",renderMatches);
-    safeRender("launches",renderLaunchPage);
+    onPage("page-l-dashboard","l-dashboard",renderLDashboard);
+    onPage("page-benchmark","benchmark",renderBenchmark);
+    onPage("page-l-brands","l-brands",renderLBrands);
+    onPage("page-l-segments","l-segments",renderLSegments);
+    onPage("page-l-compare","l-compare",renderLCompare);
+    onPage("page-l-products","l-products",renderLProducts);
+    onPage("page-history","history",renderHistory);
+    counters();
     return;
   }
   if(state.dept==="cooking" || state.dept==="dishwashing"){
-    const ck = state.dept==="cooking";
-    safeRender("sec-dashboard", ck?renderCooking:renderDish);
-    safeRender("benchmark",renderBenchmark);
-    safeRender("sec-brands", ck?renderCBrands:renderDBrands);
-    safeRender("sec-segments", ck?renderCSegments:renderDSegments);
-    safeRender("sec-products", ck?renderCProducts:renderDProducts);
-    safeRender("history",renderHistory);
-    safeRender("alerts",renderAlerts);
-    safeRender("dealCount",updateDealCount);
-    safeRender("matches",renderMatches);
-    safeRender("launches",renderLaunchPage);
+    const ck = state.dept==="cooking", px = ck ? "page-c-" : "page-d-";
+    onPage(px+"dashboard","sec-dashboard", ck?renderCooking:renderDish);
+    onPage("page-benchmark","benchmark",renderBenchmark);
+    onPage(px+"brands","sec-brands", ck?renderCBrands:renderDBrands);
+    onPage(px+"segments","sec-segments", ck?renderCSegments:renderDSegments);
+    onPage(px+"products","sec-products", ck?renderCProducts:renderDProducts);
+    onPage("page-history","history",renderHistory);
+    counters();
     return;
   }
-  safeRender("dashboard",renderDashboard);
-  safeRender("benchmark",renderBenchmark);
+  onPage("page-dashboard","dashboard",renderDashboard);
+  onPage("page-benchmark","benchmark",renderBenchmark);
   safeRender("catBars",renderCatBars);
-  safeRender("compare",renderCompare);
-  safeRender("brands",renderBrands);
-  safeRender("segments",renderSegments);
-  safeRender("mysku",renderMySku);
-  safeRender("products",renderProducts);
-  safeRender("history",renderHistory);
-  safeRender("alerts",renderAlerts);
-  safeRender("dealCount",updateDealCount);
-  safeRender("matches",renderMatches);
-  safeRender("launches",renderLaunchPage);
+  onPage("page-compare","compare",renderCompare);
+  onPage("page-brands","brands",renderBrands);
+  onPage("page-segments","segments",renderSegments);
+  onPage("page-mysku","mysku",renderMySku);
+  onPage("page-products","products",renderProducts);
+  onPage("page-history","history",renderHistory);
+  counters();
 }
 
 /* Freshness badge: newest scraped_at per retailer, from data the API already
@@ -4198,7 +4208,7 @@ function benchRowHTML(row, i, dept){
   const retail = row.groupSize>1
     ? `Best: ${SITE_LABEL[f.site(p)]||f.site(p)} · ${row.groupSize} retailer offers`
     : (SITE_LABEL[f.site(p)]||f.site(p));
-  return `<div class="bench-item"><div class="lau-row ${mine?'mine':''}" data-bx="1">
+  return `<div class="bench-item"><div class="lau-row ${mine?'mine':''}" data-bx="1" tabindex="0" role="button" aria-expanded="false" aria-label="${esc(modelTitle(f.name(p),40))}: show details">
     <div class="lau-rank">${i+1}</div>
     ${lauThumbCell(p, dept==="laundry"?"t_drum":SEC_DEPTS[dept]?SEC_DEPTS[dept].icon:"e_snow")}
     <div class="lau-body">
@@ -4808,7 +4818,7 @@ function renderLaunchPage(){
       :`<span style="color:${gap<0?'var(--heat)':'var(--ink-soft)'};font-weight:600">${gap<0?"−":"+"}€${Math.abs(gap).toFixed(0)}</span>`;
     const more=g.n.length?` <span class="sw-else" title="${esc(g.n.map(x=>x.name).join("\n"))}">+${g.n.length} variant${g.n.length>1?"s":""}</span>`:"";
     const back=r.kind==="relisted"?` <span class="sw-else" style="color:var(--ink-soft)">back in range</span>`:"";
-    const mine=isMine(r)?'<span class="mine-tag" style="display:inline-block;margin-left:6px;background:var(--cobalt);color:#fff;font:700 9px \'Hanken Grotesk\';padding:1px 6px;border-radius:99px;vertical-align:middle">MINE</span>':"";
+    const mine=isMine(r)?'<span class="mine-tag" style="display:inline-block;margin-left:6px;background:var(--cobalt);color:#fff;font:700 11px \'Hanken Grotesk\';padding:1px 6px;border-radius:99px;vertical-align:middle">MINE</span>':"";
     return `<tr><td style="white-space:nowrap">${d==null?"":d===0?"today":d===1?"yesterday":d+" d ago"}</td>
       <td><span class="pill ${SITE_PILL[r.site]||"na"}">${SITE_LABEL[r.site]||r.site}</span></td>
       <td title="${esc(r.name||"")} · SKU ${esc(r.sku||"")}">${r.url?`<a class="rl" href="${esc(r.url)}" target="_blank" rel="noopener">${nm}</a>`:nm}${mine}${more}${back}</td>
@@ -5117,7 +5127,7 @@ function renderPerception(){
     + m1("Average stars", rows.length?(rows.reduce((a,r)=>a+(r.stars||0),0)/rows.length).toFixed(2)+"★":"–", "of the reviews read", "sc-heat");
   if(!rows.length){
     host.innerHTML=`<tbody><tr><td style="color:var(--ink-soft);padding:16px">No review texts for this department yet: the daily run reads them a batch at a time (your models first).</td></tr></tbody>`;
-    quotes.innerHTML=""; return;
+    quotes.innerHTML=""; document.getElementById("bpCards").innerHTML=""; return;
   }
   const RB={};
   for(const r of rows){ if(!r.brand) continue; const e=RB[r.brand]=RB[r.brand]||{b:r.brand, mine:r.mine, n:0, p:{}};
@@ -5138,6 +5148,13 @@ function renderPerception(){
           return `<td style="text-align:center"><button class="bp-cell${few?" few":""}${on?" on":""}" data-bp-cell="${esc(e.b)}|${P.k}" title="${tip}"
               style="background:rgba(11,110,110,${(tint*0.32).toFixed(2)})"><b>${v}%</b>${neg?` <small class="bp-neg">−${neg}</small>`:""}</button></td>`; }).join("")
       + `</tr>`).join("") + "</tbody>";
+  // phones: the same data as one card per brand with its top pillars (the grid is 13 columns wide)
+  document.getElementById("bpCards").innerHTML = rb.map(e=>{
+    const top=BP_PILLARS.filter(P=>!P.retailer && e.p[P.k]).map(P=>({P, c:e.p[P.k]})).sort((a,b)=>b.c.n-a.c.n).slice(0,5);
+    return `<div class="bp-card"><div class="bp-card-h"><b>${esc(e.b)}</b>${e.mine?' <span class="mv-mine">YOURS</span>':""}<span>${e.n} reviews</span></div>
+      <div class="bp-card-p">${top.map(({P,c})=>{ const neg=c.n-c.pos-c.neu, on=F.brand===e.b&&F.pillar===P.k;
+        return `<button class="bp-cell${c.n<BP_MIN_N?" few":""}${on?" on":""}" data-bp-cell="${esc(e.b)}|${P.k}">${esc(P.label)} <b>${share(c,e)}%</b>${neg?` <small class="bp-neg">−${neg}</small>`:""}</button>`; }).join("")
+        || '<span style="color:var(--ink-soft);font-size:12.5px">no pillar mentions yet</span>'}</div></div>`; }).join("");
   // reviews behind the selected cell
   if(F.brand && F.pillar){
     const P=BP_PILLARS.find(p=>p.k===F.pillar);
@@ -5174,9 +5191,9 @@ function renderBrandProfile(rows, rb){
   document.getElementById("bpProfVs").innerHTML = `<thead><tr><th>Pillar</th><th style="text-align:right">${esc(F.profile)}</th><th style="text-align:right">Market</th><th style="text-align:right">vs market</th><th style="text-align:right">Complaints</th></tr></thead><tbody>`
     + stats.sort((a,b)=>b.bs-a.bs).map(s=>{ const few=s.b.n<BP_MIN_N;
         const ix=s.idx==null?"–":`<b style="color:${!few&&s.idx>=1.3?"var(--cobalt)":!few&&s.idx<=0.7?"var(--ink-soft)":"var(--ink)"}">${s.idx.toFixed(1)}×</b>`;
-        return `<tr${few?' style="opacity:.6"':""}><td>${esc(s.P.label)}</td><td style="text-align:right">${pct(s.bs)} <small style="color:var(--ink-soft)">(${s.b.n})</small></td>
+        return `<tr${few?' class="bp-few-row" title="Fewer than '+BP_MIN_N+' mentions: too few to compare"':""}><td>${esc(s.P.label)}</td><td style="text-align:right">${pct(s.bs)} <small style="color:var(--ink-soft)">(${s.b.n})</small></td>
           <td style="text-align:right">${pct(s.ms)}</td><td style="text-align:right">${ix}</td>
-          <td style="text-align:right">${s.b.neg?`<span class="bp-neg">${s.b.neg}</span>`:'<span style="color:var(--ink-faint)">0</span>'}</td></tr>`; }).join("") + "</tbody>";
+          <td style="text-align:right">${s.b.neg?`<span class="bp-neg">${s.b.neg}</span>`:'<span style="color:var(--ink-soft)">0</span>'}</td></tr>`; }).join("") + "</tbody>";
   // the brand's models × pillars (models with 3+ reviews read)
   const byModel={};
   for(const r of brandRows){ const k=r.p?normCode(extractModel(r.name).code)||r.url:r.url; (byModel[k]=byModel[k]||{r, rows:[]}).rows.push(r); }
@@ -5587,7 +5604,7 @@ function renderBrands(){
       if(sr&&sr.srp){
         const idx=x/sr.srp*100, breach=sr.map&&x<sr.map-0.005, mg=estMargin(x,sr.srp);
         const col=breach?"var(--heat)":idx<90?"var(--warn)":"var(--ink-soft)";
-        sub=`<div style="font:600 10px 'JetBrains Mono';color:${col};margin-top:1px" title="SRP ${fmt(sr.srp)}${sr.map?' · MAP '+fmt(sr.map):''}${mg!=null?' · est. retailer margin now ≈ '+mg+'% (vs '+BRAND_SETTINGS.marginPct+'% at SRP)':''}">${idx.toFixed(0)}% SRP${breach?' ⚠':''}</div>`;
+        sub=`<div style="font:600 11px 'JetBrains Mono';color:${col};margin-top:1px" title="SRP ${fmt(sr.srp)}${sr.map?' · MAP '+fmt(sr.map):''}${mg!=null?' · est. retailer margin now ≈ '+mg+'% (vs '+BRAND_SETTINGS.marginPct+'% at SRP)':''}">${idx.toFixed(0)}% SRP${breach?' ⚠':''}</div>`;
       }
       return `<div class="bp-cell ${c}">${fmt(x)}${sub}</div>`;};
     const mapBreach = sr&&sr.map&&v.some(x=>x!=null&&x<sr.map-0.005);
@@ -6836,7 +6853,15 @@ on("benchBody","click",e=>{
   if(e.target.closest("a")) return;
   const row=e.target.closest(".lau-row[data-bx]"); if(!row) return;
   const det=row.nextElementSibling;
-  if(det && det.classList.contains("bench-det")) det.hidden=!det.hidden;
+  if(det && det.classList.contains("bench-det")){ det.hidden=!det.hidden; row.setAttribute("aria-expanded", String(!det.hidden)); }
+});
+/* keyboard: Enter / Space on a focusable row does what a click does
+   (Benchmark rows expand, rival rows open the model page) */
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Enter" && e.key!==" ") return;
+  const el=e.target.closest && e.target.closest('[role="button"][data-bx], [role="button"][data-model]');
+  if(!el || el!==e.target) return;
+  e.preventDefault(); el.click();
 });
 /* "See full benchmark →" from either dashboard's stand band */
 document.addEventListener("click",e=>{
@@ -7162,7 +7187,7 @@ function renderRadar(){
     const cls = dropped?"down":"up";          // .down = green, .up = red (in CSS)
     const sign = dropped?"▼":"▲";             // ▼ price fell, ▲ price rose
     return `<div class="radar-row">
-      <div class="radar-name"><b>${prodOf(m)&&f.url(prodOf(m))?`<a class="rl" href="${esc(f.url(prodOf(m)))}">${esc(short(m.name||"—",46))}</a>`:esc(short(m.name||"—",46))}</b>${mineOf(m)?' <span class="mine-tag" style="display:inline-block;background:var(--cobalt);color:#fff;font:700 9px \'Hanken Grotesk\';padding:1px 6px;border-radius:99px">MINE</span>':""}${m.verify?' <span class="pill warn" title="A move this large is unusual outside sales — open the listing to confirm">verify</span>':""}
+      <div class="radar-name"><b>${prodOf(m)&&f.url(prodOf(m))?`<a class="rl" href="${esc(f.url(prodOf(m)))}">${esc(short(m.name||"—",46))}</a>`:esc(short(m.name||"—",46))}</b>${mineOf(m)?' <span class="mine-tag" style="display:inline-block;background:var(--cobalt);color:#fff;font:700 11px \'Hanken Grotesk\';padding:1px 6px;border-radius:99px">MINE</span>':""}${m.verify?' <span class="pill warn" title="A move this large is unusual outside sales — open the listing to confirm">verify</span>':""}
         <span>${SITE_LABEL[normSite(m.site)]||m.site||""} · was ${fmt(m.was)} · now ${fmt(m.price)}${m.days!=null?` · ${m.days===0?"today":m.days===1?"yesterday":m.days+" d ago"}`:""}${hits(m)?` · near ${hits(m)} of your models`:""}</span></div>
       <div class="radar-delta ${cls}">${sign} ${fmt(Math.abs(m.delta))}<small>${m.pct>0?"+":""}${m.pct.toFixed(1)}%</small></div>
     </div>`;
@@ -7338,7 +7363,7 @@ function renderMatches(){
       if(p.scraped_at){
         const t=new Date(/Z$|[+-]\d\d:?\d\d$/.test(p.scraped_at)?p.scraped_at:p.scraped_at+"Z").getTime();
         const ageH=(Date.now()-t)/36e5;
-        if(ageH>48) staleLine=`<div style="font:600 10.5px 'Hanken Grotesk';color:var(--warn)">⚠ stale — last seen ${Math.round(ageH/24)}d ago · auto-retires on the next cleanup</div>`;
+        if(ageH>48) staleLine=`<div style="font:600 11px 'Hanken Grotesk';color:var(--warn)">⚠ stale — last seen ${Math.round(ageH/24)}d ago · auto-retires on the next cleanup</div>`;
       }
       return `<div class="mr-card ${picked.has(id)?"picked":""}">${pick}
         ${p.image?`<img src="${esc(p.image)}" loading="lazy" alt="">`:""}
