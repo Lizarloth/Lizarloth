@@ -60,6 +60,10 @@
   --wash:#EDEFEA;         /* laundry thumbnail well */
   --cobalt-soft:#E2F0EF;
   --line-soft:#F0ECE3;
+  /* ambient page background: dot grid at the sides, two soft glows */
+  --dot:rgba(27,26,23,.11);
+  --glow-a:rgba(11,110,110,.10);
+  --glow-b:rgba(199,125,51,.09);
 }
 [data-theme="dark"]{
   --ice:#17150F;          /* page background (warm charcoal) */
@@ -87,6 +91,9 @@
   --wash:#1E1B14;
   --cobalt-soft:#13312F;
   --line-soft:#26221A;
+  --dot:rgba(237,231,218,.07);
+  --glow-a:rgba(57,179,179,.10);
+  --glow-b:rgba(224,161,85,.07);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth;-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%}
@@ -96,6 +103,20 @@ body{
   color:var(--ink);
   min-height:100vh;min-height:100dvh;
 }
+/* Ambient background, fixed behind everything: a fine dot grid that shows only towards
+   the edges (faded out before the content column) and two very soft colour glows that
+   drift slowly. Composite-only motion; still when motion is off. */
+body::before,body::after{content:"";position:fixed;pointer-events:none;z-index:-1}
+body::before{inset:0;
+  background-image:radial-gradient(circle,var(--dot) 1.1px,transparent 1.6px);background-size:22px 22px;
+  -webkit-mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.5) 10%,transparent 22%,transparent 78%,rgba(0,0,0,.5) 90%,#000 100%);
+          mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.5) 10%,transparent 22%,transparent 78%,rgba(0,0,0,.5) 90%,#000 100%)}
+body::after{inset:-20vmax;
+  background:radial-gradient(38vmax 30vmax at 12% 18%,var(--glow-a),transparent 70%),
+             radial-gradient(42vmax 32vmax at 88% 82%,var(--glow-b),transparent 70%);
+  animation:ambient-drift 48s ease-in-out infinite alternate}
+@keyframes ambient-drift{from{transform:translate3d(-2.5%,-1.5%,0)}to{transform:translate3d(2.5%,2%,0)}}
+html[data-motion="reduce"] body::after{animation:none}
 /* controls: no 300 ms tap delay, no text selection on long-press, instant press feedback */
 button,a,[role="button"],select,summary,.chip,.fchip,.bchip,.dr-tab,.brand-tab{touch-action:manipulation}
 button,[role="button"],summary,.chip,.fchip,.bchip,.dr-tab,.brand-tab,.pill{-webkit-user-select:none;user-select:none}
@@ -435,6 +456,7 @@ button.bp-reason{font:inherit;cursor:pointer;border:0}
 /* ---------- layout ---------- */
 .shell{margin-left:var(--sidebar)}
 main{max-width:1240px;margin:0 auto;padding:28px 28px 80px;position:relative}
+@media(min-width:1500px){ main{max-width:1440px;padding-left:40px;padding-right:40px} }
 /* pages are switched tens of times a day: a short fade only, no slide */
 .page{display:none;animation:pagein .14s var(--ease-out)}
 .page.visible{display:block}
@@ -1188,7 +1210,7 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S48</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S49</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="side-edge" id="sideEdge" aria-hidden="true"></div>
@@ -1258,7 +1280,6 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
     </div>
 
     <div class="dash-group">
-      <div class="sec-head"><h2>New at competitors</h2></div>
     <div class="card dash-jump" id="coolLaunchCard">
       <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="coolLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span><button class="card-link" data-goto="launches">All launches →</button></h3>
       <div class="grid two-col">
@@ -1315,7 +1336,6 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
     </div>
 
     <div class="dash-group">
-      <div class="sec-head"><h2>New at competitors</h2></div>
     <div class="card dash-jump" id="lauLaunchCard">
       <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="lauLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span><button class="card-link" data-goto="launches">All launches →</button></h3>
       <div class="grid two-col">
@@ -1376,7 +1396,6 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
     </div>
 
     <div class="dash-group">
-      <div class="sec-head"><h2>New at competitors</h2></div>
     <div class="card dash-jump" id="cookLaunchCard">
       <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="cookLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span><button class="card-link" data-goto="launches">All launches →</button></h3>
       <div class="grid two-col">
@@ -1436,7 +1455,6 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
     </div>
 
     <div class="dash-group">
-      <div class="sec-head"><h2>New at competitors</h2></div>
     <div class="card dash-jump" id="dishLaunchCard">
       <h3><span class="dot" style="background:var(--mint)"></span>New at competitors <span id="dishLaunchSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span><button class="card-link" data-goto="launches">All launches →</button></h3>
       <div class="grid two-col">
