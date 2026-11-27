@@ -1020,6 +1020,29 @@ main .l-pulse{background:#07090b;border-color:#07090b;color:#f2f2f2;
   background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
   background-size:44px 44px}
 main .l-pulse > h2{color:#fff}
+main .l-pulse{--steel:#9DB3EA;--br-track:rgba(255,255,255,.035);--br-edge:rgba(255,255,255,.08);--ink-faint:#5d676b}
+/* bar rows (horizontal bars as page elements, see barRows) */
+.chart-box:has(> .bar-rows){height:auto}       /* rows set their own height (two lines each) */
+.chart-box .bar-rows{position:relative;display:flex;flex-direction:column;gap:3px}
+.br-row{display:grid;grid-template-columns:minmax(84px,30%) minmax(0,1fr) 46px;align-items:center;gap:12px;padding:3px 4px;border:0;border-radius:6px;
+  background:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer;transition:opacity .2s ease}
+.br-row:disabled{cursor:default}
+@media (hover:hover) and (pointer:fine){ .bar-rows:hover .br-row:not(:hover){opacity:.42} }
+.br-row:focus-visible{outline:2px solid var(--cobalt);outline-offset:1px}
+.br-l{min-width:0;display:flex;flex-direction:column;gap:1px}
+.br-l b{font:600 12px 'Hanken Grotesk';white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.br-l small{font:500 9.5px 'JetBrains Mono';color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.br-row.mine .br-l b{color:var(--cobalt)}
+.br-track{position:relative;height:16px;border-radius:4px;overflow:hidden;background:var(--br-track,rgba(127,127,127,.09));box-shadow:inset 0 0 0 1px var(--br-edge,rgba(127,127,127,.12))}
+.br-track i{position:absolute;left:0;top:0;bottom:0;border-radius:3px;background:linear-gradient(90deg,var(--c0),var(--c1));box-shadow:4px 0 14px -4px var(--glow);
+  transition:width 1.05s cubic-bezier(.16,1,.3,1)}
+.br-track i::after{content:"";position:absolute;right:0;top:2px;bottom:2px;width:2px;border-radius:2px;background:#fff;opacity:.75}
+.br-v{font:600 12px 'JetBrains Mono';text-align:right;font-variant-numeric:tabular-nums}
+.br-axis{display:grid;grid-template-columns:minmax(84px,30%) minmax(0,1fr) 46px;gap:12px;padding:2px 4px 0}
+.br-ticks{display:flex;justify-content:space-between;font:500 9px 'JetBrains Mono';color:var(--ink-faint)}
+.br-ticks i{font-style:normal}
+html[data-motion="reduce"] .br-track i{transition:none}
+
 main .l-pulse .card h3{font:600 10.5px 'JetBrains Mono'!important;letter-spacing:.14em;text-transform:uppercase;color:#9aa3a6!important}
 main .l-pulse .card{border-left:1px solid rgba(255,255,255,.06)!important;padding-left:14px!important}
 main .l-pulse .card:first-child{border-left:0!important;padding-left:0!important}
@@ -1286,7 +1309,7 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S55</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S57</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="side-edge" id="sideEdge" aria-hidden="true"></div>
@@ -2831,7 +2854,7 @@ function renderLaundry(){
       const bins=[0,200,300,400,500,700,1000,99999], labels=["<200","200-300","300-400","400-500","500-700","700-1k","1k+"];
       const counts=labels.map(()=>0);
       pr.forEach(v=>{ for(let i=0;i<bins.length-1;i++){ if(v>=bins[i]&&v<bins[i+1]){counts[i]++;break;} } });
-      makeChart("lPriceChart","bar",{labels,datasets:[{data:counts,backgroundColor:"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}},
+      makeChart("lPriceChart","bar",{labels,datasets:[{data:counts,backgroundColor:cssAt(document.getElementById("lPriceChart"),"--steel")||"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}},
         drill:i=>({list:cset, title:"Laundry", step:{dim:"price", label:"€"+labels[i], test:p=>{ const v=f.price(p); return v!=null&&v>=bins[i]&&v<bins[i+1]; }}})});
     } else emptyChart("lPriceChart","No price data yet");
     const enmix={}; cset.forEach(p=>{const e=laundryNorm(p).energy; if(e)enmix[e]=(enmix[e]||0)+1;});
@@ -3277,7 +3300,7 @@ function renderSecDashboard(D){
     if(priced.length){
       const [bins,labels]=D.priceBins, counts=labels.map(()=>0);
       priced.forEach(v=>{ for(let i=0;i<bins.length-1;i++){ if(v>=bins[i]&&v<bins[i+1]){counts[i]++;break;} } });
-      makeChart(I.price,"bar",{labels,datasets:[{data:counts,backgroundColor:"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}},
+      makeChart(I.price,"bar",{labels,datasets:[{data:counts,backgroundColor:cssAt(document.getElementById(I.price),"--steel")||"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}},
         drill:i=>({list:cset, title:DEPT_NAME[D.key], step:{dim:"price", label:"€"+labels[i], test:p=>{ const v=f.price(p); return v!=null&&v>=bins[i]&&v<bins[i+1]; }}})});
     } else emptyChart(I.price,"No price data yet");
     const enmix={}; cset.forEach(p=>{const e=D.norm(p).energy; if(e)enmix[e]=(enmix[e]||0)+1;});
@@ -3844,14 +3867,12 @@ function renderPromoSection(prefix, list){
     .map(([b,e])=>({b, share:e.promo/e.n*100, avg:e.depth/e.promo, promo:e.promo, n:e.n}))
     .sort((a,b)=>b.share-a.share).slice(0,8);
   if(brandRows.length){
-    makeChart(prefix+"BrandChart","bar",{labels:brandRows.map(r=>`${r.b} (−${r.avg.toFixed(0)}%)`),
-      datasets:[{data:brandRows.map(r=>+r.share.toFixed(1)),
-        backgroundColor:brandRows.map(r=>MY_BRANDS.some(m=>cap(m)===r.b)?"#0B6E6E":"#C9472F"),
-        borderRadius:6,maxBarThickness:26}]},
-      {indexAxis:"y",plugins:{legend:{display:false}}, valueSuffix:"%",
+    barRows(prefix+"BrandChart", brandRows.map(r=>({label:r.b, value:+r.share.toFixed(0), mine:MY_BRANDS.some(m=>cap(m)===r.b),
+        sub:`${r.promo} of ${r.n} SKUs · avg −${r.avg.toFixed(0)}%`})),
+      {suffix:"%", rival:"#C9472F",
        drill:i=>({list:priced, title:"Promotions", steps:[{dim:"brand", label:brandRows[i].b, test:p=>smBrand(p)===brandRows[i].b},
                                                         {dim:"promo", label:"On promo", test:p=>!!promoNow(p)}]})});
-  } else emptyChart(prefix+"BrandChart","No promos in the current view");
+  } else { barRows(prefix+"BrandChart", []); emptyChart(prefix+"BrandChart","No promos in the current view"); }
 
   // discount depth distribution (current promos)
   const buckets=[[0,10,"1–10%"],[10,20,"10–20%"],[20,30,"20–30%"],[30,40,"30–40%"],[40,101,"40%+"]];
@@ -4605,7 +4626,7 @@ function renderDashboard(){
     const bins=[0,200,400,600,800,1000,1500,2000,99999], labels=["<200","200-400","400-600","600-800","800-1k","1-1.5k","1.5-2k","2k+"];
     const counts=labels.map(()=>0);
     prices.forEach(p=>{ for(let i=0;i<bins.length-1;i++){ if(p>=bins[i]&&p<bins[i+1]){counts[i]++;break;} } });
-    makeChart("priceDistChart","bar",{labels,datasets:[{data:counts,backgroundColor:"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}},
+    makeChart("priceDistChart","bar",{labels,datasets:[{data:counts,backgroundColor:cssAt(document.getElementById("priceDistChart"),"--steel")||"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}},
       drill:i=>({list:prods, title:"Cooling", step:{dim:"price", label:"€"+labels[i], test:p=>{ const v=f.price(p); return v!=null&&v>=bins[i]&&v<bins[i+1]; }}})});
   } else emptyChart("priceDistChart","No price data yet");
 
@@ -7857,11 +7878,39 @@ function brandRangeChart(id, list){
     (B[b]=B[b]||{n:new Set(), mine:isMyBrand(p)}).n.add(normCode(code)||f.name(p));
   }
   const top=Object.entries(B).map(([b,v])=>[b,v.n.size,v.mine]).sort((x,y)=>y[1]-x[1]).slice(0,8);
-  if(!top.length) return emptyChart(id,"No brand data yet");
-  makeChart(id,"bar",{labels:top.map(t=>t[0]), datasets:[{label:"Models", data:top.map(t=>t[1]),
-      backgroundColor:top.map(t=>t[2]?cssAt(document.getElementById(id),"--cobalt"):"#9CA3AF"), borderRadius:4, maxBarThickness:30}]},
-    {indexAxis:"y", plugins:{legend:{display:false}},
-     drill:i=>({list, title:DEPT_NAME[state.dept], step:{dim:"brand", label:top[i][0], test:p=>smBrand(p)===top[i][0]}})});
+  if(!top.length){ barRows(id, []); return emptyChart(id,"No brand data yet"); }
+  const total=Object.values(B).reduce((a,v)=>a+v.n.size,0);
+  barRows(id, top.map(t=>({label:t[0], value:t[1], mine:t[2], sub:`${Math.round(t[1]/total*100)}% of models`})),
+    {drill:i=>({list, title:DEPT_NAME[state.dept], step:{dim:"brand", label:top[i][0], test:p=>smBrand(p)===top[i][0]}})});
+}
+/* Horizontal bars as rows (after the MotionSites "operating envelope" panel):
+   name and a small sub-line, a slim gradient bar with a bright tip on a faint
+   track, the value in its own column, a scale underneath. Bars grow in one after
+   another on first show; hovering a row dims the others; a click drills down.
+   Replaces the canvas it is given (the canvas stays, hidden, for emptyChart). */
+const _barRowsSeen=new Set();
+function barRows(id, rows, opts={}){
+  const cv=document.getElementById(id); if(!cv) return;
+  const box=cv.parentElement;
+  let host=box.querySelector(".bar-rows");
+  if(!rows.length){ if(host) host.remove(); cv.style.display=""; return; }
+  if(charts[id]){ charts[id].destroy(); delete charts[id]; }
+  cv.style.display="none";
+  if(!host){ host=document.createElement("div"); host.className="bar-rows"; box.appendChild(host);
+    host.addEventListener("click",e=>{ const r=e.target.closest("[data-bri]"); if(r && host._drill) drillOpen(host._drill(+r.dataset.bri)); }); }
+  host._drill=opts.drill||null;
+  const max=Math.max(...rows.map(r=>r.value))||1, step=Math.pow(10,Math.floor(Math.log10(max))), top=Math.ceil(max/step)*step;
+  const ticks=[0,.25,.5,.75,1].map(k=>Math.round(top*k));
+  const animate = !_barRowsSeen.has(id) && !motionReduced(); _barRowsSeen.add(id);
+  const rival=opts.rival||cssAt(cv,"--steel")||"#9DB3EA", mine=cssAt(cv,"--cobalt");
+  host.innerHTML = rows.map((r,i)=>{ const c=r.mine?mine:(r.color||rival);
+    return `<button class="br-row${r.mine?" mine":""}" data-bri="${i}" ${opts.drill?"":"disabled"} style="--c0:${_rgba(c,.18)};--c1:${_rgba(c,.95)};--glow:${_rgba(c,.55)}">
+      <span class="br-l"><b>${esc(r.label)}</b>${r.sub?`<small>${esc(r.sub)}</small>`:""}</span>
+      <span class="br-track"><i style="width:${animate?0:(r.value/top*100).toFixed(2)}%" data-w="${(r.value/top*100).toFixed(2)}"></i></span>
+      <span class="br-v">${esc(String(r.value))}${opts.suffix||""}</span></button>`; }).join("")
+    + `<div class="br-axis" aria-hidden="true"><span></span><span class="br-ticks">${ticks.map(t=>`<i>${t}${opts.suffix||""}</i>`).join("")}</span><span></span></div>`;
+  if(animate) requestAnimationFrame(()=>requestAnimationFrame(()=>host.querySelectorAll(".br-track i").forEach((b,i)=>{
+    b.style.transitionDelay=(i*60)+"ms"; b.style.width=b.dataset.w+"%"; })));
 }
 function getCSS(name){ try{ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#888"; }catch(_){ return "#888"; } }
 /* Charts redraw on every filter click and on the 2-minute refresh, so only a
@@ -7987,21 +8036,21 @@ function _barFill(base, horiz){
 }
 function skinPlugin(){ return {
   id:"pxSkin",
-  beforeDatasetsDraw(chart){             // tracks behind horizontal bars
+  beforeDatasetsDraw(chart, args, o){             // tracks behind horizontal bars
     if(chart.config.type!=="bar" || chart.options.indexAxis!=="y") return;
     const a=chart.chartArea, c=chart.ctx, meta=chart.getDatasetMeta(0); if(!meta) return;
-    c.save(); c.fillStyle=chart.$track||"rgba(127,127,127,.12)";
+    c.save(); c.fillStyle=o.track||"rgba(127,127,127,.12)";
     for(const el of meta.data){ const h=el.height||0, y=el.y-h/2; c.beginPath(); c.roundRect(a.left, y, a.right-a.left, h, Math.min(5,h/2)); c.fill(); }
     c.restore();
   },
-  afterDatasetsDraw(chart){
+  afterDatasetsDraw(chart, args, o){       // colours come in the plugin options, so the very first draw has them
     const c=chart.ctx;
     if(chart.config.type==="bar" && chart.options.indexAxis==="y"){     // value at the end of each bar
       const meta=chart.getDatasetMeta(0), ds=chart.data.datasets[0]; if(!meta) return;
       c.save(); c.font="600 10.5px 'JetBrains Mono'"; c.textBaseline="middle"; c.textAlign="right";
       meta.data.forEach((el,i)=>{ const v=ds.data[i]; if(v==null) return;
-        c.fillStyle=chart.$hi!=null&&chart.$hi!==i ? chart.$mute : chart.$ink;
-        c.fillText(String(v)+(chart.$suffix||""), chart.chartArea.right-6, el.y); });
+        c.fillStyle=chart.$hi!=null&&chart.$hi!==i ? o.mute : o.ink;
+        c.fillText(String(v)+(o.suffix||""), chart.chartArea.right-6, el.y); });
       c.restore();
     }
     if(chart.config.type==="doughnut"){                                  // total (or the hovered slice) in the middle
@@ -8009,8 +8058,8 @@ function skinPlugin(){ return {
       const data=chart.data.datasets[0].data, tot=data.reduce((a,b)=>a+(+b||0),0), hi=chart.$hi;
       const big = hi!=null ? data[hi] : tot, small = hi!=null ? `${chart.data.labels[hi]} · ${tot?Math.round(data[hi]/tot*100):0}%` : "TOTAL";
       c.save(); c.textAlign="center"; c.textBaseline="middle";
-      c.fillStyle=chart.$ink; c.font="700 22px 'Bricolage Grotesque'"; c.fillText(String(big), el.x, el.y-6);
-      c.fillStyle=chart.$mute; c.font="600 10px 'JetBrains Mono'"; c.fillText(String(small).toUpperCase(), el.x, el.y+14);
+      c.fillStyle=o.ink; c.font="700 22px 'Bricolage Grotesque'"; c.fillText(String(big), el.x, el.y-6);
+      c.fillStyle=o.mute; c.font="600 10px 'JetBrains Mono'"; c.fillText(String(small).toUpperCase(), el.x, el.y+14);
       c.restore();
     }
   }
@@ -8051,6 +8100,7 @@ function makeChart(id,type,data,extra={}){
     cutout: type==="doughnut" ? "72%" : undefined,
     interaction: (type==="line")?{mode:"index",intersect:false}:{mode:"nearest",intersect:true},
     plugins:{
+      pxSkin:{ink, mute:_rgba(txt,.7), track:_rgba(ink,.07), suffix:extra.valueSuffix||""},
       legend:{display:(extra.plugins&&extra.plugins.legend&&extra.plugins.legend.display!==undefined)?extra.plugins.legend.display:true,position:(extra.plugins&&extra.plugins.legend&&extra.plugins.legend.position)||"top",labels:{font:{family:"Hanken Grotesk",size:11},color:txt,usePointStyle:true,boxHeight:6}},
       tooltip:{
         enabled:true, usePointStyle:true,
@@ -8074,7 +8124,7 @@ function makeChart(id,type,data,extra={}){
     scales: (type==="doughnut"||type==="pie")? {} : {x:{...baseScales.x,...sx(extra),ticks:baseScales.x.ticks},y:{...baseScales.y,...sy(extra),ticks:baseScales.y.ticks}},
   };
   charts[id]=new Chart(cv,{type,data,plugins:[...(extra.chartPlugins||[]), skinPlugin()],options:opts});
-  const ch=charts[id]; ch.$ink=ink; ch.$mute=_rgba(txt,.55); ch.$track=_rgba(ink,.07); ch.$suffix=extra.valueSuffix||""; ch.$hi=null;
+  const ch=charts[id]; ch.$hi=null;
   cv.onmouseleave=()=>{ if(ch.$hi!=null){ ch.$hi=null; ch.update("none"); } };
 }
 function sx(extra){ return (extra.scales&&extra.scales.x)||{}; }
