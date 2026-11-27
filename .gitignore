@@ -11,4 +11,3 @@ scraper/logs/
 scraper/bestprice_ids.json
 scraper/reviews_seen.json
 scraper/kotsovolos_images.json
-scraper/plaisio_energy_cache.json

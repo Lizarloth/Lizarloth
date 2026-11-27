@@ -463,90 +463,6 @@ def collect_category(driver, cat_path, cat_name, debug=True, dept="cooling"):
     return list(merged.values()), total
 
 
-# ---- Energy class from the product page (PDP) ----
-# Plaisio's listing cards often leave the energy class out. The product page
-# carries it in its spec table (and sometimes in the ld+json Product). Each
-# product is read once: the class doesn't change, so results are cached in
-# plaisio_energy_cache.json next to this script and later runs skip them.
-import os as _os
-ENERGY_CACHE = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "plaisio_energy_cache.json")
-NO_ENERGY_LABEL = {"hob", "microwave"}       # no EU energy label on these
-
-PDP_JS = r"""
-const out = {props: [], text: ""};
-for (const s of document.querySelectorAll('script[type="application/ld+json"]')) {
-  let j; try { j = JSON.parse(s.textContent); } catch (e) { continue; }
-  for (const o of [].concat(j, j && j["@graph"] || [])) {
-    if (!o || !/Product/.test(o["@type"] || "")) continue;
-    for (const ap of [].concat(o.additionalProperty || [])) {
-      if (ap && /ενεργειακ|energy/i.test(ap.name || "")) out.props.push(String(ap.value || ""));
-    }
-  }
-}
-out.text = (document.body && document.body.innerText) || "";
-return out;
-"""
-# label and value on one line ("Ενεργειακή κλάση: E") or in two table cells
-# ("Ενεργειακή Κλάση\nE"); the label may carry a note ("(EU 2017/1369)")
-_PDP_EN = re.compile(r"Ενεργειακ[ήη]\s+κλάση[^\n:]{0,40}?\s*[:\n\t]\s*([A-GΑΒΕΖ]\+{0,3})(?![A-Za-zΑ-Ωα-ω])", re.I)
-
-
-def pdp_energy(driver, url, wait=4.0):
-    """Energy class (A-G) read from one product page, or '' if it shows none."""
-    driver.get(url)
-    end = time.time() + wait
-    data = {}
-    while time.time() < end:
-        data = driver.execute_script(PDP_JS) or {}
-        if data.get("props") or _PDP_EN.search(data.get("text", "")):
-            break
-        time.sleep(0.5)
-    for v in data.get("props") or []:
-        m = re.search(r"\b([A-GΑΒΕΖ])(\+{0,3})(?![A-Za-zΑ-Ωα-ω])", v)
-        if m:
-            return _GR2LAT.get(m.group(1).upper(), m.group(1).upper()) + m.group(2)
-    return _energy_of(_PDP_EN.search(data.get("text", "")))
-
-
-def fill_energy_from_pdp(driver, rows, max_new=150, log=print):
-    """Visit the product page of every row still missing an energy class
-    (at most max_new uncached pages per run, so a run never balloons)."""
-    try:
-        with open(ENERGY_CACHE, encoding="utf-8") as fh:
-            cache = json.load(fh)
-    except Exception:
-        cache = {}
-    todo = [r for r in rows if not r.get("energy") and r.get("url")
-            and r.get("category") not in NO_ENERGY_LABEL]
-    hits = visited = 0
-    for r in todo:
-        sku = str(r.get("sku_id") or r["url"])
-        if sku in cache:
-            r["energy"] = cache[sku]
-            hits += bool(cache[sku])
-            continue
-        if visited >= max_new:
-            continue
-        visited += 1
-        try:
-            e = pdp_energy(driver, r["url"])
-        except Exception as ex:
-            log(f"   ! plaisio PDP {sku}: {str(ex)[:60]}")
-            continue                      # not cached: retried next run
-        cache[sku] = e                    # '' is cached too: that page has no class
-        r["energy"] = e
-        hits += bool(e)
-        time.sleep(0.6)                   # polite pacing between product pages
-    try:
-        with open(ENERGY_CACHE, "w", encoding="utf-8") as fh:
-            json.dump(cache, fh, ensure_ascii=False, indent=0)
-    except Exception as ex:
-        log(f"   ! energy cache not saved: {ex}")
-    if todo:
-        log(f"   plaisio energy from PDP: {hits}/{len(todo)} filled ({visited} pages visited)")
-    return rows
-
-
 def write_excel(rows, path="plaisio_plp.xlsx", cols=None, title="plaisio"):
     if cols is None:
         cols = ["site", "category", "sku_id", "brand", "name", "price",
@@ -675,8 +591,6 @@ def _run(driver, targets, source, dept, out_path, cols, title):
     for cat_name in targets:
         print(f"\n=== {cat_name}  ({source[cat_name]})  [{dept}] ===")
         rows, total = collect_category(driver, source[cat_name], cat_name, dept=dept)
-        if dept == "cooling":
-            fill_energy_from_pdp(driver, rows)
         if dept == "cooking":
             rows = [r for r in rows if cooking.keep(cat_name, r)]
         for r in rows:

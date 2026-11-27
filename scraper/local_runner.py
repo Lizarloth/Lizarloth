@@ -535,6 +535,100 @@ def run_enrich_ids(site=None, limit=300):
         log(f"  pushed {len(out)} -> {rr.json() if rr.ok else rr.status_code}")
     log(f"Enrich DONE: {hits}/{len(items)} pages yielded an identity")
 
+# -- Spec enrichment (PDP spec tables) ----------------------------------------
+# The daily --plp path reads listing pages, which carry only a few specs
+# (Plaisio's fridge cards have no energy class at all). This pass asks the
+# backend which products are missing specs (no energy class first), reads
+# each one's product page with the same per-site PDP scrapers the crawl path
+# uses, and pushes the full spec table to /api/ingest/specs, where it fills
+# the gaps under the listing specs. Each page is read once per 60 days.
+SPECS_LIMIT = 150          # product pages per run (backlog drains over a few days)
+SPECS_MINUTES = 25         # and never longer than this
+
+# browser fallback: label/value pairs from spec tables (dl, table rows, or a
+# row of two short cells), for pages whose HTML over HTTP carries no specs
+_SPEC_JS = r"""
+const out = {};
+const put = (k, v) => { k = (k||"").trim().replace(/:$/, ""); v = (v||"").trim();
+  if (k && v && k.length < 80 && v.length < 200 && !(k in out)) out[k] = v; };
+document.querySelectorAll("dl").forEach(dl => { const dt = dl.querySelectorAll("dt"), dd = dl.querySelectorAll("dd");
+  dt.forEach((t, i) => dd[i] && put(t.innerText, dd[i].innerText)); });
+document.querySelectorAll("tr").forEach(tr => { const c = tr.querySelectorAll("th,td");
+  if (c.length === 2) put(c[0].innerText, c[1].innerText); });
+document.querySelectorAll("div,li").forEach(el => { const k = el.children;
+  if (k.length === 2 && !k[0].children.length && !k[1].querySelector("div,li,ul,table")) {
+    const a = k[0].innerText || "", b = k[1].innerText || "";
+    if (a && b && !a.includes("\n") && !b.includes("\n")) put(a, b); } });
+return out;
+"""
+
+
+def _pdp_specs(driver, site, url):
+    """Spec table of one product page: the site's own PDP scraper first, then
+    a rendered-page read if that returned nothing."""
+    specs = {}
+    try:
+        specs = (SCRAPER[site](driver, url) or {}).get("specs") or {}
+    except Exception as e:
+        log(f"   ! {site} PDP scrape: {str(e)[:60]}")
+    if len(specs) < 3:
+        try:
+            if driver.current_url.split("#")[0] != url:
+                driver.get(url)
+                WebDriverWait(driver, 15).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+                accept_cookies(driver)
+            time.sleep(2)
+            specs = {**(driver.execute_script(_SPEC_JS) or {}), **specs}
+        except Exception as e:
+            log(f"   ! {site} PDP render: {str(e)[:60]}")
+    return {k: v for k, v in specs.items() if k and v and not str(k).startswith("__")}
+
+
+def run_enrich_specs(site=None, limit=SPECS_LIMIT, minutes=SPECS_MINUTES, skip_sites=(), headless=True):
+    r = requests.get(f"{API_URL}/api/ingest/missing-specs",
+                     headers={"X-Ingest-Token": INGEST_TOKEN},
+                     params={"limit": limit, **({"site": site} if site else {})}, timeout=180)
+    if r.status_code == 404:
+        log("Specs: backend has no /api/ingest/missing-specs yet (deploy it) - skipping."); return
+    if r.status_code == 401:
+        log("X 401 - INGEST_TOKEN does not match Railway."); return
+    r.raise_for_status()
+    items = [it for it in r.json() if it.get("site") not in skip_sites]
+    need = {0: "no energy class", 1: "energy borrowed from another shop", 2: "few specs"}
+    counts = ", ".join(f"{sum(1 for x in items if x.get('need') == k)} {v}" for k, v in need.items())
+    log(f"=== Spec pass: {len(items)} product pages to read ({counts}) ===")
+    if not items:
+        return
+    driver = make_chrome(headless=headless)
+    out, got, energy, t_end = [], 0, 0, time.time() + minutes * 60
+
+    def push():
+        if not out: return
+        try:
+            rr = requests.post(f"{API_URL}/api/ingest/specs", headers={"X-Ingest-Token": INGEST_TOKEN},
+                               json={"items": out}, timeout=120)
+            log(f"    pushed {len(out)} spec tables -> {rr.json() if rr.ok else rr.status_code}")
+        except Exception as e:
+            log(f"    ! spec push failed: {str(e)[:60]}")
+        out.clear()
+    try:
+        for i, it in enumerate(items, 1):
+            if time.time() > t_end:
+                log(f"   time cap ({minutes} min) reached - the rest waits for the next run"); break
+            specs = _pdp_specs(driver, it["site"], it["url"])
+            out.append({"id": it["id"], "specs": specs})
+            got += bool(specs)
+            en = next((v for k, v in specs.items() if "νεργειακ" in k.lower() or "energy" in k.lower()), "")
+            energy += bool(en)
+            log(f"  [{i}/{len(items)}] {it['site']:10} {len(specs):3} specs{'  energy '+en if en else ''}")
+            if len(out) >= 25: push()
+            time.sleep(DELAY)
+        push()
+    finally:
+        try: driver.quit()
+        except Exception: pass
+    log(f"Spec pass DONE: {got} pages with a spec table, {energy} with an energy class")
+
 # -- browser ----------------------------------------------------------------
 def make_chrome(headless=False):
     o = Options()
@@ -1611,12 +1705,6 @@ def run_plp(sites, scope_subs, headless=True, enrich_prices=False, check_stock_a
                         rows, total = plaisio_plp.collect_category(pdriver, path, key, debug=False)
                     except Exception as e:
                         log(f"   ! plaisio/{key} failed: {str(e)[:70]}"); continue
-                    # cards without an energy class: read it off the product page (cached per SKU)
-                    if hasattr(plaisio_plp, "fill_energy_from_pdp"):
-                        try:
-                            plaisio_plp.fill_energy_from_pdp(pdriver, rows, log=log)
-                        except Exception as e:
-                            log(f"   ! plaisio/{key} energy PDP pass failed: {str(e)[:70]}")
                     for row in rows:
                         buf.append(_plp_row_to_result(row, canon))
                         if len(buf) >= PUSH_EVERY: flush()
@@ -1713,6 +1801,10 @@ def main():
                     help="EAN/MPN enrichment pass: fetch PDPs of products missing an EAN and "
                          "read JSON-LD Product identity (gtin/mpn). Run occasionally after --plp.")
     ap.add_argument("--limit", type=int, default=300, help="max products for --enrich-ids (default 300)")
+    ap.add_argument("--enrich-specs", action="store_true", dest="enrich_specs",
+                    help="read the product pages of products missing specs (no energy class first) "
+                         "and push their full spec tables. With --plp it runs after the catalogue "
+                         f"push; alone it's a catch-up pass. {SPECS_LIMIT} pages / {SPECS_MINUTES} min per run.")
     ap.add_argument("--enrich-prices", action="store_true", dest="enrich_prices",
                     help="with --plp: after the catalogue push, browser-render the PDPs of Public "
                          "'Άπαιχτη Τιμή' products (whose real price the category API omits) and "
@@ -1743,6 +1835,11 @@ def main():
 
     if args.enrich_ids:
         run_enrich_ids(site=args.site, limit=args.limit)
+        return
+
+    # --enrich-specs without --plp: a catch-up pass over the backend's products
+    if args.enrich_specs and not args.plp:
+        run_enrich_specs(site=args.site, headless=args.headless)
         return
 
     # --reviews without --plp: a catch-up pass over the products already on
@@ -1799,6 +1896,12 @@ def main():
                         check_stock_after=args.check_stock, market_after=args.market,
                         reviews_after=args.reviews)
         log(f"DONE (PLP) -> {grand}")
+        if args.enrich_specs:
+            try:
+                run_enrich_specs(site=args.site, headless=True,
+                                 skip_sites=() if "public" in sites else ("public",))
+            except Exception as e:
+                log(f"  (spec pass failed, non-fatal: {str(e)[:80]})")
         # Retire delisted/zombie products — only after a FULL sweep (all sites,
         # all categories), so partial runs (--site / --only) never wrongly retire
         # products from sites/categories they didn't touch this run.

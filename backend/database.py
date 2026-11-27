@@ -59,6 +59,10 @@ class Product(Base):
     retailer_sku = Column(String, nullable=True, index=True)  # site's own SKU id (stable identity for matching)
     ean = Column(String, nullable=True, index=True)           # EAN/GTIN barcode — strongest cross-retailer identity
     mpn = Column(String, nullable=True, index=True)           # manufacturer part number
+    # full spec table read from the product page (PDP) by the runner's spec pass;
+    # fills whatever the listing (PLP) readings don't carry. JSON object as text.
+    pdp_specs = Column(Text, nullable=True)
+    pdp_specs_at = Column(DateTime, nullable=True)            # when the PDP was last read
     created_at = Column(DateTime, default=datetime.utcnow)
 
 
@@ -202,6 +206,10 @@ def init_db():
             if "mpn" not in cols:
                 conn.execute(text("ALTER TABLE products ADD COLUMN mpn VARCHAR"))
                 conn.execute(text("CREATE INDEX IF NOT EXISTS ix_products_mpn ON products (mpn)"))
+            if "pdp_specs" not in cols:
+                conn.execute(text("ALTER TABLE products ADD COLUMN pdp_specs TEXT"))
+            if "pdp_specs_at" not in cols:
+                conn.execute(text("ALTER TABLE products ADD COLUMN pdp_specs_at DATETIME"))
             # speed up latest-price lookups on existing databases
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_ph_pid_scraped ON price_history (product_id, scraped_at)"))
             conn.commit()
