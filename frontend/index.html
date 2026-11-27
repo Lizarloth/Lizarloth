@@ -1015,6 +1015,14 @@ html[data-motion="reduce"] .rv{opacity:1;transform:none}
 .pulse-grid .chart-box{height:220px}
 .pulse-grid .chart-box.short{height:170px}
 .pulse-grid .wide{grid-column:1/-1}
+main .l-pulse{background:#07090b;border-color:#07090b;color:#f2f2f2;
+  --ink:#f2f2f2;--ink-soft:#9aa3a6;--grid:rgba(255,255,255,.07);--line:rgba(255,255,255,.08);--frost:#07090b;--cobalt:#6FD3D3;
+  background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:44px 44px}
+main .l-pulse > h2{color:#fff}
+main .l-pulse .card h3{font:600 10.5px 'JetBrains Mono'!important;letter-spacing:.14em;text-transform:uppercase;color:#9aa3a6!important}
+main .l-pulse .card{border-left:1px solid rgba(255,255,255,.06)!important;padding-left:14px!important}
+main .l-pulse .card:first-child{border-left:0!important;padding-left:0!important}
 .l-pulse{margin-top:30px;background:var(--frost);border:1px solid var(--line);border-radius:16px;padding:18px 18px 8px;box-shadow:var(--shadow)}
 .l-pulse > h2{font:700 15px 'Bricolage Grotesque';margin:0 0 2px;color:var(--ink)}
 .l-psub{font-size:12px;color:var(--ink-soft);margin:0 0 16px}
@@ -1278,7 +1286,7 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S54</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S55</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="side-edge" id="sideEdge" aria-hidden="true"></div>
@@ -3840,7 +3848,7 @@ function renderPromoSection(prefix, list){
       datasets:[{data:brandRows.map(r=>+r.share.toFixed(1)),
         backgroundColor:brandRows.map(r=>MY_BRANDS.some(m=>cap(m)===r.b)?"#0B6E6E":"#C9472F"),
         borderRadius:6,maxBarThickness:26}]},
-      {indexAxis:"y",plugins:{legend:{display:false}},
+      {indexAxis:"y",plugins:{legend:{display:false}}, valueSuffix:"%",
        drill:i=>({list:priced, title:"Promotions", steps:[{dim:"brand", label:brandRows[i].b, test:p=>smBrand(p)===brandRows[i].b},
                                                         {dim:"promo", label:"On promo", test:p=>!!promoNow(p)}]})});
   } else emptyChart(prefix+"BrandChart","No promos in the current view");
@@ -7851,7 +7859,7 @@ function brandRangeChart(id, list){
   const top=Object.entries(B).map(([b,v])=>[b,v.n.size,v.mine]).sort((x,y)=>y[1]-x[1]).slice(0,8);
   if(!top.length) return emptyChart(id,"No brand data yet");
   makeChart(id,"bar",{labels:top.map(t=>t[0]), datasets:[{label:"Models", data:top.map(t=>t[1]),
-      backgroundColor:top.map(t=>t[2]?getCSS("--cobalt"):"#9CA3AF"), borderRadius:4, maxBarThickness:30}]},
+      backgroundColor:top.map(t=>t[2]?cssAt(document.getElementById(id),"--cobalt"):"#9CA3AF"), borderRadius:4, maxBarThickness:30}]},
     {indexAxis:"y", plugins:{legend:{display:false}},
      drill:i=>({list, title:DEPT_NAME[state.dept], step:{dim:"brand", label:top[i][0], test:p=>smBrand(p)===top[i][0]}})});
 }
@@ -7952,47 +7960,125 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("keydown",e=>{ if(e.key==="Escape" && document.getElementById("drillDrawer")?.classList.contains("open")) drillClose(); });
 
+/* ---- Chart skin (after the MotionSites dashboards): colours read from the chart's
+   own panel (a chart inside a dark panel gets dark-panel colours), gradient bars
+   that grow in one after another on first draw, hover focus (the bar or slice
+   under the pointer stays bright, the rest dim), faint tracks behind horizontal
+   bars with the value at the end, a thin ring with its total in the middle, and
+   a dark glass tooltip. */
+function cssAt(el, name){ try{ return (el && getComputedStyle(el).getPropertyValue(name).trim()) || getCSS(name); }catch(_){ return getCSS(name); } }
+function _rgba(c, a){
+  if(!c || typeof c!=="string") return c;
+  if(c.startsWith("#")){ let h=c.slice(1); if(h.length===3) h=h.split("").map(x=>x+x).join("");
+    const n=parseInt(h.slice(0,6),16); return `rgba(${n>>16&255},${n>>8&255},${n&255},${a})`; }
+  const m=c.match(/rgba?\(([^)]+)\)/); if(m){ const [r,g,b]=m[1].split(",").map(s=>s.trim()); return `rgba(${r},${g},${b},${a})`; }
+  return c;
+}
+/* a bar colour -> a gradient along the bar, dimmed when another bar is hovered */
+function _barFill(base, horiz){
+  return ctx=>{
+    const chart=ctx.chart, area=chart.chartArea, col=Array.isArray(base)?base[ctx.dataIndex]:base;
+    const hi=chart.$hi, dim=hi!=null && hi!==ctx.dataIndex;
+    if(!area || typeof col!=="string") return col;
+    const g = horiz ? chart.ctx.createLinearGradient(area.left,0,area.right,0) : chart.ctx.createLinearGradient(0,area.bottom,0,area.top);
+    g.addColorStop(0, _rgba(col, dim?.12:.38)); g.addColorStop(1, _rgba(col, dim?.3:1));
+    return g;
+  };
+}
+function skinPlugin(){ return {
+  id:"pxSkin",
+  beforeDatasetsDraw(chart){             // tracks behind horizontal bars
+    if(chart.config.type!=="bar" || chart.options.indexAxis!=="y") return;
+    const a=chart.chartArea, c=chart.ctx, meta=chart.getDatasetMeta(0); if(!meta) return;
+    c.save(); c.fillStyle=chart.$track||"rgba(127,127,127,.12)";
+    for(const el of meta.data){ const h=el.height||0, y=el.y-h/2; c.beginPath(); c.roundRect(a.left, y, a.right-a.left, h, Math.min(5,h/2)); c.fill(); }
+    c.restore();
+  },
+  afterDatasetsDraw(chart){
+    const c=chart.ctx;
+    if(chart.config.type==="bar" && chart.options.indexAxis==="y"){     // value at the end of each bar
+      const meta=chart.getDatasetMeta(0), ds=chart.data.datasets[0]; if(!meta) return;
+      c.save(); c.font="600 10.5px 'JetBrains Mono'"; c.textBaseline="middle"; c.textAlign="right";
+      meta.data.forEach((el,i)=>{ const v=ds.data[i]; if(v==null) return;
+        c.fillStyle=chart.$hi!=null&&chart.$hi!==i ? chart.$mute : chart.$ink;
+        c.fillText(String(v)+(chart.$suffix||""), chart.chartArea.right-6, el.y); });
+      c.restore();
+    }
+    if(chart.config.type==="doughnut"){                                  // total (or the hovered slice) in the middle
+      const meta=chart.getDatasetMeta(0), el=meta && meta.data[0]; if(!el) return;
+      const data=chart.data.datasets[0].data, tot=data.reduce((a,b)=>a+(+b||0),0), hi=chart.$hi;
+      const big = hi!=null ? data[hi] : tot, small = hi!=null ? `${chart.data.labels[hi]} · ${tot?Math.round(data[hi]/tot*100):0}%` : "TOTAL";
+      c.save(); c.textAlign="center"; c.textBaseline="middle";
+      c.fillStyle=chart.$ink; c.font="700 22px 'Bricolage Grotesque'"; c.fillText(String(big), el.x, el.y-6);
+      c.fillStyle=chart.$mute; c.font="600 10px 'JetBrains Mono'"; c.fillText(String(small).toUpperCase(), el.x, el.y+14);
+      c.restore();
+    }
+  }
+}; }
 function makeChart(id,type,data,extra={}){
   if(charts[id]) charts[id].destroy();
-  const animation = chartAnimation(id);
+  const cv=document.getElementById(id);
+  const first = chartAnimation(id);
   const money = extra.money!==false && (type==="line");
   const horiz = extra.indexAxis==="y";
-  const txt = getCSS("--ink-soft") || "#64748B";
-  const sx=(extra.scales&&extra.scales.x)||{}, sy=(extra.scales&&extra.scales.y)||{};
-  const valTicks={font:{family:"JetBrains Mono",size:10},color:txt,callback:v=>money?"€"+v:v};
-  const catTicks={font:{family:"JetBrains Mono",size:10},color:txt};
+  const txt = cssAt(cv,"--ink-soft") || "#64748B", ink = cssAt(cv,"--ink") || "#1B1A17", grid = cssAt(cv,"--grid");
+  const upper = function(v){ const l=this.getLabelForValue(v); return typeof l==="string" && l.length<=18 ? l.toUpperCase() : l; };
+  const valTicks={font:{family:"JetBrains Mono",size:10},color:txt,padding:6,callback:v=>money?"€"+v:v};
+  const catTicks={font:{family:"JetBrains Mono",size:10},color:txt,padding:6,callback:upper};
   const baseScales = (type==="doughnut"||type==="pie") ? {} : {
-    x:{grid:{display:!horiz,color:getCSS("--grid")},beginAtZero:horiz,stacked:!!sx.stacked,ticks: horiz?valTicks:catTicks},
-    y:{grid:{color:horiz?"transparent":getCSS("--grid")},beginAtZero:!horiz,stacked:!!sy.stacked,ticks: horiz?catTicks:valTicks}
+    x:{grid:{display:!horiz,color:grid,drawTicks:false},border:{display:false,dash:[3,4]},beginAtZero:horiz,stacked:!!sx(extra).stacked,ticks: horiz?valTicks:catTicks},
+    y:{grid:{color:horiz?"transparent":grid,drawTicks:false},border:{display:false,dash:[3,4]},beginAtZero:!horiz,stacked:!!sy(extra).stacked,ticks: horiz?catTicks:valTicks}
   };
-  const drill = extra.drill ? {
-    onClick:(evt,els)=>{ if(els && els.length) drillOpen(extra.drill(els[0].index)); },
-    onHover:(evt,els)=>{ const c=evt.native && evt.native.target; if(c) c.style.cursor = els && els.length ? "pointer" : "default"; } } : {};
-  charts[id]=new Chart(document.getElementById(id),{type,data,plugins:extra.chartPlugins||[],options:{...drill,
+  if(horiz && extra.tracks!==false){ baseScales.x.display=false; }       // the values sit at the bar ends instead
+  // skin the datasets: gradient bars, thin ring
+  if(type==="bar") data.datasets.forEach(ds=>{ if(ds._skinned) return; ds._skinned=true;
+    const base=ds.backgroundColor; ds.backgroundColor=_barFill(base, horiz);
+    if(ds.borderRadius==null) ds.borderRadius=6; ds.borderSkipped=false;
+    if(horiz){ ds.maxBarThickness=Math.min(ds.maxBarThickness||18, 18); } });
+  if(type==="doughnut") data.datasets.forEach(ds=>{ const base=ds.backgroundColor;
+    ds.backgroundColor=ctx=>{ const col=Array.isArray(base)?base[ctx.dataIndex]:base, hi=ctx.chart.$hi; return hi!=null&&hi!==ctx.dataIndex ? _rgba(col,.28) : col; };
+    ds.borderWidth=2; ds.borderColor=cssAt(cv,"--frost")||"#fff"; ds.hoverOffset=6; ds.spacing=1; });
+  // first draw: bars grow in one after another; later redraws are instant
+  const animation = first ? {duration:700, easing:"easeOutQuart",
+      delay:ctx=> ctx.type==="data" && ctx.mode==="default" ? ctx.dataIndex*55 : 0} : false;
+  const focus = (evt, els, chart)=>{ const i = els && els.length ? els[0].index : null;
+    if(chart.$hi!==i){ chart.$hi=i; chart.update("none"); } };
+  const opts = {
+    onHover:(evt,els,chart)=>{ focus(evt,els,chart); const c=evt.native && evt.native.target; if(c) c.style.cursor = els && els.length && extra.drill ? "pointer" : "default"; },
+    onClick:(evt,els)=>{ if(extra.drill && els && els.length) drillOpen(extra.drill(els[0].index)); },
     responsive:true,maintainAspectRatio:false,animation,
     indexAxis: extra.indexAxis||"x",
+    cutout: type==="doughnut" ? "72%" : undefined,
     interaction: (type==="line")?{mode:"index",intersect:false}:{mode:"nearest",intersect:true},
     plugins:{
       legend:{display:(extra.plugins&&extra.plugins.legend&&extra.plugins.legend.display!==undefined)?extra.plugins.legend.display:true,position:(extra.plugins&&extra.plugins.legend&&extra.plugins.legend.position)||"top",labels:{font:{family:"Hanken Grotesk",size:11},color:txt,usePointStyle:true,boxHeight:6}},
       tooltip:{
         enabled:true, usePointStyle:true,
-        backgroundColor:"rgba(40,34,24,.95)", padding:10, cornerRadius:8,
-        titleFont:{family:"Hanken Grotesk",size:12,weight:"600"}, bodyFont:{family:"JetBrains Mono",size:12},
+        backgroundColor:"rgba(10,12,14,.92)", borderColor:"rgba(255,255,255,.10)", borderWidth:1, padding:12, cornerRadius:10,
+        titleColor:"#fff", bodyColor:"#d9dcde",
+        titleFont:{family:"JetBrains Mono",size:10.5,weight:"600"}, bodyFont:{family:"Hanken Grotesk",size:12.5,weight:"600"},
         callbacks:{
+          title:(items)=>items.length ? String(items[0].label).toUpperCase() : "",
           label:(ctx)=>{
-            // For horizontal bars (indexAxis:'y') the value is on x, not y.
             const horizontal = (extra.indexAxis==="y");
             let v = ctx.parsed;
             if(v && typeof v==="object") v = horizontal ? ctx.parsed.x : ctx.parsed.y;
             const lbl=ctx.dataset.label?ctx.dataset.label+": ":"";
-            return (money||type==="line") ? `${lbl}€${Number(v).toLocaleString("el-GR")}` : `${lbl}${v}`;
-          }
-        }
+            return (money||type==="line") ? `${lbl}€${Number(v).toLocaleString("el-GR")}` : `${lbl}${v}${extra.valueSuffix||""}`;
+          },
+          footer:()=> extra.drill ? "Click to explore" : ""
+        },
+        footerColor:"#8fd6d6", footerFont:{family:"JetBrains Mono",size:10}
       }
     },
-    scales: (type==="doughnut"||type==="pie")? {} : {x:{...baseScales.x,...sx,ticks:baseScales.x.ticks},y:{...baseScales.y,...sy,ticks:baseScales.y.ticks}},
-  }});
+    scales: (type==="doughnut"||type==="pie")? {} : {x:{...baseScales.x,...sx(extra),ticks:baseScales.x.ticks},y:{...baseScales.y,...sy(extra),ticks:baseScales.y.ticks}},
+  };
+  charts[id]=new Chart(cv,{type,data,plugins:[...(extra.chartPlugins||[]), skinPlugin()],options:opts});
+  const ch=charts[id]; ch.$ink=ink; ch.$mute=_rgba(txt,.55); ch.$track=_rgba(ink,.07); ch.$suffix=extra.valueSuffix||""; ch.$hi=null;
+  cv.onmouseleave=()=>{ if(ch.$hi!=null){ ch.$hi=null; ch.update("none"); } };
 }
+function sx(extra){ return (extra.scales&&extra.scales.x)||{}; }
+function sy(extra){ return (extra.scales&&extra.scales.y)||{}; }
 /* Draw a friendly placeholder instead of a blank white canvas. */
 function emptyChart(id,msg){
   if(charts[id]){ charts[id].destroy(); delete charts[id]; }
