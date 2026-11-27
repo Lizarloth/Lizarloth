@@ -259,6 +259,13 @@ nav button.active{background:var(--cobalt);color:#fff}
 .bp-drv-e i{position:absolute;right:0;top:0;bottom:0;border-radius:4px;opacity:.18}
 .bp-drv-e.neg{color:var(--heat)} .bp-drv-e.neg i{background:var(--heat)}
 .bp-drv-e.pos{color:var(--cobalt)} .bp-drv-e.pos i{background:var(--cobalt)}
+.bp-rad-opts{display:flex;gap:14px;flex-wrap:wrap}
+.bp-rad-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px;align-items:start}
+@media(max-width:1100px){.bp-rad-grid{grid-template-columns:1fr}}
+.bp-rad-box{height:400px}
+@media(max-width:640px){.bp-rad-box{height:320px}}
+.bp-rad-t td,.bp-rad-t th{padding:6px 8px;font-size:12.5px}
+.bp-rad-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;vertical-align:1px}
 .bp-drv-empty{font-size:12.5px;color:var(--ink-soft);padding:8px}
 button.bp-reason{font:inherit;cursor:pointer;border:0}
 /* global search dropdown */
@@ -1038,7 +1045,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S36</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S37</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1517,6 +1524,17 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
       <div class="catbar" id="bpDrvChips" style="margin-bottom:8px"></div>
       <div class="ph-scope" id="bpDrvLevel" style="margin-bottom:12px"><button class="fchip on" data-bpd="lvl" data-pv="topic">Specific topics</button><button class="fchip" data-bpd="lvl" data-pv="pillar">Broad pillars</button></div>
       <div id="bpDrivers"></div>
+    </div>
+    <div class="card" style="margin-bottom:18px">
+      <h3><span class="dot" style="background:var(--cobalt)"></span>Brand radar <span id="bpRadScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin:-6px 0 12px">Up to four brands, or four models, topic by topic. Pick them below; your brand starts selected.</p>
+      <div class="bp-rad-opts" id="bpRadOpts">
+        <span class="ph-scope"><button class="fchip" data-brad="rmode" data-pv="brand">Brands</button><button class="fchip" data-brad="rmode" data-pv="model">Models</button></span>
+        <span class="ph-scope"><button class="fchip" data-brad="rmetric" data-pv="sat">Satisfaction</button><button class="fchip" data-brad="rmetric" data-pv="talk">Talked about</button></span>
+        <span class="ph-scope"><button class="fchip" data-brad="rlvl" data-pv="topic">Specific topics</button><button class="fchip" data-brad="rlvl" data-pv="pillar">Broad pillars</button></span>
+      </div>
+      <div class="catbar" id="bpRadPick" style="margin:10px 0"></div>
+      <div class="bp-rad-grid"><div class="chart-box bp-rad-box"><canvas id="bpRadar"></canvas></div><div id="bpRadTable" style="overflow-x:auto"></div></div>
     </div>
     <div class="card" style="margin-bottom:18px">
       <h3><span class="dot" style="background:var(--warn)"></span>Why people buy: pillar scores <span id="bpPillarScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
@@ -4873,7 +4891,7 @@ function renderPerception(){
     + m1("Average stars", rows.length?(rows.reduce((a,r)=>a+(r.stars||0),0)/rows.length).toFixed(2)+"★":"–", `net score ${(n=>n&&n.n>=NET_MIN?(n.score>0?"+":"")+n.score:"–")(netScore(rows))} (5★ minus 1–3★)`, "sc-heat");
   if(!rows.length){
     host.innerHTML=`<tbody><tr><td style="color:var(--ink-soft);padding:16px">No review texts for this department yet: the daily run reads them a batch at a time (your models first).</td></tr></tbody>`;
-    quotes.innerHTML=""; document.getElementById("bpCards").innerHTML=""; document.getElementById("bpDrivers").innerHTML=""; return;
+    quotes.innerHTML=""; document.getElementById("bpCards").innerHTML=""; document.getElementById("bpDrivers").innerHTML=""; document.getElementById("bpRadTable").innerHTML=""; emptyChart("bpRadar","No review texts for this department yet"); return;
   }
   const RB={};
   for(const r of rows){ if(!r.brand) continue; const e=RB[r.brand]=RB[r.brand]||{b:r.brand, mine:r.mine, n:0, p:{}};
@@ -4904,6 +4922,7 @@ function renderPerception(){
   quotes.innerHTML = `<div style="font-size:12.5px;color:var(--ink-soft)">Click any score to read the reviews behind it.</div>`;
   renderBrandProfile(rows, rb);
   renderDrivers(rows, rb, dept);
+  renderBrandRadar(rows, rb, dept);
 }
 /* One brand against the market: per pillar, the share of its reviews that
    mention it vs the share across all brands in view (the ratio is what the
@@ -5086,6 +5105,66 @@ function renderDrivers(rows, rb, dept){
     : `<p class="bp-drv-head">${head}</p>
       <div class="bp-drv-grid">${block("Costing stars",cost,"no topic with 5+ mentions pulls the rating down")}${block("Earning stars",earn,"no topic with 5+ mentions lifts the rating")}${block("Talked about, little effect",flat,"none")}</div>
       <p class="ph-note">${S.length} reviews, average ${st(avg)}. <b>Effect</b> = share of reviews mentioning the topic × the difference in stars, i.e. how far the topic moves the overall average. Topics under ${BP_MIN_N} mentions are left out. Click a row for the reviews.</p>`;
+}
+
+/* ---- Radar: up to four brands (or models) topic by topic, in the current
+   department / type. Satisfaction = share of the reviews mentioning a topic
+   that are positive (neutral counts half; 50 = as much complaint as praise).
+   Talked about = share of the brand's reviews that mention it. An axis a
+   brand has fewer than RAD_MIN mentions on is left as a gap, not a zero. */
+const RAD_MIN = {brand:5, model:3};
+const RAD_COLORS = ["--cobalt","--warn","--heat","--mint"];
+function renderBrandRadar(rows, rb, dept){
+  const F=bpFilter, host=document.getElementById("bpRadTable"); if(!host) return;
+  F.rmode=F.rmode||"brand"; F.rmetric=F.rmetric||"sat"; F.rlvl=F.rlvl||"topic";
+  document.querySelectorAll("#bpRadOpts [data-brad]").forEach(b=>b.classList.toggle("on", F[b.dataset.brad]===b.dataset.pv));
+  // candidates: brands with 3+ reviews, or models with RAD_MIN.model*2+ reviews
+  const modelKey=r=>normCode(extractModel(r.name).code);
+  let cands;
+  if(F.rmode==="brand") cands=rb.map(e=>({k:e.b, label:e.b, mine:e.mine, n:e.n, rows:rows.filter(r=>r.brand===e.b)}));
+  else { const M={}; for(const r of rows){ const k=modelKey(r); if(k.length<4) continue; (M[k]=M[k]||{k, label:modelTitle(r.name,22), mine:r.mine, rows:[]}).rows.push(r); }
+    cands=Object.values(M).filter(m=>m.rows.length>=RAD_MIN.model*2).map(m=>({...m, n:m.rows.length})).sort((a,b)=>(b.mine-a.mine)||(b.n-a.n)).slice(0,30); }
+  const pickKey="rpick_"+F.rmode+"_"+dept;          // picks are kept per department
+  let pick=(F[pickKey]||[]).filter(k=>cands.some(c=>c.k===k));
+  if(!pick.length){ const mine=cands.find(c=>c.mine); pick=[...(mine?[mine.k]:[]), ...cands.filter(c=>!c.mine).slice(0,mine?2:3).map(c=>c.k)]; }
+  F[pickKey]=pick;
+  document.getElementById("bpRadPick").innerHTML = cands.map(c=>`<button class="chip ${pick.includes(c.k)?"on":""}" data-bradpick="${esc(c.k)}">${esc(c.label)}${c.mine?" ★":""}<span class="cnt">${c.n}</span></button>`).join("")
+    || `<span class="ph-note">No ${F.rmode==="brand"?"brand":"model"} has enough reviews in this view yet.</span>`;
+  const sel=pick.map(k=>cands.find(c=>c.k===k)).filter(Boolean), min=RAD_MIN[F.rmode];
+  let lvl=F.rlvl==="topic"?"topic":"pillar", fellBack=false;
+  const stat=(c,P)=>{ let n=0,pos=0,neu=0; for(const r of c.rows){ const v=bpTagsOf(r,lvl)[P.k]; if(v===undefined) continue; n++; if(v>0) pos++; else if(v===0) neu++; }
+    return {n, pos, neu, neg:n-pos-neu, sat:n>=min?Math.round((pos+neu/2)/n*100):null, talk:c.rows.length?Math.round(n/c.rows.length*100):null}; };
+  // axes: topics at least one pick can score, most mentioned first, up to eight;
+  // too few specific topics (models have few reviews) -> the broad pillars instead
+  const axesFor=l=>bpItems(dept,l).filter(P=>!P.retailer).map(P=>({P, s:sel.map(c=>stat(c,P))})).filter(a=>a.s.some(x=>x.n>=min))
+    .sort((a,b)=>b.s.reduce((t,x)=>t+x.n,0)-a.s.reduce((t,x)=>t+x.n,0)).slice(0,8);
+  let axes=axesFor(lvl);
+  if(axes.length<3 && lvl==="topic"){ lvl="pillar"; fellBack=true; axes=axesFor(lvl); }
+  document.getElementById("bpRadScope").textContent = sel.length?`· ${sel.length} ${F.rmode==="brand"?"brand":"model"}${sel.length>1?"s":""} · ${axes.length} topics`:"";
+  if(charts.bpRadar){ charts.bpRadar.destroy(); delete charts.bpRadar; }
+  if(!sel.length || axes.length<3){
+    emptyChart("bpRadar", sel.length?"Too few shared topics to draw: pick other brands or switch to pillars":"Pick brands or models above");
+    host.innerHTML=""; return;
+  }
+  const val=s=>F.rmetric==="sat"?(s.n>=min?s.sat:null):(s.n>=min?s.talk:null);
+  const vals=axes.flatMap(a=>a.s.map(val)).filter(v=>v!=null);
+  const lo=F.rmetric==="sat"?Math.max(0, Math.floor((Math.min(...vals)-10)/10)*10):0;
+  const txt=getCSS("--ink-soft"), grid=getCSS("--grid");
+  charts.bpRadar=new Chart(document.getElementById("bpRadar"),{type:"radar",
+    data:{labels:axes.map(a=>a.P.label), datasets:sel.map((c,i)=>{ const col=getCSS(RAD_COLORS[i]);
+      return {label:c.label+(c.mine?" ★":""), data:axes.map(a=>val(a.s[i])), borderColor:col, backgroundColor:col+"14", pointBackgroundColor:col, pointRadius:3, borderWidth:2, spanGaps:true}; })},
+    options:{responsive:true, maintainAspectRatio:false, animation:chartAnimation("bpRadar"),
+      scales:{r:{min:lo, max:100, ticks:{stepSize:10, backdropColor:"transparent", color:txt, font:{family:"JetBrains Mono",size:9}},
+        grid:{color:grid}, angleLines:{color:grid}, pointLabels:{color:getCSS("--ink"), font:{family:"Hanken Grotesk",size:11.5}}}},
+      plugins:{legend:{position:"top", labels:{font:{family:"Hanken Grotesk",size:11.5}, color:txt, usePointStyle:true, boxHeight:6}},
+        tooltip:{callbacks:{label:ctx=>{ const s=axes[ctx.dataIndex].s[ctx.datasetIndex];
+          return `${ctx.dataset.label}: ${ctx.parsed.r}${F.rmetric==="sat"?" satisfaction":"% mention it"} · ${s.n} mentions (${s.pos}+ ${s.neu}= ${s.neg}−)`; }}}}}});
+  // the same numbers as a table; every cell opens its reviews
+  const scope=c=>F.rmode==="brand"?c.k:"model:"+c.k;
+  host.innerHTML=`<table class="bp-rad-t"><thead><tr><th>${lvl==="topic"?"Topic":"Pillar"}</th>${sel.map((c,i)=>`<th style="text-align:right"><span class="bp-rad-dot" style="background:${getCSS(RAD_COLORS[i])}"></span>${esc(c.label)}</th>`).join("")}</tr></thead><tbody>`
+    + axes.map(a=>`<tr><td>${esc(a.P.label)}</td>${a.s.map((s,i)=>{ const v=val(s);
+        return `<td style="text-align:right">${s.n?`<button class="bp-cell${v==null?" few":""}" data-bpr="${esc(scope(sel[i]))}|${lvl}|${a.P.k}|${esc(F.type)}" title="${s.n} mentions: ${s.pos} positive, ${s.neu} neutral, ${s.neg} negative">${v==null?"·":v}${s.neg?` <small class="bp-neg">−${s.neg}</small>`:""}</button>`:'<span style="color:var(--ink-faint)">·</span>'}</td>`; }).join("")}</tr>`).join("")
+    + `</tbody></table><p class="ph-note">${fellBack?"<b>Showing broad pillars:</b> too few mentions of specific topics for these picks. ":""}${F.rmetric==="sat"?"Satisfaction: % of the mentions that are positive (neutral counts half).":"Talked about: % of the reviews that mention the topic."} “·” = fewer than ${min} mentions. <span class="bp-neg">−n</span> = complaints. Click a number for the reviews.</p>`;
 }
 
 /* ---- Review reader: the reviews behind any score, in a side drawer.
@@ -6302,6 +6381,13 @@ on("page-perception","click",e=>{
   const c=e.target.closest("[data-bp-cell]");
   if(c){ const [b,k]=c.dataset.bpCell.split("|");
     bpFilter.brand=b; bpFilter.pillar=k; renderPerception(); bpReaderOpen(`${b}|pillar|${k}|${bpFilter.type}`); return; }
+  const rp=e.target.closest("[data-bradpick]");
+  if(rp){ const key="rpick_"+(bpFilter.rmode||"brand"), cur=bpFilter[key]||[], k=rp.dataset.bradpick;
+    bpFilter[key]=cur.includes(k)?cur.filter(x=>x!==k):[...cur,k].slice(-4); renderPerception(); return; }
+  const ro=e.target.closest("[data-brad]");
+  if(ro){ bpFilter[ro.dataset.brad]=ro.dataset.pv;
+    if(ro.dataset.brad==="rmode") bpFilter.rlvl = ro.dataset.pv==="model" ? "pillar" : "topic";   // ~20 reviews per model: pillars carry more
+    renderPerception(); return; }
   const d=e.target.closest("[data-bpd]");
   if(d){ bpFilter[d.dataset.bpd==="drv"?"drv":"lvl"]=d.dataset.pv; renderPerception(); return; }
   if(e.target.closest("[data-bp-close]")){ e.preventDefault(); bpFilter.brand=bpFilter.pillar=null; renderPerception(); }
