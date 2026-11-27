@@ -1611,6 +1611,12 @@ def run_plp(sites, scope_subs, headless=True, enrich_prices=False, check_stock_a
                         rows, total = plaisio_plp.collect_category(pdriver, path, key, debug=False)
                     except Exception as e:
                         log(f"   ! plaisio/{key} failed: {str(e)[:70]}"); continue
+                    # cards without an energy class: read it off the product page (cached per SKU)
+                    if hasattr(plaisio_plp, "fill_energy_from_pdp"):
+                        try:
+                            plaisio_plp.fill_energy_from_pdp(pdriver, rows, log=log)
+                        except Exception as e:
+                            log(f"   ! plaisio/{key} energy PDP pass failed: {str(e)[:70]}")
                     for row in rows:
                         buf.append(_plp_row_to_result(row, canon))
                         if len(buf) >= PUSH_EVERY: flush()

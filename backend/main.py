@@ -427,7 +427,54 @@ def list_products(db: Session = Depends(get_db)):
             "image": image,
             "scraped_at": latest.scraped_at.isoformat() if latest and latest.scraped_at else None,
         })
+    _fill_energy_from_matches(out, db)
     return out
+
+
+# ---- Energy class from the same model at another retailer ----
+# Plaisio's listing pages don't print the energy class for fridges, so those rows
+# arrive without one. A product matched to the same model elsewhere (match group
+# confirmed by EAN/MPN/override, or by model code) takes the class its siblings
+# agree on. Groups flagged as conflicts, or whose siblings disagree, are left alone.
+_ENERGY_KEYS = ("Ενεργειακή κλάση", "Ενεργειακή Κλάση", "Ενεργειακή κλάση:", "Energy Class")
+_NO_ENERGY_LABEL = {"hob", "microwave"}       # no EU energy label: "not stated" is correct
+_GR_LAT = {"Α": "A", "Β": "B", "Ε": "E", "Ζ": "Z"}
+
+
+def _energy_class(specs):
+    for k in _ENERGY_KEYS:
+        v = (specs or {}).get(k)
+        if v:
+            m = _re.search(r"([A-GΑΒΕΖ])(\+{0,3})", str(v))
+            if m:
+                return _GR_LAT.get(m.group(1), m.group(1)) + m.group(2)
+    return None
+
+
+def _fill_energy_from_matches(out, db):
+    try:
+        rows = (db.query(ProductMatch.group_key, ProductMatch.product_id)
+                .filter(ProductMatch.status.in_(["confirmed", "codeonly"])).all())
+    except Exception:
+        return
+    by_id = {p["id"]: p for p in out}
+    groups = {}
+    for gk, pid in rows:
+        if pid in by_id:
+            groups.setdefault(gk, []).append(by_id[pid])
+    for members in groups.values():
+        have = {}
+        for p in members:
+            e = _energy_class(p["specs"])
+            if e:
+                have.setdefault(e, p["site"])
+        if len(have) != 1:
+            continue
+        (cls, src), = have.items()
+        for p in members:
+            if p["category"] in _NO_ENERGY_LABEL or _energy_class(p["specs"]):
+                continue
+            p["specs"] = {**(p["specs"] or {}), "Ενεργειακή κλάση": cls, "__energy_from": src}
 
 
 @app.get("/api/products/delisted")
