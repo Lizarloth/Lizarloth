@@ -172,6 +172,17 @@ nav button.active{background:var(--cobalt);color:#fff}
 .topbar .search input{width:100%;padding:9px 14px 9px 38px;border:1px solid var(--line);border-radius:10px;background:var(--soft-bg);color:var(--ink);font:500 13px 'Hanken Grotesk'}
 .topbar .search::before{content:"";position:absolute;left:13px;top:50%;transform:translateY(-50%);width:15px;height:15px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236F6A60' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M21 21l-4.3-4.3'/%3E%3C/svg%3E") center/contain no-repeat;opacity:.65}
 .topbar .spacer{flex:1}
+/* Segments & gaps: a segment's price ladder */
+.gp-ladder{margin:8px 0 4px;display:flex;flex-direction:column;gap:2px}
+.gp-entry{font-size:12.5px;margin-bottom:4px}
+.gp-step{display:flex;align-items:center;gap:8px;font-size:12.5px;padding:3px 6px;border-radius:6px}
+.gp-step.mine{background:var(--cobalt-soft)}
+.gp-rank{width:22px;text-align:right;color:var(--ink-soft);font-variant-numeric:tabular-nums}
+.gp-p{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600}
+.gp-more{font-size:12px;color:var(--ink-soft);padding-left:36px}
+.mp-cmp{margin-top:12px}
+.mp-cmp summary{cursor:pointer;font:600 13px 'Hanken Grotesk';color:var(--cobalt);padding:6px 0}
+.mp-cmp table{font-size:12.5px} .mp-cmp td,.mp-cmp th{padding:6px 8px;white-space:nowrap} .mp-cmp tbody td:first-child{color:var(--ink-soft)}
 /* customer ratings on products: chip, badges, the model page's review section */
 .rating-chip{display:inline-flex;align-items:center;gap:3px;margin-left:6px;font:700 11.5px 'Hanken Grotesk';color:#8A5A00;background:#FFF3DC;border-radius:99px;padding:1px 8px;white-space:nowrap;vertical-align:1px}
 .rating-chip small{font-weight:500;color:var(--ink-soft)}
@@ -964,26 +975,22 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="dashboard" class="active"><span class="ico" data-ico="dashboard"></span> Dashboard</button>
     <button data-page="benchmark"><span class="ico" data-ico="benchmark"></span> Benchmark</button>
     <button data-page="pindex"><span class="ico" data-ico="segments"></span> Price index</button>
+    <button data-page="gaps"><span class="ico" data-ico="mysku"></span> Segments &amp; gaps</button>
     <button data-page="shelf"><span class="ico" data-ico="brands"></span> Shelf share</button>
-    <button data-page="gaps"><span class="ico" data-ico="mysku"></span> Range gaps</button>
     <button data-page="perception"><span class="ico" data-ico="brands"></span> Brand perception</button>
-    <button data-page="brands"><span class="ico" data-ico="brands"></span> My Brands</button>
-    <button data-page="segments"><span class="ico" data-ico="segments"></span> Segments</button>
-    <button data-page="compare"><span class="ico" data-ico="compare"></span> Compare</button>
-    <button data-page="mysku"><span class="ico" data-ico="mysku"></span> My SKUs</button>
+    <button data-page="brands"><span class="ico" data-ico="brands"></span> Price parity</button>
     <div class="side-sec">Signals</div>
     <button data-page="launches"><span class="ico" data-ico="launches"></span> New launches<span class="dr-count" id="launchCount"></span></button>
-    <button data-page="promofreq"><span class="ico" data-ico="deal"></span> Promo frequency</button>
+    <button data-page="promofreq"><span class="ico" data-ico="deal"></span> Promotions</button>
     <button data-page="alerts"><span class="ico" data-ico="alerts"></span> Alerts</button>
-    <div class="side-sec">Catalogue</div>
-    <button data-page="products"><span class="ico" data-ico="products"></span> Products</button>
-    <button data-page="history"><span class="ico" data-ico="history"></span> Price history</button>
     <div class="side-sec">Data</div>
+    <button data-page="history"><span class="ico" data-ico="history"></span> Price history</button>
     <button data-page="matches"><span class="ico" data-ico="compare"></span> Match review<span class="dr-count" id="matchCount"></span></button>
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
+    <button data-page="products"><span class="ico" data-ico="products"></span> Manage products</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S26</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S27</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1014,7 +1021,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
   <div class="avatar" title="Account">P</div>
 </div>
 
-<div class="ticker"><div class="ticker-track" id="ticker"></div></div>
+
 
 <main>
   <div class="loadbar" id="loadbar"></div>
@@ -1043,7 +1050,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
       <div class="sec-head"><h2>What changed</h2><span class="meta" id="coolTodayMeta"></span></div>
       <div class="today" id="coolToday"></div>
       <div class="card dash-jump" id="coolMovesCard">
-        <h3><span class="dot" style="background:var(--cobalt)"></span>Price moves <span id="coolMovesSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+        <h3><span class="dot" style="background:var(--cobalt)"></span>Price moves <span id="coolMovesSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span><button class="card-link" data-open-radar>See all in Deal Radar →</button></h3>
         <div class="grid two-col">
           <div><div class="sw-sub">Biggest drops</div><div id="moversDown" class="mini-list"></div></div>
           <div><div class="sw-sub">Biggest rises</div><div id="moversUp" class="mini-list"></div></div>
@@ -1069,27 +1076,11 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     </div>
     </div>
 
-    <div class="dash-group">
-      <div class="sec-head"><h2>Promotions</h2><button class="card-link" data-goto="promofreq">Promo frequency by brand →</button></div>
-    <div class="card dash-jump" id="coolPromoCard">
-      <h3><span class="dot" style="background:var(--heat)"></span>Promo pressure <span id="ppSummary" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span>
-        <select id="ppWindow" style="width:auto;margin-left:auto;padding:6px 10px"><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></h3>
-      <div class="grid two-col">
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Brands discounting hardest — % of SKUs on promo (avg depth)</div><div class="chart-box"><canvas id="ppBrandChart"></canvas></div></div>
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Discount depth distribution</div><div class="chart-box"><canvas id="ppDepthChart"></canvas></div></div>
-      </div>
-      <div class="grid two-col" style="margin-top:16px">
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Promo intensity by retailer — % of SKUs on promo</div><div class="chart-box short"><canvas id="ppRetailerChart"></canvas></div></div>
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Longest-running promos in the window</div><div id="ppLongest" class="mini-list"></div></div>
-      </div>
-    </div>
-    </div>
 
     <div class="l-pulse">
       <h2>Market structure</h2>
       <p class="l-psub">The shape of the market in the current filter: reference, changes slowly.</p>
       <div class="pulse-grid">
-        <div class="card"><h3>Products per retailer</h3><div class="chart-box"><canvas id="coverageChart"></canvas></div></div>
         <div class="card"><h3>Top brands by ready stock</h3><div class="chart-box"><canvas id="brandChart"></canvas></div></div>
         <div class="card"><h3>Price distribution</h3><div class="chart-box"><canvas id="priceDistChart"></canvas></div></div>
         <div class="card"><h3>Energy class mix</h3><div class="chart-box"><canvas id="energyChart"></canvas></div></div>
@@ -1124,7 +1115,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
       <div class="sec-head"><h2>What changed</h2><span class="meta" id="lauTodayMeta"></span></div>
       <div class="today" id="lauToday"></div>
       <div class="card dash-jump" id="lauMovesCard">
-        <h3><span class="dot" style="background:var(--cobalt)"></span>Price moves <span id="lauMovesSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+        <h3><span class="dot" style="background:var(--cobalt)"></span>Price moves <span id="lauMovesSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span><button class="card-link" data-open-radar>See all in Deal Radar →</button></h3>
         <div class="grid two-col">
           <div><div class="sw-sub">Biggest drops</div><div id="lMoversDown" class="mini-list"></div></div>
           <div><div class="sw-sub">Biggest rises</div><div id="lMoversUp" class="mini-list"></div></div>
@@ -1150,27 +1141,11 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     </div>
     </div>
 
-    <div class="dash-group">
-      <div class="sec-head"><h2>Promotions</h2><button class="card-link" data-goto="promofreq">Promo frequency by brand →</button></div>
-    <div class="card dash-jump" id="lauPromoCard">
-      <h3><span class="dot" style="background:var(--heat)"></span>Promo pressure <span id="lppSummary" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span>
-        <select id="lppWindow" style="width:auto;margin-left:auto;padding:6px 10px"><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></h3>
-      <div class="grid two-col">
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Brands discounting hardest — % of SKUs on promo (avg depth)</div><div class="chart-box"><canvas id="lppBrandChart"></canvas></div></div>
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Discount depth distribution</div><div class="chart-box"><canvas id="lppDepthChart"></canvas></div></div>
-      </div>
-      <div class="grid two-col" style="margin-top:16px">
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Promo intensity by retailer — % of SKUs on promo</div><div class="chart-box short"><canvas id="lppRetailerChart"></canvas></div></div>
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Longest-running promos in the window</div><div id="lppLongest" class="mini-list"></div></div>
-      </div>
-    </div>
-    </div>
 
     <div class="l-pulse">
       <h2>Market structure</h2>
       <p class="l-psub" id="lauPulseSub">The shape of the market in the current filter: reference, changes slowly.</p>
       <div class="pulse-grid">
-        <div class="card"><h3>Products per retailer</h3><div class="chart-box"><canvas id="lCoverageChart"></canvas></div></div>
         <div class="card"><h3>Top brands by ready stock</h3><div class="chart-box"><canvas id="lBrandChart"></canvas></div></div>
         <div class="card"><h3>Price distribution</h3><div class="chart-box"><canvas id="lPriceChart"></canvas></div></div>
         <div class="card"><h3>Energy class mix</h3><div class="chart-box"><canvas id="lEnergyChart"></canvas></div></div>
@@ -1193,32 +1168,8 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     </div>
   </section>
 
-  <section class="page" id="page-l-segments">
-    <h2 class="page-title">Segments · Laundry</h2>
-    <p class="page-sub">Entry price by type and capacity tier. Who holds it, where you're present.</p>
-    <div id="lsBody"></div>
-  </section>
 
-  <section class="page" id="page-l-products">
-    <h2 class="page-title">Products · Laundry</h2>
-    <p class="page-sub">Every tracked laundry SKU across the three retailers. Search by brand or model code; tap to open on the retailer.</p>
-    <div class="card">
-      <div class="toolbar" style="margin-bottom:10px"><input id="lpSearch" placeholder="Search brand or model code…" style="max-width:320px"></div>
-      <div style="overflow-x:auto" id="lpTable"></div>
-    </div>
-  </section>
 
-  <section class="page" id="page-l-compare">
-    <h2 class="page-title">Explore &amp; Compare · Laundry</h2>
-    <p class="page-sub">Filter by type, energy, capacity, spin, load. Cheapest first, your brands marked.</p>
-    <div class="explorer">
-      <aside class="exp-rail" id="lexpRail"></aside>
-      <div class="exp-main">
-        <div class="exp-insight" id="lexpInsight"></div>
-        <div class="exp-results" id="lexpResults"></div>
-      </div>
-    </div>
-  </section>
 
   <!-- COOKING DEPARTMENT (parallel tab set; shown when state.dept==='cooking') -->
   <section class="page" id="page-c-dashboard">
@@ -1235,7 +1186,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
       <div class="sec-head"><h2>What changed</h2><span class="meta" id="cookTodayMeta"></span></div>
       <div class="today" id="cookToday"></div>
       <div class="card dash-jump" id="cookMovesCard">
-        <h3><span class="dot" style="background:var(--cobalt)"></span>Price moves <span id="cookMovesSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+        <h3><span class="dot" style="background:var(--cobalt)"></span>Price moves <span id="cookMovesSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span><button class="card-link" data-open-radar>See all in Deal Radar →</button></h3>
         <div class="grid two-col">
           <div><div class="sw-sub">Biggest drops</div><div id="cMoversDown" class="mini-list"></div></div>
           <div><div class="sw-sub">Biggest rises</div><div id="cMoversUp" class="mini-list"></div></div>
@@ -1261,27 +1212,11 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     </div>
     </div>
 
-    <div class="dash-group">
-      <div class="sec-head"><h2>Promotions</h2><button class="card-link" data-goto="promofreq">Promo frequency by brand →</button></div>
-    <div class="card dash-jump" id="cookPromoCard">
-      <h3><span class="dot" style="background:var(--heat)"></span>Promo pressure <span id="cppSummary" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span>
-        <select id="cppWindow" style="width:auto;margin-left:auto;padding:6px 10px"><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></h3>
-      <div class="grid two-col">
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Brands discounting hardest — % of SKUs on promo (avg depth)</div><div class="chart-box"><canvas id="cppBrandChart"></canvas></div></div>
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Discount depth distribution</div><div class="chart-box"><canvas id="cppDepthChart"></canvas></div></div>
-      </div>
-      <div class="grid two-col" style="margin-top:16px">
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Promo intensity by retailer — % of SKUs on promo</div><div class="chart-box short"><canvas id="cppRetailerChart"></canvas></div></div>
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Longest-running promos in the window</div><div id="cppLongest" class="mini-list"></div></div>
-      </div>
-    </div>
-    </div>
 
     <div class="l-pulse">
       <h2>Market structure</h2>
       <p class="l-psub">The shape of the market in the current filter: reference, changes slowly.</p>
       <div class="pulse-grid">
-        <div class="card"><h3>Products per retailer</h3><div class="chart-box"><canvas id="cCoverageChart"></canvas></div></div>
         <div class="card"><h3>Top brands by ready stock</h3><div class="chart-box"><canvas id="cBrandChart"></canvas></div></div>
         <div class="card"><h3>Price distribution</h3><div class="chart-box"><canvas id="cPriceChart"></canvas></div></div>
         <div class="card"><h3>Energy class mix</h3><div class="chart-box"><canvas id="cEnergyChart"></canvas></div></div>
@@ -1304,20 +1239,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     </div>
   </section>
 
-  <section class="page" id="page-c-segments">
-    <h2 class="page-title">Segments · Cooking</h2>
-    <p class="page-sub">Entry price by type and size tier. Who holds it, where you're present.</p>
-    <div id="csBody"></div>
-  </section>
 
-  <section class="page" id="page-c-products">
-    <h2 class="page-title">Products · Cooking</h2>
-    <p class="page-sub">Every tracked cooking SKU across the three retailers. Search by brand or model code; tap to open on the retailer.</p>
-    <div class="card">
-      <div class="toolbar" style="margin-bottom:10px"><input id="cpSearch" placeholder="Search brand or model code…" style="max-width:320px"></div>
-      <div style="overflow-x:auto" id="cpTable"></div>
-    </div>
-  </section>
 
   <!-- DISHWASHING DEPARTMENT (parallel tab set; shown when state.dept==='dishwashing') -->
   <section class="page" id="page-d-dashboard">
@@ -1334,7 +1256,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
       <div class="sec-head"><h2>What changed</h2><span class="meta" id="dishTodayMeta"></span></div>
       <div class="today" id="dishToday"></div>
       <div class="card dash-jump" id="dishMovesCard">
-        <h3><span class="dot" style="background:var(--cobalt)"></span>Price moves <span id="dishMovesSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span></h3>
+        <h3><span class="dot" style="background:var(--cobalt)"></span>Price moves <span id="dishMovesSum" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span><button class="card-link" data-open-radar>See all in Deal Radar →</button></h3>
         <div class="grid two-col">
           <div><div class="sw-sub">Biggest drops</div><div id="dMoversDown" class="mini-list"></div></div>
           <div><div class="sw-sub">Biggest rises</div><div id="dMoversUp" class="mini-list"></div></div>
@@ -1360,27 +1282,11 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     </div>
     </div>
 
-    <div class="dash-group">
-      <div class="sec-head"><h2>Promotions</h2><button class="card-link" data-goto="promofreq">Promo frequency by brand →</button></div>
-    <div class="card dash-jump" id="dishPromoCard">
-      <h3><span class="dot" style="background:var(--heat)"></span>Promo pressure <span id="dppSummary" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span>
-        <select id="dppWindow" style="width:auto;margin-left:auto;padding:6px 10px"><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></h3>
-      <div class="grid two-col">
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Brands discounting hardest — % of SKUs on promo (avg depth)</div><div class="chart-box"><canvas id="dppBrandChart"></canvas></div></div>
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Discount depth distribution</div><div class="chart-box"><canvas id="dppDepthChart"></canvas></div></div>
-      </div>
-      <div class="grid two-col" style="margin-top:16px">
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Promo intensity by retailer — % of SKUs on promo</div><div class="chart-box short"><canvas id="dppRetailerChart"></canvas></div></div>
-        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Longest-running promos in the window</div><div id="dppLongest" class="mini-list"></div></div>
-      </div>
-    </div>
-    </div>
 
     <div class="l-pulse">
       <h2>Market structure</h2>
       <p class="l-psub">The shape of the market in the current filter: reference, changes slowly.</p>
       <div class="pulse-grid">
-        <div class="card"><h3>Products per retailer</h3><div class="chart-box"><canvas id="dCoverageChart"></canvas></div></div>
         <div class="card"><h3>Top brands by ready stock</h3><div class="chart-box"><canvas id="dBrandChart"></canvas></div></div>
         <div class="card"><h3>Price distribution</h3><div class="chart-box"><canvas id="dPriceChart"></canvas></div></div>
         <div class="card"><h3>Energy class mix</h3><div class="chart-box"><canvas id="dEnergyChart"></canvas></div></div>
@@ -1403,32 +1309,8 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     </div>
   </section>
 
-  <section class="page" id="page-d-segments">
-    <h2 class="page-title">Segments · Dishwashing</h2>
-    <p class="page-sub">Entry price by type and number of place settings. Who holds it, where you're present.</p>
-    <div id="dsBody"></div>
-  </section>
 
-  <section class="page" id="page-d-products">
-    <h2 class="page-title">Products · Dishwashing</h2>
-    <p class="page-sub">Every tracked dishwasher across the three retailers. Search by brand or model code; tap to open on the retailer.</p>
-    <div class="card">
-      <div class="toolbar" style="margin-bottom:10px"><input id="dpSearch" placeholder="Search brand or model code…" style="max-width:320px"></div>
-      <div style="overflow-x:auto" id="dpTable"></div>
-    </div>
-  </section>
 
-  <section class="page" id="page-compare">
-    <h2 class="page-title">Explore &amp; Compare</h2>
-    <p class="page-sub">Filter the market by segment, class, colour and brand — results rank cheapest first, with your brands marked and a read on where you stand.</p>
-    <div class="explorer">
-      <aside class="exp-rail" id="expRail"></aside>
-      <div class="exp-main">
-        <div class="exp-insight" id="expInsight"></div>
-        <div class="exp-results" id="expResults"></div>
-      </div>
-    </div>
-  </section>
 
   <!-- MY BRANDS -->
   <section class="page" id="page-brands">
@@ -1446,43 +1328,19 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
   </section>
 
   <!-- SEGMENTS -->
-  <section class="page" id="page-segments">
-    <h2 class="page-title">Segments</h2>
-    <p class="page-sub">Build a market slice with the filters, then see exactly where you stand in it — the price ladder, the entry holder, and where rivals cluster on capacity and colour.</p>
-    <div class="explorer">
-      <aside class="exp-rail" id="segRail"></aside>
-      <div class="exp-main">
-        <div class="exp-insight" id="segInsight"></div>
-        <div id="segBody"></div>
-      </div>
-    </div>
-  </section>
 
   <!-- MY SKUS -->
-  <section class="page" id="page-mysku">
-    <h2 class="page-title">My SKUs</h2>
-    <p class="page-sub">Star the models that are yours, then click one — Pricedge finds competitor SKUs with similar height, width, energy class, capacity and cooling, ranked by match %. Drag rivals into the tray to compare side by side.</p>
-    <div class="catbar" id="catbar-mysku"></div>
-    <div class="sku-layout">
-      <div class="card">
-        <h3>All tracked SKUs</h3>
-        <p style="font-size:12px;color:var(--ink-soft);margin:-6px 0 10px">★ marks a SKU as yours · click a SKU to analyse it</p>
-        <div class="toolbar" style="margin-bottom:10px"><button class="btn ghost" style="padding:7px 14px" data-act="starbrand">★ Star all my brand</button></div>
-        <div class="sku-list" id="skuList"></div>
-      </div>
-      <div id="skuDetail"></div>
-    </div>
-  </section>
 
   <!-- PRODUCTS -->
   <section class="page" id="page-products">
-    <h2 class="page-title">Products</h2>
-    <p class="page-sub">Add individual product URLs from kotsovolos.gr, public.gr or plaisio.gr.</p>
+    <h2 class="page-title">Manage products</h2>
+    <p class="page-sub">The daily scrape finds every product in each category by itself; you rarely need this. Add a product page by hand, or remove a listing that shouldn't be tracked. To look a product up, use the search at the top.</p>
     <div class="grid two-col">
       <div class="card">
-        <h3>Tracked products</h3>
+        <h3>Tracked products <span id="mpgCount" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+        <input id="mpgSearch" type="search" placeholder="Filter by name, brand or code…" aria-label="Filter tracked products" style="margin-bottom:10px">
         <div style="overflow-x:auto"><table>
-          <thead><tr><th>Name / URL</th><th>Retailer</th><th>Price</th><th></th></tr></thead>
+          <thead><tr><th>Name / URL</th><th>Department</th><th>Retailer</th><th>Price</th><th></th></tr></thead>
           <tbody id="productTable"></tbody>
         </table></div>
       </div>
@@ -1582,8 +1440,8 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 
   <!-- RANGE GAPS -->
   <section class="page" id="page-gaps">
-    <h2 class="page-title" id="gpTitle">Range gaps</h2>
-    <p class="page-sub">The market split into spec segments (type, size and colour) from today's listings, one row per model at its best price. A <b>gap</b> is a segment where competitors sell models and you have none; <b>thin</b> means you have one model against five or more. Models whose key specs weren't captured are left out.</p>
+    <h2 class="page-title" id="gpTitle">Segments &amp; gaps</h2>
+    <p class="page-sub">The market split into spec segments (type, size and colour) from today's listings, one row per model at its best price. Open a segment for its <b>price ladder</b>: every model cheapest first, yours marked, and who holds the entry price. A <b>gap</b> is a segment where competitors sell models and you have none; <b>thin</b> means you have one model against five or more. Models whose key specs weren't captured are left out.</p>
     <div class="catbar" id="gpChips"></div>
     <div class="grid metrics" id="gpMetrics"></div>
     <div class="card">
@@ -1629,7 +1487,20 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 
   <!-- PROMO FREQUENCY -->
   <section class="page" id="page-promofreq">
-    <h2 class="page-title" id="pfTitle">Promo frequency</h2>
+    <h2 class="page-title" id="pfTitle">Promotions</h2>
+    <div class="card" style="margin-bottom:18px">
+      <h3><span class="dot" style="background:var(--heat)"></span>Right now <span id="pfnSummary" style="font-weight:500;color:var(--ink-soft);font-size:12.5px"></span>
+        <select id="pfnWindow" style="width:auto;margin-left:auto;padding:6px 10px" aria-label="Window for the longest promos"><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select></h3>
+      <div class="grid two-col">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Brands discounting hardest — % of SKUs on promo (avg depth)</div><div class="chart-box"><canvas id="pfnBrandChart"></canvas></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Discount depth distribution</div><div class="chart-box"><canvas id="pfnDepthChart"></canvas></div></div>
+      </div>
+      <div class="grid two-col" style="margin-top:16px">
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Promo intensity by retailer — % of SKUs on promo</div><div class="chart-box short"><canvas id="pfnRetailerChart"></canvas></div></div>
+        <div><div class="pp-h" style="font:600 12.5px 'Hanken Grotesk';color:var(--ink-soft);margin-bottom:8px">Longest-running promos in the window</div><div id="pfnLongest" class="mini-list"></div></div>
+      </div>
+    </div>
+    <h2 class="sec-head" style="margin:22px 2px 6px;font:700 17px 'Bricolage Grotesque'">How often each brand promotes</h2>
     <p class="page-sub">How often each brand goes on promo, from every scrape in the price history. A listing counts as <b>on promo</b> on a day when the retailer shows a was-price above the price. A <b>promo</b> is a run of such days; one that's still running is counted too. Display / clearance units are left out. Plaisio doesn't show was-prices, so there a promo is the price sitting <b>5% or more under its highest price of the previous 30 days</b> (a permanent price cut also reads as a promo for up to 30 days). Days the PC didn't scrape are carried over from the previous scrape, so a weekend-only deal can be missed.</p>
     <div class="catbar" id="pfChips"></div>
     <div class="grid metrics" id="pfMetrics"></div>
@@ -1649,13 +1520,13 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
   <!-- ALERTS -->
   <section class="page" id="page-alerts">
     <h2 class="page-title">Alerts</h2>
-    <p class="page-sub">Fires when a spec-similar rival is priced at or below one of your watched SKUs.</p>
+    <p class="page-sub">Fires when a rival with the <b>same specs and colour</b> as one of your models (the same matching as the Price index) is priced at or below it.</p>
     <div class="card" style="margin-bottom:18px">
       <h3><span class="dot" style="background:var(--warn)"></span>Alert settings</h3>
       <div class="grid two-col">
         <div>
           <label>How threats are detected</label>
-          <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.5">A rival is flagged when it shares your product's <b style="color:var(--ink)">footprint</b> (same width band + height bracket) and is priced <b style="color:var(--ink)">at or below</b> yours. Rivals offering a <b style="color:var(--ink)">better energy class</b> or <b style="color:var(--ink)">more capacity</b> for the money are ranked as high-priority disruptions.</div>
+          <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.5">A rival is flagged when it has the <b style="color:var(--ink)">same specs and colour</b> as your product (the rules the Price index and the same-specs export use; cooking keeps its size tiers) and is priced <b style="color:var(--ink)">at or below</b> yours. Rivals offering a <b style="color:var(--ink)">better energy class</b> or <b style="color:var(--ink)">more capacity</b> for the money are ranked as high-priority disruptions.</div>
         </div>
         <div>
           <label>Email for alerts (saved; sending activates once email is configured)</label>
@@ -2416,15 +2287,15 @@ function lauFacetMatch(p, n){
 }
 
 // tabs that have a laundry variant (page-l-<tab>); others (export/about) are shared
-const LAUNDRY_TAB_SET = new Set(["dashboard","brands","segments","compare","products"]);
+const LAUNDRY_TAB_SET = new Set(["dashboard","brands"]);
 // tabs with no laundry equivalent yet — hidden from nav while in laundry mode
-const LAUNDRY_HIDE_TABS = new Set(["mysku"]);
+const LAUNDRY_HIDE_TABS = new Set([]);
 /* per-department page variants: tabs listed in `tabs` render page-<prefix>-<tab>;
    `hide` tabs have no equivalent in that department yet */
 const DEPT_PAGES = {
   laundry: {prefix:"l", tabs:LAUNDRY_TAB_SET, hide:LAUNDRY_HIDE_TABS},
-  cooking: {prefix:"c", tabs:new Set(["dashboard","brands","segments","products"]), hide:new Set(["mysku","compare","pindex","gaps"])},
-  dishwashing: {prefix:"d", tabs:new Set(["dashboard","brands","segments","products"]), hide:new Set(["mysku","compare"])},
+  cooking: {prefix:"c", tabs:new Set(["dashboard","brands"]), hide:new Set(["pindex"])},
+  dishwashing: {prefix:"d", tabs:new Set(["dashboard","brands"]), hide:new Set([])},
 };
 function deptHides(tab){ const d=DEPT_PAGES[state.dept]; return !!(d && d.hide.has(tab)); }
 
@@ -2432,6 +2303,8 @@ function deptHides(tab){ const d=DEPT_PAGES[state.dept]; return !!(d && d.hide.h
    page, Back/Forward work, and a view can be bookmarked or sent as a link.
    The last department is also remembered for a bare visit. */
 const ROUTE_DEPTS = ["cooling","laundry","cooking","dishwashing"];
+// pages merged into others (Nov 2026): Compare -> Benchmark, My SKUs -> Price index, Segments -> Segments & gaps
+const RETIRED_TABS = {compare:"benchmark", mysku:"pindex", segments:"gaps"};
 let _routing = false;
 function syncRoute(replace){
   if(_routing) return;
@@ -2446,7 +2319,8 @@ function applyRoute(){
   if(!mid && MP.id){ _routing=true; try{ closeModel(); } finally { _routing=false; } }
   let dept = ROUTE_DEPTS.includes(d) ? d : null;
   if(!dept){ try{ const sd=localStorage.getItem("pricedge_dept"); if(ROUTE_DEPTS.includes(sd)) dept=sd; }catch(_){} }
-  const tab = t && document.querySelector(`#nav [data-page="${CSS.escape(t)}"]`) ? t : null;
+  const t2 = RETIRED_TABS[t] || t;     // old bookmarks land on the page that replaced them
+  const tab = t2 && document.querySelector(`#nav [data-page="${CSS.escape(t2)}"]`) ? t2 : null;
   _routing = true;
   try{
     if(dept && dept!==state.dept){
@@ -2585,15 +2459,11 @@ function renderLaundry(){
   // ---- what changed + top movers (department-aware) ----
   renderToday("lau", cset);
   const mv = computeMovers(state.history);
-  setHTML("lMoversDown", moverRowsHTML(mv.filter(m=>m.delta<0).slice(0,6)) || miniEmpty());
-  setHTML("lMoversUp",   moverRowsHTML(mv.filter(m=>m.delta>0).slice(0,6)) || miniEmpty());
+  setHTML("lMoversDown", moverRowsHTML(mv.filter(m=>m.delta<0).slice(0,4)) || miniEmpty());
+  setHTML("lMoversUp",   moverRowsHTML(mv.filter(m=>m.delta>0).slice(0,4)) || miniEmpty());
 
   // ---- market pulse charts (whole department) ----
   if(typeof makeChart==="function"){
-    const cov={kotsovolos:0,public:0,plaisio:0};
-    cset.forEach(p=>{const s=f.site(p); if(s in cov)cov[s]++;});
-    if(cset.length) makeChart("lCoverageChart","bar",{labels:Object.keys(cov).map(s=>SITE_LABEL[s]||s),datasets:[{data:Object.values(cov),backgroundColor:Object.keys(cov).map(s=>SITE_COLOR[s]||"#8A8478"),borderRadius:8,maxBarThickness:60}]},{plugins:{legend:{display:false}}});
-    else emptyChart("lCoverageChart","No products in view");
     brandStockChart("lBrandChart", cset);
     const pr=cset.map(f.price).filter(x=>x>0);
     if(pr.length){
@@ -3000,7 +2870,7 @@ function computeDishThreats(){
   for(const me of mine){
     const myPrice=f.price(me.p), floor=myPrice*(1-PW);
     for(const r of rivals){
-      if(f.url(r.p)===f.url(me.p) || r.tier!==me.tier) continue;
+      if(f.url(r.p)===f.url(me.p) || !sameSpecRival("dishwashing", me.p, r.p)) continue;   // same specs + colour, as on the Price index
       const rp=f.price(r.p);
       if(rp==null || rp>myPrice || rp<myPrice*0.35) continue;
       const haveE=(me.n.energy && r.n.energy);
@@ -3086,13 +2956,9 @@ function renderSecDashboard(D){
   setHTML(I.stand, benchStandHTML(brows, secTypeWord(D), true));
   renderToday(D.key==="cooking"?"cook":"dish", cset);
   const mv = computeMovers(state.history);
-  setHTML(I.down, moverRowsHTML(mv.filter(m=>m.delta<0).slice(0,6)) || miniEmpty());
-  setHTML(I.up,   moverRowsHTML(mv.filter(m=>m.delta>0).slice(0,6)) || miniEmpty());
+  setHTML(I.down, moverRowsHTML(mv.filter(m=>m.delta<0).slice(0,4)) || miniEmpty());
+  setHTML(I.up,   moverRowsHTML(mv.filter(m=>m.delta>0).slice(0,4)) || miniEmpty());
   if(typeof makeChart==="function"){
-    const cov={kotsovolos:0,public:0,plaisio:0};
-    cset.forEach(p=>{const s=f.site(p); if(s in cov)cov[s]++;});
-    if(cset.length) makeChart(I.cov,"bar",{labels:Object.keys(cov).map(s=>SITE_LABEL[s]||s),datasets:[{data:Object.values(cov),backgroundColor:Object.keys(cov).map(s=>SITE_COLOR[s]||"#8A8478"),borderRadius:8,maxBarThickness:60}]},{plugins:{legend:{display:false}}});
-    else emptyChart(I.cov,"No products in view");
     brandStockChart(I.brand, cset);
     if(priced.length){
       const [bins,labels]=D.priceBins, counts=labels.map(()=>0);
@@ -3460,6 +3326,18 @@ function renderModelPanel(p, keepScroll){
       <span class="mini-name">${esc(modelTitle(f.name(q),34))}</span>
       <span class="sw-d" style="min-width:70px">${fmt(f.price(q))}</span>
       <span class="sw-d" style="color:${d!=null&&d<0?"var(--heat)":"var(--ink-soft)"}">${d==null?"":(d<0?"−":"+")+Math.abs(d).toFixed(0)+"%"}</span></div>`; }).join("");
+  // side by side (replaces the old My SKUs tray): this model and its 3 closest rivals, spec by spec
+  const cmpList=[best||p, ...pool.slice(0,3)];
+  const cmpKeys=[...new Set(cmpList.flatMap(q=>Object.keys(f.specs(q)||{}).filter(kk=>!kk.startsWith("__")&&!kk.startsWith("pillar_"))))]
+    .filter(kk=>cmpList.filter(q=>(f.specs(q)||{})[kk]).length>=2).slice(0,14);
+  const cmpCell=v=>v==null||String(v).trim()===""?'<span style="color:var(--ink-soft)">—</span>':esc(short(String(v),26));
+  const cmpHTML = pool.length ? `<details class="mp-cmp"><summary>Compare side by side</summary><div style="overflow-x:auto"><table>
+      <thead><tr><th></th>${cmpList.map((q,i)=>`<th>${i?`<a class="rl" href="#" data-model="${esc(f.id(q))}">${esc(modelTitle(f.name(q),20))}</a>`:esc(modelTitle(f.name(q),20))}</th>`).join("")}</tr></thead><tbody>
+      <tr><td>Best price</td>${cmpList.map(q=>`<td><b>${fmt(f.price(q))}</b></td>`).join("")}</tr>
+      <tr><td>Retailer</td>${cmpList.map(q=>`<td>${esc(SITE_LABEL[f.site(q)]||f.site(q))}</td>`).join("")}</tr>
+      <tr><td>Customer rating</td>${cmpList.map(q=>{ const r=modelRating(modelMembers(q)); return `<td>${r?`${r.stars.toFixed(1)}★ (${r.n})`:'<span style="color:var(--ink-soft)">—</span>'}</td>`; }).join("")}</tr>
+      ${cmpKeys.map(kk=>`<tr><td>${esc(kk)}</td>${cmpList.map(q=>`<td>${cmpCell((f.specs(q)||{})[kk])}</td>`).join("")}</tr>`).join("")}
+    </tbody></table></div></details>` : "";
 
   document.getElementById("mpBody").innerHTML = `<div class="mp-kpis">${kpis}</div>
     <div class="mp-sec">Retailers</div><div>${offers}${bpRow}</div>
@@ -3469,7 +3347,8 @@ function renderModelPanel(p, keepScroll){
     ${tech.length?`<div class="mp-sec">Technologies & programs</div><div class="tech-row">${techChipsHTML(tech)}</div>`:""}
     <div class="mp-sec">Specs</div>${specRows?`<div class="mp-specs">${specRows}</div>`:'<div style="font-size:12.5px;color:var(--ink-soft)">No specs captured for this model yet.</div>'}
     <div class="mp-sec">${mine?"Closest rivals":"Your closest models"} · same type, nearest price</div>
-    <div class="mini-list">${rivals||'<div class="mini-row" style="color:var(--ink-soft);font-size:12.5px">None found in this type.</div>'}</div>`;
+    <div class="mini-list">${rivals||'<div class="mini-row" style="color:var(--ink-soft);font-size:12.5px">None found in this type.</div>'}</div>
+    ${cmpHTML}`;
   if(!keepScroll) document.getElementById("mpBody").scrollTop=0;
 
   const COL=SITE_COLOR;
@@ -3503,10 +3382,10 @@ function renderAll(){
   if(vis("page-shelf")) safeRender("shelf",renderShelf);
   if(vis("page-gaps")) safeRender("gaps",renderGaps);
   if(vis("page-perception")) safeRender("perception",renderPerception);
+  if(vis("page-products")) safeRender("products",renderProducts);   // Manage products: same page in every department
   if(_pendingModel && allProducts().length){ const id=_pendingModel; _pendingModel=null; setTimeout(()=>openModel(id),0); }
   else if(MP.id){ const mp=_prodIndex().byId[MP.id]; if(mp) setTimeout(()=>renderModelPanel(mp, true),0); }   // fresh data (history, launches) lands in the open panel
   safeRender("freshness",renderFreshness);
-  safeRender("ticker",renderTicker);
   // pages draw only while open (showTab calls this after switching, so the
   // new page always draws); alerts, matches, launches and the deal count
   // also feed the bell / sidebar counters, so they always run
@@ -3517,9 +3396,6 @@ function renderAll(){
     onPage("page-l-dashboard","l-dashboard",renderLDashboard);
     onPage("page-benchmark","benchmark",renderBenchmark);
     onPage("page-l-brands","l-brands",renderLBrands);
-    onPage("page-l-segments","l-segments",renderLSegments);
-    onPage("page-l-compare","l-compare",renderLCompare);
-    onPage("page-l-products","l-products",renderLProducts);
     onPage("page-history","history",renderHistory);
     counters();
     return;
@@ -3529,8 +3405,6 @@ function renderAll(){
     onPage(px+"dashboard","sec-dashboard", ck?renderCooking:renderDish);
     onPage("page-benchmark","benchmark",renderBenchmark);
     onPage(px+"brands","sec-brands", ck?renderCBrands:renderDBrands);
-    onPage(px+"segments","sec-segments", ck?renderCSegments:renderDSegments);
-    onPage(px+"products","sec-products", ck?renderCProducts:renderDProducts);
     onPage("page-history","history",renderHistory);
     counters();
     return;
@@ -3538,11 +3412,7 @@ function renderAll(){
   onPage("page-dashboard","dashboard",renderDashboard);
   onPage("page-benchmark","benchmark",renderBenchmark);
   safeRender("catBars",renderCatBars);
-  onPage("page-compare","compare",renderCompare);
   onPage("page-brands","brands",renderBrands);
-  onPage("page-segments","segments",renderSegments);
-  onPage("page-mysku","mysku",renderMySku);
-  onPage("page-products","products",renderProducts);
   onPage("page-history","history",renderHistory);
   counters();
 }
@@ -4050,8 +3920,9 @@ function renderToday(prefix){
   const chip=(k,unit)=>{ const d=hl.chip[k]; if(!d) return "";
     return `<span class="seen-chip" title="Since your last visit">${d>0?"▲":"▼"} ${Math.abs(d)}${unit||""} since last visit</span>`; };
   const tile=(k,target,n,title,sub,tone,go,unit)=>{ const fa=seenFlashAttr(dept+":"+k, hl.flash.has(k));
-    return `<button class="today-tile ${tone}${fa?" seen-flash":""}"${fa} data-jump="${target}">
-      <span class="n">${n}</span>${chip(k,unit)}<span class="t">${title}</span><span class="s">${sub}</span><span class="go">${go} ↓</span></button>`; };
+    const nav = target.startsWith("goto:") ? `data-goto="${target.slice(5)}"` : `data-jump="${target}"`;   // a card on this page, or another page
+    return `<button class="today-tile ${tone}${fa?" seen-flash":""}"${fa} ${nav}>
+      <span class="n">${n}</span>${chip(k,unit)}<span class="t">${title}</span><span class="s">${sub}</span><span class="go">${go} ${target.startsWith("goto:")?"→":"↓"}</span></button>`; };
   el.innerHTML =
       tile("cuts", prefix+"MovesCard", rivalCuts.length, "Rival price cuts",
            `${myCuts.length} of yours cut too · ${rises.length} rise${rises.length===1?"":"s"}`, rivalCuts.length?"alert":"calm", "See price moves")
@@ -4059,8 +3930,8 @@ function renderToday(prefix){
            eol?`${eol} more being cleared by the retailer`:"none being cleared", noStock?"alert":"calm", "See stock watch")
     + tile("launch", prefix+"LaunchCard", launches.length, "Rival launches this week",
            launches.length?[...new Set(launches.map(g=>cap(extractModel(g.r.name||"").brand||"")).filter(Boolean))].slice(0,3).join(", "):"nothing new listed", launches.length?"":"calm", "See launches")
-    + tile("promo", prefix+"PromoCard", promoPct!=null?promoPct+"%":"–", "Rivals on promo now",
-           onPromo.length?`${onPromo.length} listings · average −${avgDepth.toFixed(0)}%`:"no rival promos", "", "See promotions", " pts");
+    + tile("promo", "goto:promofreq", promoPct!=null?promoPct+"%":"–", "Rivals on promo now",
+           onPromo.length?`${onPromo.length} listings · average −${avgDepth.toFixed(0)}%`:"no rival promos", "", "Open Promotions", " pts");
   const meta=document.getElementById(prefix+"TodayMeta");
   const last=(state.histDays||[]).slice(-1)[0];
   const when=t=>new Date(t).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
@@ -4361,7 +4232,10 @@ function renderBenchmark(){
   rows.sort((a,b)=>f.price(a.p)-f.price(b.p));
   const mineN=rows.filter(r=>isMyBrand(r.p)).length;
   setHTML("benchStand", benchStandHTML(rows, typeWord, false));
-  setHTML("benchSummary", `${rows.length} ${dedup?"models · best price across retailers":"listings"} · ${mineN} yours`);
+  // the one-line read the old Compare page gave: size, average, cheapest
+  const bpr=rows.map(r=>f.price(r.p)).filter(v=>v!=null), bavg=bpr.length?bpr.reduce((a,b)=>a+b,0)/bpr.length:null;
+  setHTML("benchSummary", `${rows.length} ${dedup?"models · best price across retailers":"listings"} · ${mineN} yours`
+    + (bavg!=null?` · average ${fmt(bavg)}`:"") + (rows[0]?` · cheapest ${esc(modelTitle(f.name(rows[0].p),28))} ${fmt(f.price(rows[0].p))}`:""));
   const blim = pageLimit("bench", state.dept+"|"+rows.length+"|"+(rows[0]?f.id(rows[0].p):""), renderBenchmark);
   host.innerHTML = (rows.slice(0,blim).map((r,i)=>benchRowHTML(r,i,state.dept)).join("")
     + pagerHTML("bench", Math.min(blim,rows.length), rows.length, dedup?"models":"listings"))
@@ -4469,13 +4343,6 @@ function renderDashboard(){
   }
   renderToday("cool", prods);
 
-  // ── products per retailer ─────────────────────────────────
-  const cov={kotsovolos:0,public:0,plaisio:0};
-  prods.forEach(p=>{const s=f.site(p); if(s in cov)cov[s]++;});
-  if(prods.length){
-    makeChart("coverageChart","bar",{labels:Object.keys(cov).map(s=>SITE_LABEL[s]),datasets:[{data:Object.values(cov),backgroundColor:Object.keys(cov).map(s=>SITE_COLOR[s]||"#8A8478"),borderRadius:8,maxBarThickness:60}]},{plugins:{legend:{display:false}}});
-  } else emptyChart("coverageChart","No products yet");
-
   // ── top brands ────────────────────────────────────────────
   brandStockChart("brandChart", prods);
 
@@ -4515,8 +4382,8 @@ function renderDashboard(){
   // ── top movers (department-aware) ─────────────────────────
   const mv=computeMovers(state.history);
   const md=document.getElementById("moversDown"), mu=document.getElementById("moversUp");
-  if(md) md.innerHTML = moverRowsHTML(mv.filter(m=>m.delta<0).slice(0,6)) || miniEmpty();
-  if(mu) mu.innerHTML = moverRowsHTML(mv.filter(m=>m.delta>0).slice(0,6)) || miniEmpty();
+  if(md) md.innerHTML = moverRowsHTML(mv.filter(m=>m.delta<0).slice(0,4)) || miniEmpty();
+  if(mu) mu.innerHTML = moverRowsHTML(mv.filter(m=>m.delta>0).slice(0,4)) || miniEmpty();
 
   // ── promo pressure (respects the active dashboard filters) ───────────
   renderPromoSection("pp", prods);
@@ -4933,7 +4800,9 @@ function pfListingDays(p, days){
 function renderPromoFreq(){
   const tbody=document.getElementById("pfBrands"); if(!tbody) return;
   const F=pfFilter;
-  document.getElementById("pfTitle").textContent="Promo frequency · "+(DEPT_NAME[state.dept]||"");
+  document.getElementById("pfTitle").textContent="Promotions · "+(DEPT_NAME[state.dept]||"");
+  // "Right now" card: today's promo snapshot for the whole department (moved here from the dashboards)
+  renderPromoSection("pfn", deptList());
   const chip=(k,v,label,on)=>`<button class="chip ${on?'on':''}" data-pf="${k}" data-pv="${v}">${label}</button>`;
   const sep='<span style="width:1px;background:var(--line);margin:0 4px"></span>';
   document.getElementById("pfChips").innerHTML =
@@ -5301,7 +5170,7 @@ function renderShelf(){
 
 /* ---- Range gaps: today's models (smRows) split into spec segments; where
    rivals sell and you have nothing. */
-const gpFilter = {show:"gaps", min:3, colour:true};
+const gpFilter = {show:"all", min:3, colour:true};
 const GAP_SEG = {
   cooling: s=>{ const n=s.__norm||(s.__norm=normalize(s)), w=widthBandLabel(n.width), c=capBandLabel(n.capacity);
     if(!w || !c) return null;
@@ -5314,19 +5183,26 @@ const GAP_SEG = {
                    n.type==="dryer"?(n.heat_pump==="yes"?"Heat pump":n.heat_pump==="no"?"No heat pump":""):""].filter(Boolean), colourOk:true}; },
   dishwashing: s=>{ const n=dishNorm(s);
     if(!n.settings || !n.typeLabel) return null;
-    return {parts:[n.typeLabel, DISH_INTEG_LABEL[n.integration]||"", n.settings+" settings"].filter(Boolean), colourOk:n.integration!=="fully"}; }
+    return {parts:[n.typeLabel, DISH_INTEG_LABEL[n.integration]||"", n.settings+" settings"].filter(Boolean), colourOk:n.integration!=="fully"}; },
+  // cooking: the same size tiers its old Segments page used (litres for ovens / microwaves, width for the rest)
+  cooking: s=>{ const n=cookingNorm(s), byLt=n.type==="oven"||n.type==="microwave";
+    const bands=byLt?COOK_LT_BANDS:COOK_WIDTH_BANDS, b=cookBand(bands, byLt?n.lt:n.width);
+    if(!b) return null;
+    const kind = n.type==="hood"?COOK_HOOD_LABEL[n.hood] : n.type==="hob"?COOK_HOB_LABEL[n.hob]
+               : n.type==="cooker"?COOK_FUEL_LABEL[n.fuel] : (n.install==="built-in"?"Built-in":"");
+    return {parts:[n.typeLabel, kind||"", bands.find(x=>x[0]===b)[1]].filter(Boolean), colourOk:false}; }
 };
 function renderGaps(){
   const tbody=document.getElementById("gpTable"); if(!tbody) return;
   const F=gpFilter, dept=state.dept, seg=GAP_SEG[dept];
-  document.getElementById("gpTitle").textContent="Range gaps · "+(DEPT_NAME[dept]||"");
+  document.getElementById("gpTitle").textContent="Segments & gaps · "+(DEPT_NAME[dept]||"");
   const chip=(k,v,label,on)=>`<button class="chip ${on?'on':''}" data-gp="${k}" data-pv="${v}">${label}</button>`;
   const sep='<span style="width:1px;background:var(--line);margin:0 4px"></span>';
   document.getElementById("gpChips").innerHTML =
     chip("show","gaps","Gaps",F.show==="gaps") + chip("show","thin","Thin",F.show==="thin") + chip("show","all","All segments",F.show==="all") + sep
     + chip("min",3,"3+ rival models",F.min===3) + chip("min",5,"5+ rival models",F.min===5) + sep
     + chip("colour",F.colour?0:1,"Split by colour",F.colour);
-  if(!seg){ tbody.innerHTML=`<tr><td colspan="7" style="color:var(--ink-soft);padding:24px;text-align:center">Range gaps cover Cooling, Laundry and Dishwashing.</td></tr>`; return; }
+  if(!seg){ tbody.innerHTML=`<tr><td colspan="7" style="color:var(--ink-soft);padding:24px;text-align:center">No segment rules for this department.</td></tr>`; return; }
   const S=new Map(); let skipped=0;
   for(const m of smRows(deptList())){
     const g=seg(m.s); if(!g){ skipped++; continue; }
@@ -5356,10 +5232,13 @@ function renderGaps(){
     const rp=e.rivals.map(pr), mp=e.mine.map(pr), rMed=rp.length?_med(rp):null, myMed=mp.length?_med(mp):null;
     const bc={}; e.rivals.forEach(m=>{ const b=smBrand(m.b)||"Other"; bc[b]=(bc[b]||0)+1; });
     const topB=Object.entries(bc).sort((a,b)=>b[1]-a[1]).slice(0,3).map(([b,n])=>`${esc(b)} ${n}`).join(", ");
-    const list=(arr,lbl)=>arr.length?`<div style="font-size:11.5px;color:var(--ink-soft);margin-top:4px">${lbl}: ${[...arr].sort((a,b)=>pr(a)-pr(b)).slice(0,10)
-        .map(m=>`<a class="rl" href="#" data-model="${esc(f.id(m.b))}">${esc(modelTitle(f.name(m.b),28))}</a> ${fmt(pr(m))}`).join(" · ")}${arr.length>10?` · +${arr.length-10} more`:""}</div>`:"";
+    // the segment's price ladder (what the old Segments page showed): every model cheapest first, yours marked
+    const ladderRows=[...e.mine.map(m=>({m,mine:true})), ...e.rivals.map(m=>({m,mine:false}))].sort((a,b)=>pr(a.m)-pr(b.m));
+    const ladder=ladderRows.length?`<div class="gp-ladder"><div class="gp-entry">Entry price: <b>${esc(modelTitle(f.name(ladderRows[0].m.b),28))}</b> ${fmt(pr(ladderRows[0].m))}${ladderRows[0].mine?' <span class="mv-mine">YOURS</span>':""}</div>`
+      + ladderRows.slice(0,20).map((x,i)=>`<div class="gp-step${x.mine?" mine":""}"><span class="gp-rank">${i+1}</span><a class="rl" href="#" data-model="${esc(f.id(x.m.b))}">${esc(modelTitle(f.name(x.m.b),30))}</a>${x.mine?' <span class="mv-mine">YOURS</span>':""}<span class="gp-p">${fmt(pr(x.m))}</span></div>`).join("")
+      + (ladderRows.length>20?`<div class="gp-more">+${ladderRows.length-20} more</div>`:"")+`</div>`:"";
     const vs=rMed&&myMed?(myMed/rMed-1)*100:null;
-    return `<tr><td><details><summary style="cursor:pointer"><b>${esc(e.k)}</b></summary>${list(e.mine,"Yours")}${list(e.rivals,"Rivals")}</details></td>
+    return `<tr><td><details><summary style="cursor:pointer"><b>${esc(e.k)}</b></summary>${ladder}</details></td>
       <td style="text-align:right">${e.rivals.length}</td><td style="font-size:12.5px">${topB||"–"}</td>
       <td style="text-align:right;white-space:nowrap">${rp.length?`${fmt(q(rp,0))} · <b>${fmt(rMed)}</b> · ${fmt(q(rp,1))}`:"–"}</td>
       <td style="text-align:right;white-space:nowrap">${e.mine.length?`${e.mine.length} <span style="color:var(--ink-soft);font-size:11.5px">(${fmt(myMed)})</span>`:'<span style="color:var(--ink-soft)">0</span>'}</td>
@@ -5826,14 +5705,19 @@ const CONF = {
 function renderProducts(){
   // cap the render (every other list does) — with 1000+ SKUs an unbounded
   // table was the slowest render in the app, re-run on every refresh
-  const capped = state.products.slice(0,200);
-  const more = state.products.length - capped.length;
+  // every department; filtered by the box above the table (the global search is for looking things up)
+  const q=gsNorm((document.getElementById("mpgSearch")||{}).value||"").trim();
+  const list=allProducts().filter(p=>!q || q.split(/\s+/).every(t=>gsNorm(f.name(p)+" "+f.url(p)).includes(t)));
+  const capped = list.slice(0,200);
+  const more = list.length - capped.length;
+  const cnt=document.getElementById("mpgCount"); if(cnt) cnt.textContent=`· ${list.length.toLocaleString("en-GB")}${q?" matching":""}`;
   document.getElementById("productTable").innerHTML = (capped.map(p=>`
     <tr><td title="${esc(f.url(p))}">${esc(short(f.name(p),46))}</td>
+    <td>${esc(DEPT_NAME[deptOf(p)]||"")}</td>
     <td><span class="pill ${SITE_PILL[f.site(p)]||"na"}">${SITE_LABEL[f.site(p)]||f.site(p)}</span></td>
     <td class="price">${fmt(f.price(p))}</td>
     <td><button class="btn danger" style="padding:6px 12px" onclick="removeProduct('${esc(String(f.id(p)))}')">Remove</button></td></tr>
-  `).join("") + (more>0?`<tr><td colspan="4" style="color:var(--ink-soft);font-size:12px">Showing first 200 of ${state.products.length} tracked products.</td></tr>`:"")) || `<tr><td colspan="4"><div class="empty"><div class="big"><svg viewBox="0 0 24 24" class="ic2"><rect class="body" x="3" y="3" width="18" height="18" rx="4"/><path class="det" d="M12 8v8M8 12h8"/></svg></div>Nothing tracked yet.</div></td></tr>`;
+  `).join("") + (more>0?`<tr><td colspan="5" style="color:var(--ink-soft);font-size:12px">Showing the first 200 of ${list.length.toLocaleString("en-GB")}: type in the filter to narrow it down.</td></tr>`:"")) || `<tr><td colspan="5"><div class="empty"><div class="big"><svg viewBox="0 0 24 24" class="ic2"><rect class="body" x="3" y="3" width="18" height="18" rx="4"/><path class="det" d="M12 8v8M8 12h8"/></svg></div>Nothing matches.</div></td></tr>`;
 }
 
 let histState = { brand:"all", q:"", mode:"retailer", picks:[] };  // picks = array of model keys
@@ -5975,20 +5859,28 @@ function energyRank(e){ return e? ("ABCDEFG".indexOf(e.toUpperCase())) : 99; } /
 
 /* Threats: a same-FOOTPRINT competitor priced at/below my comparable model,
    ranked higher when it out-delivers on energy class or capacity. */
+/* Alerts use the Price index's definition of a comparable rival: same specs
+   (SPEC_MATCH) and the same colour family (built-ins exempt). null = the
+   department has no spec rules (cooking): keep its own tier test. */
+function sameSpecRival(dept, a, b){
+  const M=SPEC_MATCH[dept]; if(!M) return null;
+  if(!M.same(a,b)) return false;
+  if(!colourMatters(dept,a)) return true;
+  const ca=specMatchColour([a]), cb=specMatchColour([b]);
+  return !!(ca && cb && ca===cb);
+}
 function computeThreats(){
   const PRICE_WINDOW = 0.25;   // a rival must be within 25% below my price to count
   const prods = state.products.filter(p=>f.price(p)!=null && !isClearance(p));
   const mine = prods.filter(isWatched).map(p=>({p, n:normalize(p), cat:categorize(p)})).filter(x=>sizeKey(x.n));
-  const rivals = prods.filter(competitorBrand).map(p=>({p, n:normalize(p), cat:categorize(p)})).filter(x=>sizeKey(x.n));
+  const rivals = prods.filter(competitorBrand).map(p=>({p, n:normalize(p), cat:categorize(p)}));
   const threats = [];
   for(const me of mine){
     const myKey=sizeKey(me.n), myPrice=f.price(me.p), myE=energyRank(me.n.energy), myCap=me.n.capacity;
     const floor = myPrice*(1-PRICE_WINDOW);     // cheapest a rival can be and still count
     for(const r of rivals){
       if(f.id(r.p)===f.id(me.p)) continue;
-      if(r.cat!==me.cat) continue;                  // same subcategory
-      if(r.n.installType!==me.n.installType) continue; // same install type
-      if(sizeKey(r.n)!==myKey) continue;            // same footprint
+      if(!sameSpecRival("cooling", me.p, r.p)) continue;   // same specs + colour, as on the Price index
       const rp=f.price(r.p);
       if(rp==null || rp>myPrice) continue;          // only at/below my price
       // Hard sanity floor: a rival priced below 35% of my price in the SAME
@@ -6058,8 +5950,7 @@ function computeLaundryThreats(){
     const floor=myPrice*(1-PW);
     for(const r of rivals){
       if(f.url(r.p)===f.url(me.p)) continue;
-      if(r.type!==me.type) continue;                 // same type
-      if(laundryKgTier(r.kg)!==myTier) continue;     // same capacity tier
+      if(!sameSpecRival("laundry", me.p, r.p)) continue;   // same specs + colour, as on the Price index
       const rp=f.price(r.p);
       if(rp==null || rp>myPrice) continue;           // at/below my price
       if(rp < myPrice*0.35) continue;                // parse-error floor
@@ -6749,6 +6640,9 @@ document.addEventListener("click",e=>{ const g=e.target.closest("[data-goto]"); 
 on("deptToggle","click",e=>{ const b=e.target.closest(".dept-pill"); if(b) setDept(b.dataset.dept); });
 on("pxChips","click",e=>{ const c=e.target.closest("[data-px]"); if(!c) return;
   pxFilter[c.dataset.px] = c.dataset.px==="min" ? +c.dataset.pv : c.dataset.pv; renderPriceIndex(); });
+on("mpgSearch","input",()=>renderProducts());
+// "See all in Deal Radar" on the dashboards' Price moves preview opens the drawer with the full list
+document.addEventListener("click",e=>{ if(e.target.closest("[data-open-radar]")){ e.preventDefault(); document.getElementById("dealRadar").click(); } });
 on("bpChips","click",e=>{ const c=e.target.closest("[data-bp]"); if(!c) return; bpFilter[c.dataset.bp]=c.dataset.pv; bpFilter.brand=bpFilter.pillar=null; renderPerception(); });
 on("bpProfChips","click",e=>{ const c=e.target.closest("[data-bp]"); if(!c) return; bpFilter.profile=c.dataset.pv; renderPerception(); });
 on("page-perception","click",e=>{
@@ -7054,6 +6948,7 @@ on("lexpRail","click",e=>{
 });
 on("alertShowAll","change",renderAlerts);
 /* promo window selectors (both departments share the window) */
+on("pfnWindow","change",e=>{ promoWin=+e.target.value||30; loadPromoStats(); });
 on("ppWindow","change",e=>{ promoWin=+e.target.value||30; loadPromoStats(); });
 on("lppWindow","change",e=>{ promoWin=+e.target.value||30; loadPromoStats(); });
 on("cppWindow","change",e=>{ promoWin=+e.target.value||30; loadPromoStats(); });
@@ -7456,6 +7351,8 @@ on("page-matches","click",async e=>{
 
 async function removeProduct(id){
   if(state.demo){ alert("Demo data — connect the backend to manage products."); return; }
+  const p=_prodIndex().byId[String(id)];
+  if(!confirm(`Stop tracking ${p?f.name(p):"this listing"}${p?" at "+(SITE_LABEL[f.site(p)]||f.site(p)):""}?\n\nIt disappears from the dashboard; its price history is kept. If the retailer still lists it, the next scrape brings it back.`)) return;
   try{ await api("/api/products/"+encodeURIComponent(id),{method:"DELETE"}); loadAll(); }
   catch(_){ alert("Could not remove — backend unreachable."); }
 }
