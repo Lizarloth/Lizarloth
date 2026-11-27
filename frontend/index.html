@@ -231,6 +231,28 @@ nav button.active{background:var(--cobalt);color:#fff}
 .bp-stars{color:#E0A13A;font-size:12px;letter-spacing:1px;white-space:nowrap} .bp-stars span{color:var(--line)}
 .bp-q{font-size:13px;line-height:1.45}
 .bp-meta{grid-column:2;font-size:11.5px;color:var(--ink-soft)}
+.bp-quote mark{background:rgba(224,161,58,.28);color:inherit;border-radius:3px;padding:0 1px}
+.bpr-drawer{width:560px;display:flex;flex-direction:column}
+.bpr-list{flex:1;overflow-y:auto;padding:8px 14px 24px}
+.dr-tab small{opacity:.7;margin-left:3px}
+.bp-link{background:none;border:0;padding:0;font:inherit;color:var(--cobalt);cursor:pointer;text-align:left}
+@media (hover:hover) and (pointer:fine){.bp-link:hover{text-decoration:underline}}
+.bp-drv-head{font-size:13.5px;line-height:1.5;margin-bottom:12px}
+.bp-drv-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media(max-width:1100px){.bp-drv-grid{grid-template-columns:1fr}}
+.bp-drv{display:grid;grid-template-columns:minmax(0,1fr) auto 92px;gap:10px;align-items:center;width:100%;text-align:left;padding:8px 8px;border:0;border-bottom:1px solid var(--soft-bg);background:none;color:var(--ink);font:inherit;cursor:pointer;border-radius:8px}
+@media (hover:hover) and (pointer:fine){.bp-drv:hover{background:var(--soft-bg)}}
+.bp-drv-l{font-size:13px;font-weight:600;min-width:0}
+.bp-drv-l small{display:block;font-weight:400;font-size:11.5px;color:var(--ink-soft)}
+.bp-ret{display:inline!important;font-size:10.5px!important;padding:0 6px;border-radius:99px;background:var(--soft-bg)}
+.bp-drv-s{font:600 12.5px 'JetBrains Mono';white-space:nowrap}
+.bp-drv-s small{font-weight:400;color:var(--ink-soft)}
+.bp-drv-e{position:relative;font:700 12.5px 'JetBrains Mono';text-align:right;padding:2px 4px;white-space:nowrap}
+.bp-drv-e i{position:absolute;right:0;top:0;bottom:0;border-radius:4px;opacity:.18}
+.bp-drv-e.neg{color:var(--heat)} .bp-drv-e.neg i{background:var(--heat)}
+.bp-drv-e.pos{color:var(--cobalt)} .bp-drv-e.pos i{background:var(--cobalt)}
+.bp-drv-empty{font-size:12.5px;color:var(--ink-soft);padding:8px}
+button.bp-reason{font:inherit;cursor:pointer;border:0}
 /* global search dropdown */
 .gs-panel{position:absolute;top:calc(100% + 6px);left:0;width:min(560px,calc(100vw - 32px));max-height:min(70vh,560px);overflow-y:auto;overscroll-behavior:contain;
   background:var(--frost);border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 48px rgba(40,34,24,.18);padding:6px;z-index:90}
@@ -1008,7 +1030,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S30</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S31</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1482,6 +1504,13 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <div class="catbar" id="bpChips"></div>
     <div class="grid metrics" id="bpMetrics"></div>
     <div class="card" style="margin-bottom:18px">
+      <h3><span class="dot" style="background:var(--heat)"></span>What drives the stars</h3>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin:-6px 0 12px">What buyers mention most isn't always what moves their rating. For each topic: the stars of the reviews that mention it against the rest, and how far that moves the brand's average.</p>
+      <div class="catbar" id="bpDrvChips" style="margin-bottom:8px"></div>
+      <div class="ph-scope" id="bpDrvLevel" style="margin-bottom:12px"><button class="fchip on" data-bpd="lvl" data-pv="topic">Specific topics</button><button class="fchip" data-bpd="lvl" data-pv="pillar">Broad pillars</button></div>
+      <div id="bpDrivers"></div>
+    </div>
+    <div class="card" style="margin-bottom:18px">
       <h3><span class="dot" style="background:var(--warn)"></span>Why people buy: pillar scores <span id="bpPillarScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
       <p style="font-size:12.5px;color:var(--ink-soft);margin:-6px 0 12px">Each cell: <b>how often the brand's buyers talk about that pillar</b> (% of its reviews), darker = a bigger reason for that brand; <b style="color:var(--heat)">−n</b> = reviews complaining about it. Buyers rate high overall (≈4.7★), so what they choose to mention is the signal. Cells under <span id="bpMinN">5</span> mentions are greyed. Click a cell for the reviews behind it.</p>
       <div class="bp-matrix-wrap" style="overflow-x:auto"><table id="bpMatrix"></table></div>
@@ -1556,6 +1585,11 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
           <div style="font-size:11.5px;color:var(--ink-soft);margin-top:6px">The notification bell works now. Email delivery turns on after the mail setup is verified.</div>
         </div>
       </div>
+    </div>
+    <div class="card" style="margin-bottom:18px">
+      <h3><span class="dot" style="background:var(--heat)"></span>Customer reviews <span id="revAlertSum" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <p style="font-size:12.5px;color:var(--ink-soft);margin:-6px 0 12px">1–2★ reviews of your models from the last 30 days, and topics drawing more complaints on your models than before. Click a topic to read the reviews.</p>
+      <div id="revAlerts"></div>
     </div>
     <div class="card">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -1647,6 +1681,16 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 
 <div class="lightbox" id="lightbox"><img id="lightboxImg" src="" alt="Product image — enlarged"><button class="lb-close" id="lbClose">✕</button></div>
 
+<div class="drawer-scrim" id="bprScrim"></div>
+<aside class="drawer bpr-drawer" id="bprDrawer" aria-label="Reviews">
+  <div class="drawer-head">
+    <div><div class="drawer-title" id="bprTitle">Reviews</div><div class="drawer-sub" id="bprSub"></div></div>
+    <button class="lb-close" id="bprClose" aria-label="Close reviews" style="position:static;width:36px;height:36px;background:var(--soft-bg);color:var(--ink)">✕</button>
+  </div>
+  <div class="drawer-tabs" id="bprTabs"></div>
+  <div style="padding:12px 22px 0"><input id="bprSearch" type="search" placeholder="Search these reviews…" aria-label="Search these reviews"></div>
+  <div id="bprList" class="bpr-list"></div>
+</aside>
 <div class="drawer-scrim" id="radarScrim"></div>
 <aside class="drawer" id="radarDrawer">
   <div class="drawer-head">
@@ -3306,7 +3350,7 @@ function renderAll(){
   // new page always draws); alerts, matches, launches and the deal count
   // also feed the bell / sidebar counters, so they always run
   const onPage=(id,name,fn)=>{ if(vis(id)) safeRender(name,fn); };
-  const counters=()=>{ safeRender("alerts",renderAlerts); safeRender("dealCount",updateDealCount);
+  const counters=()=>{ safeRender("alerts",renderAlerts); safeRender("revAlerts",renderReviewAlerts); safeRender("dealCount",updateDealCount);
     safeRender("matches",renderMatches); safeRender("launches",renderLaunchPage); };
   if(state.dept==="laundry"){
     onPage("page-l-dashboard","l-dashboard",renderLDashboard);
@@ -4707,13 +4751,15 @@ function bpLoad(){
   _bpLoading = true;
   api("/api/reviews").then(r=>{ state.reviews = r && Array.isArray(r.rows) ? r : {p:{}, rows:[]}; })
     .catch(()=>{ state.reviews = null; }).finally(()=>{ _bpLoading=false; renderPerception();
+      safeRender("revAlerts",renderReviewAlerts);
       if(MP.id){ const mp=_prodIndex().byId[MP.id]; if(mp) renderModelPanel(mp, true); } });   // an open model page gets its reviews
 }
 /* one review -> {pillar key: +1 / 0 / -1} */
-function bpTag(text, stars){
+function bpTag(text, stars){ return bpTagWith(BP_PILLARS, text, stars); }
+function bpTagWith(items, text, stars){
   const t=" "+gsNorm(text).replace(/\s+/g," ")+" ", out={};
   const byStars = stars>=4 ? 1 : stars<=2 ? -1 : 0;
-  for(const P of BP_PILLARS){
+  for(const P of items){
     if(!P.any.some(w=>t.includes(w))) continue;
     let t2=t; for(const p of P.pos) t2=t2.split(p).join(" ");     // "δεν κάνει θόρυβο" must not read as "κάνει θόρυβο"
     const pos=P.pos.some(p=>t.includes(p)), neg=P.neg.some(n=>t2.includes(n));
@@ -4735,7 +4781,8 @@ function bpRows(){
     return {url, stars, date, text:text||title, site, p, name, brand,
             dept: p?deptOf(p):null, type: p?(LAUNCH_CAT[p.category]||p.category||""):"",
             mine: p?isMyBrand(p):myBrandsFor(state.dept).some(b=>name.toUpperCase().includes(b)),
-            tags: bpTag(text||title, stars||0)};
+            tags: bpTag(text||title, stars||0),
+            topics: p ? bpTagWith(bpTopicList(deptOf(p)), text||title, stars||0) : {}};
   });
   _bpCache={key, rows};
   return rows;
@@ -4782,7 +4829,7 @@ function renderPerception(){
     + m1("Average stars", rows.length?(rows.reduce((a,r)=>a+(r.stars||0),0)/rows.length).toFixed(2)+"★":"–", "of the reviews read", "sc-heat");
   if(!rows.length){
     host.innerHTML=`<tbody><tr><td style="color:var(--ink-soft);padding:16px">No review texts for this department yet: the daily run reads them a batch at a time (your models first).</td></tr></tbody>`;
-    quotes.innerHTML=""; document.getElementById("bpCards").innerHTML=""; return;
+    quotes.innerHTML=""; document.getElementById("bpCards").innerHTML=""; document.getElementById("bpDrivers").innerHTML=""; return;
   }
   const RB={};
   for(const r of rows){ if(!r.brand) continue; const e=RB[r.brand]=RB[r.brand]||{b:r.brand, mine:r.mine, n:0, p:{}};
@@ -4810,18 +4857,9 @@ function renderPerception(){
       <div class="bp-card-p">${top.map(({P,c})=>{ const neg=c.n-c.pos-c.neu, on=F.brand===e.b&&F.pillar===P.k;
         return `<button class="bp-cell${c.n<BP_MIN_N?" few":""}${on?" on":""}" data-bp-cell="${esc(e.b)}|${P.k}">${esc(P.label)} <b>${share(c,e)}%</b>${neg?` <small class="bp-neg">−${neg}</small>`:""}</button>`; }).join("")
         || '<span style="color:var(--ink-soft);font-size:12.5px">no pillar mentions yet</span>'}</div></div>`; }).join("");
-  // reviews behind the selected cell
-  if(F.brand && F.pillar){
-    const P=BP_PILLARS.find(p=>p.k===F.pillar);
-    const list=rows.filter(r=>r.brand===F.brand && r.tags[F.pillar]!==undefined)
-      .sort((a,b)=>(a.tags[F.pillar]-b.tags[F.pillar]) || String(b.date).localeCompare(String(a.date)));
-    quotes.innerHTML = `<div class="sec-head" style="margin:6px 2px 8px"><h2 style="font-size:15px">${esc(F.brand)} · ${esc(P.label)}</h2><span class="meta">${list.length} review${list.length===1?"":"s"} · negative first · <a href="#" class="rl" data-bp-close>close</a></span></div>`
-      + list.slice(0,24).map(r=>{ const tone=r.tags[F.pillar]; const t=String(r.text||"").replace(/\s+/g," ");
-          return `<div class="bp-quote ${tone>0?"pos":tone<0?"neg":""}"><span class="bp-stars">${"★".repeat(r.stars||0)}<span>${"★".repeat(5-(r.stars||0))}</span></span>
-            <span class="bp-q">${esc(t.length>220?t.slice(0,219)+"…":t)}</span>
-            <span class="bp-meta">${r.p?`<a class="rl" href="#" data-model="${esc(f.id(r.p))}">${esc(modelTitle(r.name,30))}</a>`:esc(modelTitle(r.name,30))} · ${esc(r.date||"")}</span></div>`; }).join("");
-  } else quotes.innerHTML = `<div style="font-size:12.5px;color:var(--ink-soft)">Click a score to read the reviews behind it.</div>`;
+  quotes.innerHTML = `<div style="font-size:12.5px;color:var(--ink-soft)">Click any score to read the reviews behind it.</div>`;
   renderBrandProfile(rows, rb);
+  renderDrivers(rows, rb, dept);
 }
 /* One brand against the market: per pillar, the share of its reviews that
    mention it vs the share across all brands in view (the ratio is what the
@@ -4846,7 +4884,7 @@ function renderBrandProfile(rows, rb){
   document.getElementById("bpProfVs").innerHTML = `<thead><tr><th>Pillar</th><th style="text-align:right">${esc(F.profile)}</th><th style="text-align:right">Market</th><th style="text-align:right">vs market</th><th style="text-align:right">Complaints</th></tr></thead><tbody>`
     + stats.sort((a,b)=>b.bs-a.bs).map(s=>{ const few=s.b.n<BP_MIN_N;
         const ix=s.idx==null?"–":`<b style="color:${!few&&s.idx>=1.3?"var(--cobalt)":!few&&s.idx<=0.7?"var(--ink-soft)":"var(--ink)"}">${s.idx.toFixed(1)}×</b>`;
-        return `<tr${few?' class="bp-few-row" title="Fewer than '+BP_MIN_N+' mentions: too few to compare"':""}><td>${esc(s.P.label)}</td><td style="text-align:right">${pct(s.bs)} <small style="color:var(--ink-soft)">(${s.b.n})</small></td>
+        return `<tr${few?' class="bp-few-row" title="Fewer than '+BP_MIN_N+' mentions: too few to compare"':""}><td>${s.b.n?`<button class="bp-link" data-bpr="${esc(F.profile)}|pillar|${s.P.k}|${esc(F.type)}">${esc(s.P.label)}</button>`:esc(s.P.label)}</td><td style="text-align:right">${pct(s.bs)} <small style="color:var(--ink-soft)">(${s.b.n})</small></td>
           <td style="text-align:right">${pct(s.ms)}</td><td style="text-align:right">${ix}</td>
           <td style="text-align:right">${s.b.neg?`<span class="bp-neg">${s.b.neg}</span>`:'<span style="color:var(--ink-soft)">0</span>'}</td></tr>`; }).join("") + "</tbody>";
   // the brand's models × pillars (models with 3+ reviews read)
@@ -4857,8 +4895,230 @@ function renderBrandProfile(rows, rb){
   document.getElementById("bpProfModels").innerHTML = models.length && top.length
     ? `<thead><tr><th>Model</th><th style="text-align:right">Reviews</th>${top.map(P=>`<th style="text-align:center;white-space:nowrap">${esc(P.label.split(" ")[0])}</th>`).join("")}</tr></thead><tbody>`
       + models.map(m=>`<tr><td style="white-space:nowrap">${m.r.p?`<a class="rl" href="#" data-model="${esc(f.id(m.r.p))}">${esc(modelTitle(m.r.name,24))}</a>`:esc(modelTitle(m.r.name,24))}</td><td style="text-align:right">${m.rows.length}</td>`
-        + top.map(P=>{ const c=count(m.rows,P.k); return `<td style="text-align:center">${c.n?`${pct(c.n/m.rows.length)}${c.neg?` <small class="bp-neg">−${c.neg}</small>`:""}`:'<span style="color:var(--ink-faint)">·</span>'}</td>`; }).join("") + `</tr>`).join("") + "</tbody>"
+        + top.map(P=>{ const c=count(m.rows,P.k), mk=normCode(extractModel(m.r.name).code);
+            return `<td style="text-align:center">${c.n?`<button class="bp-cell" data-bpr="model:${esc(mk)}|pillar|${P.k}|${esc(F.type)}">${pct(c.n/m.rows.length)}${c.neg?` <small class="bp-neg">−${c.neg}</small>`:""}</button>`:'<span style="color:var(--ink-faint)">·</span>'}</td>`; }).join("") + `</tr>`).join("") + "</tbody>"
     : `<tbody><tr><td style="color:var(--ink-soft);padding:12px">No ${esc(F.profile)} model has 3+ reviews read yet.</td></tr></tbody>`;
+}
+
+/* ---- Specific topics per department: finer than the pillars, in the words
+   Greek buyers use for that appliance. Same tagging as the pillars (a stem
+   from "any" = mentioned; "pos" / "neg" phrases set the direction, else the
+   stars). Stems are accent-free capitals; a leading space anchors a word start. */
+const BP_SHARED_TOPICS = [
+  {k:"damaged", label:"Arrived dented or scratched", retailer:true, any:["ΒΑΘΟΥΛΩΜ","ΧΤΥΠΗΜΕΝ","ΚΤΥΠΗΜΕΝ","ΓΡΑΤΖΟΥΝΙΣΜ","ΓΡΑΤΖΟΥΝΙΑ","ΣΠΑΣΜΕΝΟ ΗΡΘΕ","ΗΡΘΕ ΣΠΑΣΜΕΝ"],
+   pos:[], neg:["ΒΑΘΟΥΛΩΜ","ΧΤΥΠΗΜΕΝ","ΚΤΥΠΗΜΕΝ","ΓΡΑΤΖΟΥΝΙΣΜ","ΓΡΑΤΖΟΥΝΙΑ","ΣΠΑΣΜΕΝΟ ΗΡΘΕ","ΗΡΘΕ ΣΠΑΣΜΕΝ"]},
+  {k:"faults", label:"Faults & repairs", any:["ΧΑΛΑΣ","ΒΛΑΒ","ΣΦΑΛΜΑ","ERROR","ΤΕΧΝΙΚΟ","ΕΠΙΣΚΕΥ","ΑΝΤΙΚΑΤΑΣΤΑΘ","ΑΝΤΙΚΑΤΑΣΤΑΣΗ","ΣΤΑΜΑΤΗΣΕ ΝΑ","ΚΑΗΚΕ"],
+   pos:["ΚΑΝΕΝΑ ΠΡΟΒΛΗΜΑ","ΧΩΡΙΣ ΚΑΝΕΝΑ ΠΡΟΒΛΗΜΑ","ΧΩΡΙΣ ΠΡΟΒΛΗΜ"], neg:["ΧΑΛΑΣ","ΒΛΑΒ","ΣΦΑΛΜΑ","ERROR","ΣΤΑΜΑΤΗΣΕ ΝΑ","ΚΑΗΚΕ","ΑΝΤΙΚΑΤΑΣΤΑΘ"]},
+];
+const BP_TOPICS = {
+  cooling: [
+    {k:"c_noise", label:"Noise & humming", any:["ΘΟΡΥΒ","ΒΟΥΙΖ","ΚΡΟΤ","ΤΡΙΖΕΙ","ΗΣΥΧ","ΑΚΟΥΓΕΤΑΙ"],
+     pos:["ΑΘΟΡΥΒ","ΗΣΥΧ","ΔΕΝ ΑΚΟΥΓΕΤΑΙ","ΔΕΝ ΚΑΝΕΙ ΘΟΡΥΒΟ","ΚΑΘΟΛΟΥ ΘΟΡΥΒΟ","ΧΑΜΗΛΟ ΘΟΡΥΒΟ"], neg:["ΘΟΡΥΒΩΔ","ΚΑΝΕΙ ΘΟΡΥΒΟ","ΘΟΡΥΒΟ ΚΑΝΕΙ","ΒΟΥΙΖ","ΚΡΟΤ","ΤΡΙΖΕΙ","ΠΟΛΥ ΘΟΡΥΒΟ"]},
+    {k:"c_cool", label:"Cooling performance", any:["ΨΥΧΕΙ","ΨΥΞΗ","ΚΡΥΩΝ","ΚΡΥΟ ","ΘΕΡΜΟΚΡΑΣ","ΔΡΟΣΙΖ"],
+     pos:["ΨΥΧΕΙ ΠΟΛΥ","ΨΥΧΕΙ ΤΕΛΕΙΑ","ΨΥΧΕΙ ΓΡΗΓΟΡΑ","ΚΑΛΗ ΨΥΞΗ","ΔΥΝΑΤΗ ΨΥΞΗ","ΚΡΥΩΝΕΙ ΓΡΗΓΟΡΑ"], neg:["ΔΕΝ ΨΥΧΕΙ","ΔΕΝ ΚΡΥΩΝ","ΑΔΥΝΑΜΗ ΨΥΞΗ","ΖΕΣΤΑΙΝΕΤΑΙ"]},
+    {k:"c_freezer", label:"Freezer & ice", any:["ΚΑΤΑΨΥΞ","ΠΑΓΟ","ΠΑΓΑΚ","ΠΑΓΩΝ"],
+     pos:["ΔΕΝ ΠΙΑΝΕΙ ΠΑΓΟ","ΧΩΡΙΣ ΠΑΓΟ"], neg:["ΠΙΑΝΕΙ ΠΑΓΟ","ΚΑΝΕΙ ΠΑΓΟ","ΓΕΜΙΖΕΙ ΠΑΓΟ","ΠΑΓΟΣ ΣΤΑ","ΠΑΓΟΣ ΣΤΟ"]},
+    {k:"c_damp", label:"Damp & condensation", any:["ΥΓΡΑΣΙ","ΣΤΑΓΟΝ","ΙΔΡΩΝ","ΣΥΜΠΥΚΝ","ΝΕΡΑ ΣΤΟ","ΣΤΑΖΕΙ","ΝΕΡΟ ΣΤΟ ΠΑΤΩΜΑ"],
+     pos:[], neg:["ΥΓΡΑΣΙ","ΣΤΑΓΟΝ","ΙΔΡΩΝ","ΣΤΑΖΕΙ","ΝΕΡΑ ΣΤΟ","ΝΕΡΟ ΣΤΟ ΠΑΤΩΜΑ"]},
+    {k:"c_door", label:"Doors, seals & handles", any:["ΠΟΡΤΑ","ΠΟΡΤΕΣ","ΛΑΣΤΙΧ","ΧΕΡΟΥΛ","ΜΕΝΤΕΣ","ΑΝΑΣΤΡΟΦ"],
+     pos:["ΚΛΕΙΝΕΙ ΚΑΛΑ","ΚΛΕΙΝΕΙ ΑΘΟΡΥΒΑ"], neg:["ΔΕΝ ΚΛΕΙΝΕΙ","ΜΕΝΕΙ ΑΝΟΙΧΤ","ΣΠΑΣΕ","ΣΤΡΑΒ"]},
+    {k:"c_shelves", label:"Shelves & drawers", any:["ΡΑΦΙ","ΣΥΡΤΑΡ","ΘΗΚΗ","ΘΗΚΕΣ","ΚΑΛΑΘ","ΕΣΩΤΕΡΙΚ","ΜΠΟΥΚΑΛ"],
+     pos:["ΒΟΛΙΚ","ΕΥΡΥΧΩΡ","ΠΡΑΚΤΙΚ","ΚΑΛΗ ΔΙΑΡΡΥΘΜΙΣ","ΕΞΥΠΝΗ ΔΙΑΡΡΥΘΜΙΣ"], neg:["ΡΑΓΙΣ","ΣΠΑΣΕ","ΣΠΑΣΜΕΝ","ΦΘΗΝΟ ΠΛΑΣΤΙΚ","ΛΙΓΑ ΡΑΦΙΑ","ΜΙΚΡΑ ΣΥΡΤΑΡ"]},
+    {k:"c_smell", label:"Smell", any:["ΜΥΡΩΔ","ΜΥΡΙΖ","ΟΣΜΗ","ΟΣΜΕΣ"], pos:["ΔΕΝ ΜΥΡΙΖΕΙ","ΧΩΡΙΣ ΜΥΡΩΔ"], neg:["ΜΥΡΙΖΕΙ","ΜΥΡΩΔΙΑ ΠΛΑΣΤ","ΑΣΧΗΜΗ ΜΥΡ","ΒΡΩΜ"]},
+    {k:"c_controls", label:"Display & controls", any:["ΟΘΟΝ","ΚΟΥΜΠ","ΕΝΔΕΙΞ","ΘΕΡΜΟΣΤΑΤ","ΡΥΘΜΙΣ","ΕΦΑΡΜΟΓ","WIFI","WI-FI"],
+     pos:["ΕΥΚΟΛΕΣ ΡΥΘΜΙΣ","ΕΥΚΟΛΗ ΡΥΘΜΙΣ"], neg:["ΔΥΣΚΟΛΗ ΡΥΘΜΙΣ","ΜΠΕΡΔΕΜ"]},
+    {k:"c_finish", label:"Finish & fingerprints", any:["ΙΝΟΧ","INOX","ΑΠΟΤΥΠΩΜ","ΔΑΧΤΥΛ","ΔΑΚΤΥΛ","ΦΙΝΙΡΙΣΜ","ΓΥΑΛΙΣΤΕΡ","ΜΑΤ "],
+     pos:["ΔΕΝ ΑΦΗΝΕΙ ΔΑΧΤΥΛ","ΔΕΝ ΑΦΗΝΕΙ ΑΠΟΤΥΠ","ΑΝΤΙΔΑΧΤΥΛ"], neg:["ΑΦΗΝΕΙ ΔΑΧΤΥΛ","ΑΦΗΝΕΙ ΑΠΟΤΥΠ","ΓΡΑΤΖΟΥΝΙΖ","ΠΙΑΝΕΙ ΔΑΧΤΥΛ"]},
+  ],
+  laundry: [
+    {k:"l_noise", label:"Noise & vibration", any:["ΘΟΡΥΒ","ΔΟΝΗΣ","ΚΡΑΔΑΣΜ","ΧΟΡΕΥ","ΠΕΡΠΑΤΑ","ΚΟΥΝΙΕΤΑΙ","ΤΡΑΝΤΑΖ","ΗΣΥΧ","ΑΚΟΥΓΕΤΑΙ"],
+     pos:["ΑΘΟΡΥΒ","ΗΣΥΧ","ΔΕΝ ΑΚΟΥΓΕΤΑΙ","ΔΕΝ ΚΟΥΝΙΕΤΑΙ","ΧΩΡΙΣ ΚΡΑΔΑΣΜ","ΧΩΡΙΣ ΔΟΝΗΣ","ΔΕΝ ΚΑΝΕΙ ΘΟΡΥΒΟ","ΚΑΘΟΛΟΥ ΘΟΡΥΒΟ"],
+     neg:["ΘΟΡΥΒΩΔ","ΚΑΝΕΙ ΘΟΡΥΒΟ","ΠΟΛΥ ΘΟΡΥΒΟ","ΔΟΝΗΣ","ΚΡΑΔΑΣΜ","ΧΟΡΕΥΕΙ","ΠΕΡΠΑΤΑΕΙ","ΚΟΥΝΙΕΤΑΙ","ΤΡΑΝΤΑΖ"]},
+    {k:"l_wash", label:"Washing result", any:["ΠΛΕΝΕΙ","ΠΛΥΣΙΜ","ΛΕΚΕ","ΚΑΘΑΡΑ ΡΟΥΧ","ΠΕΝΤΑΚΑΘΑΡ"],
+     pos:["ΠΛΕΝΕΙ ΤΕΛΕΙΑ","ΠΛΕΝΕΙ ΠΟΛΥ ΚΑΛΑ","ΠΛΕΝΕΙ ΑΨΟΓΑ","ΠΛΕΝΕΙ ΕΞΑΙΡΕΤΙΚΑ","ΠΕΝΤΑΚΑΘΑΡ","ΚΑΘΑΡΑ ΡΟΥΧ"], neg:["ΔΕΝ ΠΛΕΝΕΙ","ΜΕΝΟΥΝ ΛΕΚΕ","ΛΕΚΕΔΙΑΖ","ΑΠΟΡΡΥΠΑΝΤΙΚΟ ΜΕΝΕΙ","ΑΦΗΝΕΙ ΣΚΟΝΗ"]},
+    {k:"l_spin", label:"Spin & dryness", any:["ΣΤΥΒ","ΣΤΥΨ","ΣΤΡΟΦ","ΣΤΕΓΝ","ΒΡΕΓΜΕΝ","ΥΓΡΑ ΡΟΥΧ"],
+     pos:["ΣΤΥΒΕΙ ΠΟΛΥ ΚΑΛΑ","ΣΤΥΒΕΙ ΤΕΛΕΙΑ","ΣΧΕΔΟΝ ΣΤΕΓΝΑ","ΒΓΑΙΝΟΥΝ ΣΤΕΓΝΑ","ΣΤΕΓΝΩΝΕΙ ΤΕΛΕΙΑ","ΣΤΕΓΝΩΝΕΙ ΠΟΛΥ ΚΑΛΑ"], neg:["ΔΕΝ ΣΤΥΒ","ΒΡΕΓΜΕΝ","ΥΓΡΑ ΡΟΥΧ","ΔΕΝ ΣΤΕΓΝ","ΜΕΝΟΥΝ ΥΓΡΑ"]},
+    {k:"l_time", label:"Programme length", any:[" ΩΡΕΣ"," ΩΡΑ "," ΛΕΠΤΑ","ΔΙΑΡΚΕΙΑ ΠΡΟΓΡΑΜΜ","ΔΙΑΡΚΕΙ ΤΟ ΠΡΟΓΡ","ΓΡΗΓΟΡΟ ΠΡΟΓΡΑΜΜ","ΓΡΗΓΟΡΑ ΠΡΟΓΡΑΜΜ","ΓΡΗΓΟΡΟ ΠΛΥΣΙΜ"],
+     pos:["ΓΡΗΓΟΡΟ ΠΡΟΓΡΑΜΜ","ΓΡΗΓΟΡΑ ΠΡΟΓΡΑΜΜ","ΓΡΗΓΟΡΟ ΠΛΥΣΙΜ","ΣΕ ΛΙΓΑ ΛΕΠΤΑ"], neg:["ΠΟΛΛΕΣ ΩΡΕΣ","ΠΟΛΥ ΩΡΑ","ΑΤΕΛΕΙΩΤ","ΑΡΓΕΙ ΠΟΛΥ","ΠΟΛΥ ΑΡΓ"]},
+    {k:"l_progs", label:"Programmes & controls", any:["ΠΡΟΓΡΑΜΜ","ΟΘΟΝ","ΚΟΥΜΠ","ΕΠΙΛΟΓΕΣ","ΕΦΑΡΜΟΓ","WIFI","WI-FI","ΧΡΟΝΟΔΙΑΚ","ΑΤΜΟ"],
+     pos:["ΠΟΛΛΑ ΠΡΟΓΡΑΜΜ","ΠΟΙΚΙΛΙΑ ΠΡΟΓΡΑΜΜ","ΕΥΚΟΛΟ ΣΤΗ ΧΡΗΣΗ","ΕΥΚΟΛΗ ΧΡΗΣΗ"], neg:["ΜΠΕΡΔΕΜ","ΠΟΛΥΠΛΟΚ","ΔΕΝ ΣΥΝΔΕΕΤΑΙ"]},
+    {k:"l_drum", label:"Drum & capacity", any:["ΚΑΔΟ","ΚΙΛΑ","ΚΙΛΩΝ","ΧΩΡΗΤΙΚ","ΠΑΠΛΩΜ","ΚΟΥΒΕΡΤ"],
+     pos:["ΜΕΓΑΛΟΣ ΚΑΔΟΣ","ΜΕΓΑΛΟ ΚΑΔΟ","ΧΩΡΑΕΙ","ΠΑΠΛΩΜ","ΚΟΥΒΕΡΤ"], neg:["ΜΙΚΡΟΣ ΚΑΔΟΣ","ΔΕΝ ΧΩΡΑΕΙ"]},
+    {k:"l_drawer", label:"Detergent drawer", any:["ΘΗΚΗ ΑΠΟΡΡΥΠ","ΣΥΡΤΑΡΑΚΙ","ΘΗΚΗ ΤΟΥ ΑΠΟΡΡΥΠ","ΜΑΛΑΚΤΙΚ"],
+     pos:[], neg:["ΜΕΝΕΙ ΝΕΡΟ","ΜΕΝΕΙ ΜΑΛΑΚΤΙΚ","ΜΕΝΕΙ ΑΠΟΡΡΥΠ","ΜΑΥΡΙΛ","ΜΟΥΧΛ"]},
+    {k:"l_mould", label:"Smell, mould & seal", any:["ΜΟΥΧΛ","ΜΥΡΩΔ","ΜΥΡΙΖ","ΛΑΣΤΙΧ","ΜΑΥΡΙΛ","ΒΡΩΜ"],
+     pos:["ΔΕΝ ΜΥΡΙΖΕΙ","ΜΥΡΙΖΟΥΝ ΩΡΑΙΑ"], neg:["ΜΟΥΧΛ","ΜΥΡΙΖΕΙ ΑΣΧΗΜΑ","ΑΣΧΗΜΗ ΜΥΡ","ΜΑΥΡΙΛ","ΒΡΩΜ"]},
+    {k:"l_leak", label:"Leaks", any:["ΔΙΑΡΡΟ","ΤΡΕΧΕΙ ΝΕΡΟ","ΣΤΑΖΕΙ","ΝΕΡΑ ΣΤΟ ΠΑΤΩΜΑ","ΝΕΡΟ ΣΤΟ ΠΑΤΩΜΑ","ΠΛΗΜΜΥΡ"],
+     pos:[], neg:["ΔΙΑΡΡΟ","ΤΡΕΧΕΙ ΝΕΡΟ","ΣΤΑΖΕΙ","ΝΕΡΑ ΣΤΟ ΠΑΤΩΜΑ","ΝΕΡΟ ΣΤΟ ΠΑΤΩΜΑ","ΠΛΗΜΜΥΡ"]},
+    {k:"l_energy", label:"Energy & water use", any:["ΚΑΤΑΝΑΛΩΣ","ΡΕΥΜΑ","ΟΙΚΟΝΟΜΙΑ ΝΕΡΟΥ","ΛΙΓΟ ΝΕΡΟ","ΑΝΤΛΙΑ ΘΕΡΜΟΤ"],
+     pos:["ΧΑΜΗΛΗ ΚΑΤΑΝΑΛΩΣ","ΛΙΓΟ ΡΕΥΜΑ","ΛΙΓΟ ΝΕΡΟ","ΟΙΚΟΝΟΜΙΑ","ΟΙΚΟΝΟΜΙΚ"], neg:["ΥΨΗΛΗ ΚΑΤΑΝΑΛΩΣ","ΠΟΛΥ ΡΕΥΜΑ","ΚΑΙΕΙ ΡΕΥΜΑ"]},
+  ],
+  dishwashing: [
+    {k:"d_clean", label:"Cleaning result", any:["ΠΛΕΝΕΙ","ΚΑΘΑΡΙΖ","ΠΕΝΤΑΚΑΘΑΡ","ΥΠΟΛΕΙΜΜ","ΑΣΠΡΙΛ","ΛΕΚΕ","ΑΣΤΡΑΦΤ","ΓΥΑΛΙΖ"],
+     pos:["ΠΛΕΝΕΙ ΤΕΛΕΙΑ","ΠΛΕΝΕΙ ΠΟΛΥ ΚΑΛΑ","ΠΛΕΝΕΙ ΑΨΟΓΑ","ΠΛΕΝΕΙ ΕΞΑΙΡΕΤΙΚΑ","ΠΕΝΤΑΚΑΘΑΡ","ΑΣΤΡΑΦΤ","ΓΥΑΛΙΖ"], neg:["ΔΕΝ ΠΛΕΝΕΙ","ΥΠΟΛΕΙΜΜ","ΑΣΠΡΙΛ","ΜΕΝΟΥΝ ΛΕΚΕ","ΛΕΚΕΔ","ΔΕΝ ΚΑΘΑΡΙΖ"]},
+    {k:"d_dry", label:"Drying", any:["ΣΤΕΓΝ","ΒΡΕΓΜΕΝ","ΥΓΡΑΣΙ","ΜΕΝΟΥΝ ΝΕΡΑ","ΣΤΑΓΟΝ"],
+     pos:["ΣΤΕΓΝΩΝΕΙ ΤΕΛΕΙΑ","ΣΤΕΓΝΩΝΕΙ ΠΟΛΥ ΚΑΛΑ","ΒΓΑΙΝΟΥΝ ΣΤΕΓΝΑ","ΤΕΛΕΙΟ ΣΤΕΓΝΩΜΑ","ΚΑΛΟ ΣΤΕΓΝΩΜΑ"], neg:["ΔΕΝ ΣΤΕΓΝ","ΒΡΕΓΜΕΝ","ΜΕΝΟΥΝ ΝΕΡΑ","ΜΕΝΟΥΝ ΒΡΕΓΜΕΝ","ΣΤΑΓΟΝ","ΚΑΚΟ ΣΤΕΓΝΩΜΑ"]},
+    {k:"d_noise", label:"Noise", any:["ΘΟΡΥΒ","ΗΣΥΧ","ΑΚΟΥΓΕΤΑΙ","DB"],
+     pos:["ΑΘΟΡΥΒ","ΗΣΥΧ","ΔΕΝ ΑΚΟΥΓΕΤΑΙ","ΔΕΝ ΚΑΝΕΙ ΘΟΡΥΒΟ","ΚΑΘΟΛΟΥ ΘΟΡΥΒΟ"], neg:["ΘΟΡΥΒΩΔ","ΚΑΝΕΙ ΘΟΡΥΒΟ","ΠΟΛΥ ΘΟΡΥΒΟ"]},
+    {k:"d_time", label:"Programme length", any:[" ΩΡΕΣ"," ΩΡΑ "," ΛΕΠΤΑ","ΔΙΑΡΚΕΙΑ ΠΡΟΓΡΑΜΜ","ΓΡΗΓΟΡΟ ΠΡΟΓΡΑΜΜ","ΓΡΗΓΟΡΑ ΠΡΟΓΡΑΜΜ"],
+     pos:["ΓΡΗΓΟΡΟ ΠΡΟΓΡΑΜΜ","ΓΡΗΓΟΡΑ ΠΡΟΓΡΑΜΜ","ΣΕ ΛΙΓΑ ΛΕΠΤΑ"], neg:["ΠΟΛΛΕΣ ΩΡΕΣ","ΠΟΛΥ ΩΡΑ","ΑΤΕΛΕΙΩΤ","ΑΡΓΕΙ ΠΟΛΥ"]},
+    {k:"d_racks", label:"Baskets & loading", any:["ΚΑΛΑΘ","ΣΚΕΥ","ΣΕΡΒΙΤΣΙ","ΜΑΧΑΙΡΟΠΙΡ","ΧΩΡΑΕΙ","ΧΩΡΑΝΕ","ΚΑΤΣΑΡΟΛ","ΤΗΓΑΝ"],
+     pos:["ΧΩΡΑΕΙ","ΧΩΡΑΝΕ","ΕΥΡΥΧΩΡ","ΤΡΙΤΟ ΚΑΛΑΘ","3Ο ΚΑΛΑΘ","ΡΥΘΜΙΖΟΜΕΝ"], neg:["ΔΕΝ ΧΩΡΑΕΙ","ΔΕΝ ΧΩΡΑΝΕ","ΣΠΑΣΕ","ΣΤΕΝΟΧΩΡ"]},
+    {k:"d_progs", label:"Programmes & controls", any:["ΠΡΟΓΡΑΜΜ","ΟΘΟΝ","ΚΟΥΜΠ","ΕΦΑΡΜΟΓ","WIFI","WI-FI","ΧΡΟΝΟΔΙΑΚ","ΑΙΣΘΗΤΗΡ"],
+     pos:["ΠΟΛΛΑ ΠΡΟΓΡΑΜΜ","ΠΟΙΚΙΛΙΑ ΠΡΟΓΡΑΜΜ","ΕΥΚΟΛΟ ΣΤΗ ΧΡΗΣΗ"], neg:["ΜΠΕΡΔΕΜ","ΠΟΛΥΠΛΟΚ"]},
+    {k:"d_fit", label:"Installation & fit", any:["ΤΟΠΟΘΕΤ","ΕΓΚΑΤΑΣΤ","ΕΝΤΟΙΧ","ΠΑΝΕΛ","ΠΟΡΤΑ ΤΟΥ ΝΤΟΥΛΑΠ","ΝΤΟΥΛΑΠ"],
+     pos:["ΕΥΚΟΛΗ ΤΟΠΟΘΕΤ","ΕΥΚΟΛΗ ΕΓΚΑΤΑΣΤ"], neg:["ΔΕΝ ΤΑΙΡΙΑΖ","ΔΥΣΚΟΛΗ ΤΟΠΟΘΕΤ","ΔΥΣΚΟΛΗ ΕΓΚΑΤΑΣΤ","ΔΕΝ ΧΩΡΟΥΣΕ"]},
+    {k:"d_leak", label:"Leaks & error codes", any:["ΔΙΑΡΡΟ","ΣΤΑΖΕΙ","ΒΓΑΖΕΙ ΝΕΡΑ","ΣΦΑΛΜΑ","ΚΩΔΙΚΟ ΣΦΑΛΜ","ERROR","ΠΛΗΜΜΥΡ"],
+     pos:[], neg:["ΔΙΑΡΡΟ","ΣΤΑΖΕΙ","ΒΓΑΖΕΙ ΝΕΡΑ","ΣΦΑΛΜΑ","ERROR","ΠΛΗΜΜΥΡ"]},
+    {k:"d_smell", label:"Smell", any:["ΜΥΡΩΔ","ΜΥΡΙΖ","ΟΣΜΗ","ΒΡΩΜ"], pos:["ΔΕΝ ΜΥΡΙΖΕΙ"], neg:["ΜΥΡΙΖΕΙ","ΑΣΧΗΜΗ ΜΥΡ","ΒΡΩΜ"]},
+  ],
+  cooking: [
+    {k:"k_bake", label:"Baking & even heat", any:["ΨΗΝΕΙ","ΨΗΣΙΜ","ΟΜΟΙΟΜΟΡΦ","ΜΑΓΕΙΡ","ΑΕΡΑ","ΘΕΡΜΟΚΡΑΣ","ΖΕΣΤΑΙΝΕΙ"],
+     pos:["ΨΗΝΕΙ ΤΕΛΕΙΑ","ΨΗΝΕΙ ΟΜΟΙΟΜΟΡΦ","ΨΗΝΕΙ ΠΟΛΥ ΚΑΛΑ","ΨΗΝΕΙ ΥΠΕΡΟΧΑ","ΖΕΣΤΑΙΝΕΙ ΓΡΗΓΟΡΑ","ΟΜΟΙΟΜΟΡΦΟ ΨΗΣΙΜ"], neg:["ΔΕΝ ΨΗΝΕΙ","ΚΑΙΕΙ ΑΠΟ","ΑΝΟΜΟΙΟΜΟΡΦ","ΑΡΓΕΙ ΝΑ ΖΕΣΤ","ΑΡΓΕΙ ΠΟΛΥ"]},
+    {k:"k_clean", label:"Cleaning the oven", any:["ΚΑΘΑΡΙΖ","ΚΑΘΑΡΙΣΜ","ΠΥΡΟΛΥΣ","ΑΤΜΟΚΑΘΑΡ","ΛΙΠΗ","ΛΙΠΟΣ","ΛΙΠΑΡ"],
+     pos:["ΚΑΘΑΡΙΖΕΙ ΕΥΚΟΛΑ","ΕΥΚΟΛΟ ΚΑΘΑΡΙΣΜ","ΕΥΚΟΛΑ ΚΑΘΑΡΙΖ","ΠΥΡΟΛΥΣ"], neg:["ΔΥΣΚΟΛΟ ΚΑΘΑΡΙΣΜ","ΔΥΣΚΟΛΑ ΚΑΘΑΡΙΖ","ΔΕΝ ΚΑΘΑΡΙΖ"]},
+    {k:"k_controls", label:"Controls & display", any:["ΟΘΟΝ","ΚΟΥΜΠ","ΔΙΑΚΟΠΤ","ΧΡΟΝΟΔΙΑΚ","ΑΦΗΣ","TOUCH","ΕΝΔΕΙΞ","ΡΟΛΟΙ","ΤΑΜΠΛΟ"],
+     pos:["ΕΥΚΟΛΟ ΣΤΗ ΧΡΗΣΗ","ΕΥΚΟΛΟΣ ΧΕΙΡΙΣΜ","ΑΠΛΟ ΣΤΗ ΧΡΗΣΗ"], neg:["ΜΠΕΡΔΕΜ","ΠΟΛΥΠΛΟΚ","ΔΥΣΚΟΛΟ ΣΤΗ ΧΡΗΣΗ","ΔΕΝ ΑΝΤΑΠΟΚΡΙΝ"]},
+    {k:"k_hob", label:"Hob heat & control", any:[" ΕΣΤΙΑ"," ΕΣΤΙΕΣ"," ΜΑΤΙ"," ΜΑΤΙΑ","ΕΠΑΓΩΓ","ΚΕΡΑΜΙΚ","ΒΡΑΖΕΙ","ΒΡΑΣΙΜ"],
+     pos:["ΒΡΑΖΕΙ ΓΡΗΓΟΡΑ","ΖΕΣΤΑΙΝΕΙ ΓΡΗΓΟΡΑ","ΠΟΛΥ ΓΡΗΓΟΡ"], neg:["ΑΡΓΕΙ","ΚΛΕΙΝΕΙ ΜΟΝΗ","ΚΛΕΙΝΕΙ ΜΟΝΟ","ΣΒΗΝΕΙ ΜΟΝ"]},
+    {k:"k_hood", label:"Hood suction & noise", any:["ΑΠΟΡΡΟΦ","ΤΡΑΒΑ","ΤΑΧΥΤΗΤ","ΘΟΡΥΒ","ΗΣΥΧ"],
+     pos:["ΤΡΑΒΑΕΙ ΠΟΛΥ","ΔΥΝΑΤΗ ΑΠΟΡΡΟΦ","ΚΑΛΗ ΑΠΟΡΡΟΦ","ΑΘΟΡΥΒ","ΗΣΥΧ"], neg:["ΘΟΡΥΒΩΔ","ΚΑΝΕΙ ΘΟΡΥΒΟ","ΔΕΝ ΤΡΑΒΑ","ΑΔΥΝΑΜΗ ΑΠΟΡΡΟΦ","ΠΟΛΥ ΘΟΡΥΒΟ"]},
+    {k:"k_door", label:"Door & outside heat", any:["ΠΟΡΤΑ","ΤΖΑΜΙ","ΚΑΙΓΕΤΑΙ","ΖΕΣΤΑΙΝΕΤΑΙ ΕΞΩ"],
+     pos:["ΔΕΝ ΚΑΙΓΕΤΑΙ","ΚΡΥΑ ΠΟΡΤΑ"], neg:["ΚΑΙΓΕΤΑΙ","ΚΑΙΕΙ Η ΠΟΡΤΑ","ΖΕΣΤΑΙΝΕΤΑΙ Η ΠΟΡΤΑ","ΖΕΣΤΑΙΝΕΤΑΙ ΕΞΩ"]},
+    {k:"k_space", label:"Capacity, racks & trays", any:["ΧΩΡΗΤΙΚ","ΣΧΑΡ","ΤΑΨΙ","ΛΙΤΡ","ΤΗΛΕΣΚΟΠ","ΟΔΗΓ","ΕΥΡΥΧΩΡ"],
+     pos:["ΜΕΓΑΛΗ ΧΩΡΗΤΙΚ","ΕΥΡΥΧΩΡ","ΤΗΛΕΣΚΟΠ","ΧΩΡΑΕΙ"], neg:["ΜΙΚΡΟΣ","ΔΕΝ ΧΩΡΑΕΙ","ΜΙΚΡΗ ΧΩΡΗΤΙΚ"]},
+    {k:"k_micro", label:"Microwave heating & grill", any:["ΖΕΣΤΑΙΝ","ΞΕΠΑΓΩΝ","ΓΚΡΙΛ","GRILL","ΦΟΥΡΝΑΚΙ"],
+     pos:["ΖΕΣΤΑΙΝΕΙ ΓΡΗΓΟΡΑ","ΖΕΣΤΑΙΝΕΙ ΟΜΟΙΟΜΟΡΦ","ΖΕΣΤΑΙΝΕΙ ΤΕΛΕΙΑ"], neg:["ΔΕΝ ΖΕΣΤΑΙΝ","ΖΕΣΤΑΙΝΕΙ ΑΝΟΜΟΙΟΜΟΡΦ","ΑΡΓΕΙ ΝΑ ΖΕΣΤ"]},
+  ],
+};
+const bpTopicList = dept => [...(BP_TOPICS[dept]||[]), ...BP_SHARED_TOPICS];
+/* items of a level for a department: "topic" = the specific topics, "pillar" = the broad pillars */
+const bpItems = (dept, level) => level==="topic" ? bpTopicList(dept) : BP_PILLARS;
+const bpTagsOf = (r, level) => level==="topic" ? r.topics : r.tags;
+
+/* ---- What drives the stars (Wonderflow calls it relevance): for each topic,
+   the average stars of the reviews that mention it against those that don't,
+   and how much that moves the scope's overall average:
+   effect = share of reviews mentioning it × (stars when mentioned − stars otherwise).
+   What buyers mention most isn't always what moves their rating. */
+function bpDrivers(rows, level, dept){
+  const N=rows.length; if(!N) return [];
+  const sum=rows.reduce((a,r)=>a+(r.stars||0),0);
+  return bpItems(dept, level).map(P=>{
+    let n=0, s=0, neg=0, pos=0;
+    for(const r of rows){ const v=bpTagsOf(r,level)[P.k]; if(v===undefined) continue; n++; s+=r.stars||0; if(v<0) neg++; else if(v>0) pos++; }
+    if(!n) return null;
+    const avgW=s/n, avgO=N-n?(sum-s)/(N-n):null, delta=avgO==null?0:avgW-avgO;
+    return {P, n, neg, pos, share:n/N, avgW, avgO, delta, effect:n/N*delta};
+  }).filter(Boolean);
+}
+function renderDrivers(rows, rb, dept){
+  const F=bpFilter, el=document.getElementById("bpDrivers"); if(!el) return;
+  const scopes=[{v:"__all", label:"All brands"}, ...rb.map(e=>({v:e.b, label:e.b+(e.mine?" ★":"")}))];
+  if(!scopes.some(s=>s.v===F.drv)) F.drv=(rb.find(e=>e.mine)||{}).b || "__all";
+  F.lvl=F.lvl||"topic";
+  document.getElementById("bpDrvChips").innerHTML = scopes.map(s=>`<button class="chip ${F.drv===s.v?"on":""}" data-bpd="drv" data-pv="${esc(s.v)}">${esc(s.label)}</button>`).join("");
+  document.querySelectorAll("#bpDrvLevel [data-bpd]").forEach(b=>b.classList.toggle("on", b.dataset.pv===F.lvl));
+  const S=F.drv==="__all"?rows:rows.filter(r=>r.brand===F.drv);
+  const who=F.drv==="__all"?"the market":F.drv;
+  const D=bpDrivers(S, F.lvl, dept), avg=S.length?S.reduce((a,r)=>a+(r.stars||0),0)/S.length:0;
+  const ok=D.filter(d=>d.n>=BP_MIN_N);
+  const cost=ok.filter(d=>d.effect<=-0.005).sort((a,b)=>a.effect-b.effect);
+  const earn=ok.filter(d=>d.effect>=0.005).sort((a,b)=>b.effect-a.effect);
+  const flat=ok.filter(d=>Math.abs(d.effect)<0.005 && d.share>=0.05).sort((a,b)=>b.share-a.share);
+  const st=v=>v==null?"–":v.toFixed(2)+"★";
+  const eff=v=>(v>0?"+":"−")+Math.abs(v).toFixed(2)+"★";
+  const scopeAttr=esc(F.drv);
+  const row=d=>`<button class="bp-drv" data-bpr="${scopeAttr}|${F.lvl}|${d.P.k}|${esc(F.type)}" title="Read the ${d.n} reviews">
+      <span class="bp-drv-l">${esc(d.P.label)}${d.P.retailer?' <small class="bp-ret">retailer</small>':""}<small>${Math.round(d.share*100)}% of reviews (${d.n})${d.neg?` · <span class="bp-neg">${d.neg} complaint${d.neg>1?"s":""}</span>`:""}</small></span>
+      <span class="bp-drv-s">${st(d.avgW)} <small>vs ${st(d.avgO)}</small></span>
+      <span class="bp-drv-e ${d.effect<0?"neg":"pos"}"><i style="width:${Math.min(100,Math.abs(d.effect)/0.15*100).toFixed(0)}%"></i>${eff(d.effect)}</span></button>`;
+  const block=(title,list,empty)=>`<div class="bp-drv-col"><div class="sw-sub">${title}</div>${list.length?list.slice(0,8).map(row).join(""):`<div class="bp-drv-empty">${empty}</div>`}</div>`;
+  const head = cost[0]
+    ? `<b>${esc(cost[0].P.label)}</b> costs ${esc(who)} the most: reviews that mention it average <b>${st(cost[0].avgW)}</b> against ${st(cost[0].avgO)}, pulling the ${st(avg)} average down <b>${Math.abs(cost[0].effect).toFixed(2)}★</b>.`
+      + (earn[0]?` <b>${esc(earn[0].P.label)}</b> earns the most (${eff(earn[0].effect)}).`:"")
+    : S.length ? `Nothing costs ${esc(who)} a measurable share of its rating yet.` : "";
+  el.innerHTML = !S.length ? `<div class="empty">No review texts for this scope yet.</div>`
+    : `<p class="bp-drv-head">${head}</p>
+      <div class="bp-drv-grid">${block("Costing stars",cost,"no topic with 5+ mentions pulls the rating down")}${block("Earning stars",earn,"no topic with 5+ mentions lifts the rating")}${block("Talked about, little effect",flat,"none")}</div>
+      <p class="ph-note">${S.length} reviews, average ${st(avg)}. <b>Effect</b> = share of reviews mentioning the topic × the difference in stars, i.e. how far the topic moves the overall average. Topics under ${BP_MIN_N} mentions are left out. Click a row for the reviews.</p>`;
+}
+
+/* ---- Review reader: the reviews behind any score, in a side drawer.
+   data-bpr="scope|level|key|type": scope = brand, "__all", "__mine" or
+   "model:<code>"; level = "topic" | "pillar" | "bad" | "all"; key = topic /
+   pillar key ("*" = every review in scope). */
+const BPR = {rows:[], words:[], tone:"all", q:"", n:20, title:"", sub:""};
+function bpReaderOpen(spec){
+  const [scope, level, key, type] = spec.split("|"), dept=state.dept;
+  let rows=bpRows().filter(r=>r.dept===dept && (!type || type==="all" || r.type===type));
+  if(scope==="__mine") rows=rows.filter(r=>r.mine);
+  else if(scope.startsWith("model:")) rows=rows.filter(r=>normCode(extractModel(r.name).code)===scope.slice(6));
+  else if(scope!=="__all") rows=rows.filter(r=>r.brand===scope);
+  const P=(level==="topic"||level==="pillar") ? bpItems(dept, level).find(x=>x.k===key) : null;
+  const toneOf=r=>{ if(P) return bpTagsOf(r,level)[key]; const s=r.stars||0; return s>=4?1:s<=2?-1:0; };
+  if(P) rows=rows.filter(r=>toneOf(r)!==undefined);
+  if(level==="bad") rows=rows.filter(r=>(r.stars||0)<=2);
+  BPR.rows=rows.map(r=>({r, t:toneOf(r)}));
+  BPR.words=P?[...P.any,...P.pos,...P.neg].map(w=>w.trim()).filter(w=>w && !w.includes(" ")):[];
+  BPR.tone=BPR.rows.some(x=>x.t<0)&&level!=="bad"?"neg":"all"; BPR.q=""; BPR.n=20;
+  const scopeLabel = scope==="__all"?"All brands":scope==="__mine"?"Your models":scope.startsWith("model:")?(rows[0]?modelTitle(rows[0].name,30):scope.slice(6)):scope;
+  BPR.title = `${scopeLabel} · ${P?P.label:level==="bad"?"1–2★ reviews":"All reviews"}`;
+  BPR.sub = `${DEPT_NAME[dept]}${type&&type!=="all"?" · "+type:""} · Kotsovolos reviews`;
+  const q=document.getElementById("bprSearch"); if(q) q.value="";
+  bpReaderRender();
+  document.getElementById("bprDrawer").classList.add("open"); document.getElementById("bprScrim").classList.add("open");
+  document.getElementById("bprClose").focus();
+}
+function bpReaderClose(){ document.getElementById("bprDrawer").classList.remove("open"); document.getElementById("bprScrim").classList.remove("open"); }
+function bpHighlight(text, words){
+  if(!words.length) return esc(text);
+  return String(text).split(/(\s+)/).map(tok=>{ const n=gsNorm(tok); return n.trim() && words.some(w=>n.includes(w)) ? `<mark>${esc(tok)}</mark>` : esc(tok); }).join("");
+}
+function bpReaderRender(){
+  document.getElementById("bprTitle").textContent=BPR.title;
+  const cnt={all:BPR.rows.length, neg:BPR.rows.filter(x=>x.t<0).length, neu:BPR.rows.filter(x=>x.t===0).length, pos:BPR.rows.filter(x=>x.t>0).length};
+  document.getElementById("bprSub").textContent=`${BPR.sub} · ${cnt.all} review${cnt.all===1?"":"s"}`;
+  const tab=(k,label)=>`<button class="dr-tab${BPR.tone===k?" on":""}" data-bprt="${k}">${label} <small>${cnt[k]}</small></button>`;
+  document.getElementById("bprTabs").innerHTML = tab("all","All")+tab("neg","Complaints")+tab("pos","Praise")+tab("neu","Neutral");
+  const q=gsNorm(BPR.q).trim();
+  let list=BPR.rows.filter(x=>BPR.tone==="all" || (BPR.tone==="neg"?x.t<0:BPR.tone==="pos"?x.t>0:x.t===0));
+  if(q) list=list.filter(x=>gsNorm(x.r.text+" "+x.r.name).includes(q));
+  list.sort((a,b)=>(a.t-b.t) || (a.r.stars-b.r.stars) || String(b.r.date).localeCompare(String(a.r.date)));
+  const words=q?[...BPR.words, ...q.split(/\s+/)]:BPR.words;
+  document.getElementById("bprList").innerHTML = list.slice(0,BPR.n).map(({r,t})=>`<div class="bp-quote ${t>0?"pos":t<0?"neg":""}">
+      <span class="bp-stars" aria-label="${r.stars||0} of 5 stars">${"★".repeat(r.stars||0)}<span>${"★".repeat(5-(r.stars||0))}</span></span>
+      <span class="bp-q">${bpHighlight(String(r.text||"").replace(/\s+/g," "), words)}</span>
+      <span class="bp-meta">${r.p?`<a class="rl" href="#" data-model="${esc(f.id(r.p))}">${esc(modelTitle(r.name,30))}</a>`:esc(modelTitle(r.name,30))} · ${esc(r.brand||"")} · ${esc(r.date||"")}</span></div>`).join("")
+    + (list.length>BPR.n?`<button class="btn ghost ph-more" data-bprmore>Show ${Math.min(20,list.length-BPR.n)} more of ${list.length}</button>`:"")
+    || `<div class="empty" style="padding:24px">No reviews match.</div>`;
+}
+
+/* ---- Review alerts (Alerts page): 1–2★ reviews on your models in the last
+   30 days, and topics drawing more complaints on your models lately
+   (last 30 days against the 90 before, per 30 days). */
+function renderReviewAlerts(){
+  const el=document.getElementById("revAlerts"), page=document.getElementById("page-alerts");
+  if(!el || !page || !page.classList.contains("visible")) return;
+  bpLoad();
+  if(state.reviews===undefined){ el.innerHTML=`<div class="empty">Loading reviews…</div>`; return; }
+  const dept=state.dept, now=Date.now(), day=864e5;
+  const age=d=>d?(now-new Date(d+"T00:00:00Z").getTime())/day:Infinity;
+  const mine=bpRows().filter(r=>r.dept===dept && r.mine);
+  const bad=mine.filter(r=>(r.stars||0)<=2 && age(r.date)<=30).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  const spikes=bpTopicList(dept).map(P=>{
+    let recent=0, prior=0;
+    for(const r of mine){ if(r.topics[P.k]!==-1) continue; const a=age(r.date); if(a<=30) recent++; else if(a<=120) prior++; }
+    return {P, recent, prior, rate:prior/3};
+  }).filter(s=>s.recent>=2 && s.recent>=2*Math.max(s.rate,0.5)).sort((a,b)=>b.recent-a.recent);
+  const topicsOf=r=>bpTopicList(dept).filter(P=>r.topics[P.k]===-1).map(P=>`<span class="ab-edge">${esc(P.label)}</span>`).join(" ");
+  document.getElementById("revAlertSum").textContent=`· ${bad.length} low review${bad.length===1?"":"s"} · ${spikes.length} rising complaint${spikes.length===1?"":"s"}`;
+  el.innerHTML = (spikes.length?`<div class="bp-reasons" style="margin-bottom:12px"><b>Complaints rising on your models:</b> ${spikes.map(s=>`<button class="bp-reason neg" data-bpr="__mine|topic|${s.P.k}|all">${esc(s.P.label)} <small>${s.recent} in 30 days vs ~${s.rate.toFixed(1)} before</small></button>`).join("")}</div>`:"")
+    + (bad.length ? bad.slice(0,10).map(r=>`<div class="ab-rival disrupt">
+        <div class="ab-rival-main"><span class="bp-stars">${"★".repeat(r.stars||0)}<span>${"★".repeat(5-(r.stars||0))}</span></span> <b>${r.p?`<a class="rl" href="#" data-model="${esc(f.id(r.p))}">${esc(modelTitle(r.name,36))}</a>`:esc(modelTitle(r.name,36))}</b> <span class="ab-edges">${topicsOf(r)}</span></div>
+        <div class="ab-rival-sub">“${esc(String(r.text||"").replace(/\s+/g," ").slice(0,240))}${String(r.text||"").length>240?"…":""}” · ${esc(r.date||"")}</div></div>`).join("")
+      + (bad.length>10?`<button class="ab-expand" data-bpr="__mine|bad|*|all">Read every 1–2★ review of your models</button>`:"")
+      : `<div class="empty">No 1–2★ reviews on your ${DEPT_NAME[dept].toLowerCase()} models in the last 30 days.</div>`);
 }
 
 /* ---- Shelf share: listings per brand at a retailer over time. A listing is
@@ -5988,11 +6248,20 @@ on("bpChips","click",e=>{ const c=e.target.closest("[data-bp]"); if(!c) return; 
 on("bpProfChips","click",e=>{ const c=e.target.closest("[data-bp]"); if(!c) return; bpFilter.profile=c.dataset.pv; renderPerception(); });
 on("page-perception","click",e=>{
   const c=e.target.closest("[data-bp-cell]");
-  if(c){ const [b,k]=c.dataset.bpCell.split("|"); const same=bpFilter.brand===b&&bpFilter.pillar===k;
-    bpFilter.brand=same?null:b; bpFilter.pillar=same?null:k; renderPerception();
-    if(!same) document.getElementById("bpQuotes").scrollIntoView({block:"nearest", behavior:motionReduced()?"auto":"smooth"}); return; }
+  if(c){ const [b,k]=c.dataset.bpCell.split("|");
+    bpFilter.brand=b; bpFilter.pillar=k; renderPerception(); bpReaderOpen(`${b}|pillar|${k}|${bpFilter.type}`); return; }
+  const d=e.target.closest("[data-bpd]");
+  if(d){ bpFilter[d.dataset.bpd==="drv"?"drv":"lvl"]=d.dataset.pv; renderPerception(); return; }
   if(e.target.closest("[data-bp-close]")){ e.preventDefault(); bpFilter.brand=bpFilter.pillar=null; renderPerception(); }
 });
+/* review reader: any [data-bpr] anywhere opens it */
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-bpr]"); if(!b) return; e.preventDefault(); bpReaderOpen(b.dataset.bpr); });
+on("bprScrim","click",bpReaderClose); on("bprClose","click",bpReaderClose);
+document.addEventListener("keydown",e=>{ if(e.key==="Escape" && document.getElementById("bprDrawer").classList.contains("open")) bpReaderClose(); });
+on("bprTabs","click",e=>{ const b=e.target.closest("[data-bprt]"); if(!b) return; BPR.tone=b.dataset.bprt; BPR.n=20; bpReaderRender(); });
+on("bprSearch","input",e=>{ BPR.q=e.target.value; BPR.n=20; bpReaderRender(); });
+on("bprList","click",e=>{ if(e.target.closest("[data-bprmore]")){ BPR.n+=20; bpReaderRender(); return; }
+  if(e.target.closest("[data-model]")) bpReaderClose(); });
 on("shChips","click",e=>{ const c=e.target.closest("[data-sh]"); if(!c) return; shFilter[c.dataset.sh]=c.dataset.pv; renderShelf(); });
 on("gpChips","click",e=>{ const c=e.target.closest("[data-gp]"); if(!c) return;
   const k=c.dataset.gp; gpFilter[k] = k==="min" ? +c.dataset.pv : k==="colour" ? c.dataset.pv==="1" : c.dataset.pv; renderGaps(); });
