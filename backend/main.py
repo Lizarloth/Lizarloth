@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Depends, BackgroundTasks, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, FileResponse, JSONResponse
+from fastapi.responses import StreamingResponse, FileResponse, JSONResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
@@ -306,6 +307,52 @@ def root():
     if os.path.exists("static/index.html"):
         return FileResponse("static/index.html")
     return {"message": "PricEdge API running", "docs": "/docs"}
+
+
+# Private dashboard: ask crawlers to stay out.
+@app.get("/robots.txt", include_in_schema=False)
+def robots_txt():
+    return PlainTextResponse("User-agent: *\nDisallow: /\n")
+
+
+# ── Not found ────────────────────────────────────────────────────────────
+# Browsers get a styled page; API clients keep the usual JSON. The status stays 404
+# (no redirect), so scanners and monitoring still see the page doesn't exist.
+_NOT_FOUND_HTML = """<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Page not found · Pricedge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Hanken+Grotesk:wght@400;600&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07090b;--ink:#f2f2f2;--soft:#9aa3a6;--line:rgba(255,255,255,.08);--grid:rgba(255,255,255,.025);--accent:#6FD3D3}
+@media (prefers-color-scheme:light){:root{--bg:#f6f7f7;--ink:#14181a;--soft:#5b6467;--line:rgba(0,0,0,.08);--grid:rgba(0,0,0,.035);--accent:#1f8f8f}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink)}
+body{display:grid;place-items:center;padding:24px 16px;font:400 16px/1.6 'Hanken Grotesk',system-ui,sans-serif;
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:44px 44px}
+main{max-width:520px;width:100%;border:1px solid var(--line);border-radius:16px;padding:40px 32px;background:var(--bg)}
+.tag{font:600 11px 'JetBrains Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:var(--accent)}
+h1{font:700 clamp(28px,6vw,38px)/1.15 'Bricolage Grotesque',system-ui,sans-serif;margin:14px 0 12px;letter-spacing:-.01em}
+p{margin:0 0 28px;color:var(--soft)}
+a.btn{display:inline-block;padding:11px 20px;border-radius:10px;background:var(--accent);color:#07090b;font-weight:600;text-decoration:none}
+a.btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+@media (hover:hover){a.btn:hover{filter:brightness(1.08)}}
+</style></head>
+<body><main>
+<div class="tag">404 · Page not found</div>
+<h1>This page isn&rsquo;t here.</h1>
+<p>The address you followed does not exist on Pricedge. It may have been mistyped, or it may never have existed. Nothing is stored at this location.</p>
+<a class="btn" href="/">Go to the dashboard</a>
+</main></body></html>"""
+
+
+@app.exception_handler(StarletteHTTPException)
+async def _http_error(request: Request, exc: StarletteHTTPException):
+    if exc.status_code == 404 and "text/html" in request.headers.get("accept", ""):
+        return HTMLResponse(_NOT_FOUND_HTML, status_code=404)
+    return JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
 
 
 # ── Products ─────────────────────────────────────────────────────────────
