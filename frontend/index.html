@@ -434,7 +434,7 @@ button.bp-reason{font:inherit;cursor:pointer;border:0}
 
 /* ---------- layout ---------- */
 .shell{margin-left:var(--sidebar)}
-main{max-width:1240px;margin:0 auto;padding:28px 28px 80px}
+main{max-width:1240px;margin:0 auto;padding:28px 28px 80px;position:relative}
 /* pages are switched tens of times a day: a short fade only, no slide */
 .page{display:none;animation:pagein .14s var(--ease-out)}
 .page.visible{display:block}
@@ -635,7 +635,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 }
 .empty .big{font-size:34px;margin-bottom:10px}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:99px;animation:rot .7s linear infinite;vertical-align:-2px;margin-right:6px}
-.loadbar{height:3px;background:transparent;overflow:hidden;margin:-28px -28px 25px;position:relative}
+.loadbar{height:3px;background:transparent;overflow:hidden;position:absolute;left:0;right:0;top:0;z-index:5}   /* across the content area, whatever its padding */
 .boot-loader{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--bg);transition:opacity .35s ease}
 .boot-loader.hide{opacity:0;pointer-events:none}
 .boot-spinner{width:42px;height:42px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--cobalt);animation:bootspin .8s linear infinite}
@@ -1068,6 +1068,26 @@ html[data-motion="reduce"] .rv{opacity:1;transform:none}
   font:600 12.5px 'Hanken Grotesk';color:#fff;display:flex;align-items:center;gap:8px}
 .side-dept small{font:600 11px 'Hanken Grotesk';letter-spacing:.1em;text-transform:uppercase;color:var(--side-mute)}
 .side-backdrop{display:none}
+/* Desktop menu: hidden by default (body.side-auto) and revealed by the left edge or the menu button;
+   "Keep open" docks it as before. Phones keep their own drawer (max-width:880px). */
+.side-pin{display:none;align-items:center;gap:8px;margin:-6px 8px 10px;padding:7px 10px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:transparent;color:var(--side-mute);font:600 11.5px 'Hanken Grotesk';cursor:pointer}
+.side-pin svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.side-pin[aria-pressed="true"]{color:#fff;border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.08)}
+.side-edge{display:none}
+.ab-menu{display:none}
+@media(min-width:881px){
+  .side-pin{display:inline-flex}
+  body.side-auto .shell{margin-left:0}
+  body.side-auto .sidebar{transform:translateX(-100%);transition:transform .28s var(--ease-drawer),box-shadow .28s ease}
+  body.side-auto .sidebar.open{transform:none;box-shadow:18px 0 48px rgba(0,0,0,.28)}
+  body.side-auto .menu-toggle{display:grid}
+  body.side-auto .side-edge{display:block;position:fixed;left:0;top:0;bottom:0;width:12px;z-index:59}
+  body.side-auto .sidebar.open:not(.peek) ~ .side-backdrop{display:block;position:fixed;inset:0;z-index:55;background:rgba(12,20,20,.18)}
+  body.side-auto .ab-menu{display:grid;place-items:center;width:38px;height:38px;margin-right:4px;border-radius:10px;cursor:pointer;
+    border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.06);color:#fff;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+  .ab-menu svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+}
+html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
 .mp-backdrop{position:fixed;inset:0;background:rgba(20,18,14,.35);opacity:0;pointer-events:none;transition:opacity .2s;z-index:80}
 .mp-backdrop.open{opacity:1;pointer-events:auto}
 .mp{position:fixed;top:0;right:0;height:100%;width:min(620px,100vw);background:var(--ice);border-left:1px solid var(--line);box-shadow:-18px 0 40px rgba(40,34,24,.14);transform:translateX(102%);transition:transform .22s ease;z-index:81;display:flex;flex-direction:column}
@@ -1145,6 +1165,8 @@ html[data-motion="reduce"] .rv{opacity:1;transform:none}
     </svg></div>
     <div><span class="bwm dark" style="font-size:20px"><span class="x1">Pric</span><span class="s"><span class="x1">e</span><svg viewBox="0 0 30 8" preserveAspectRatio="none" aria-hidden="true"><path d="M1 7 L29 2" stroke="#C77D33" stroke-width="2.6" stroke-linecap="round"/></svg></span><span class="x2">dge</span></span><small>price intelligence · GR</small></div>
   </div>
+  
+  <button class="side-pin" id="sidePin" aria-pressed="false" title="Keep the menu open"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6l-1 6 4 4H6l4-4z"/><path d="M12 13v8"/></svg><span>Keep open</span></button>
   <div class="side-dept"><small>Department</small> <span id="sideDept">Cooling</span></div>
   <nav id="nav">
     <div class="side-sec">Overview</div>
@@ -1166,9 +1188,10 @@ html[data-motion="reduce"] .rv{opacity:1;transform:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S46</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S48</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
+<div class="side-edge" id="sideEdge" aria-hidden="true"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
 <aside class="mp" id="modelPanel" aria-hidden="true" role="dialog" aria-label="Model details">
   <div class="mp-head"><div id="mpHead" class="mp-head-main"></div><button class="mp-x" id="mpClose" title="Close (Esc)">✕</button></div>
@@ -1792,6 +1815,7 @@ html[data-motion="reduce"] .rv{opacity:1;transform:none}
         data-src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260702_135039_b04d00db-6ee2-4e2a-a7f5-b2dfd3d24fd2.mp4"></video>
       <div class="ab-scrim" aria-hidden="true"></div>
       <div class="ab-top ab-in" style="--d:.06s">
+        <button class="ab-menu" data-side-toggle aria-label="Open menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
         <div class="about-mark"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <path d="M0 11 A11 11 0 0 1 11 0 L32 0 L48 16 L48 37 A11 11 0 0 1 37 48 L11 48 A11 11 0 0 1 0 37 Z" fill="#0B6E6E"/>
           <path d="M32 0 L48 16 L34.5 16 A2.5 2.5 0 0 1 32 13.5 Z" fill="#083D3A"/>
@@ -6788,9 +6812,27 @@ document.addEventListener("click",e=>{
   const g=e.target.closest("[data-gobench]");
   if(g){ e.preventDefault(); showTab("benchmark"); }
 });
-on("menuToggle","click",()=>{
-  const sb=document.getElementById("sidebar"); if(sb) sb.classList.toggle("open");
-});
+on("menuToggle","click",()=>sideToggle());
+document.addEventListener("click",e=>{ if(e.target.closest("[data-side-toggle]")) sideToggle(); });
+/* desktop menu: auto-hidden unless pinned. Edge hover = a peek that closes when the
+   pointer leaves; the menu button = open until a click outside, Esc or a page change */
+const _sb=()=>document.getElementById("sidebar");
+let _peekTimer=null;
+function sideToggle(){ const sb=_sb(); if(!sb) return; sb.classList.remove("peek"); sb.classList.toggle("open"); }
+function sidePinned(on){
+  document.body.classList.toggle("side-auto", !on);
+  const p=document.getElementById("sidePin"); if(p){ p.setAttribute("aria-pressed", on?"true":"false"); p.title=on?"Hide the menu automatically":"Keep the menu open"; p.querySelector("span").textContent=on?"Pinned":"Keep open"; }
+  if(on){ const sb=_sb(); if(sb) sb.classList.remove("open","peek"); }
+  store.set("sidePinned", !!on);
+  requestAnimationFrame(()=>{ Object.values(charts).forEach(c=>{ try{ c.resize(); }catch(_){} }); });   // charts take the new width
+}
+sidePinned(store.get("sidePinned", false));
+on("sidePin","click",()=>sidePinned(!store.get("sidePinned", false)));
+on("sideEdge","mouseenter",()=>{ const sb=_sb(); if(sb && !sb.classList.contains("open")){ sb.classList.add("open","peek"); } });
+on("sidebar","mouseenter",()=>clearTimeout(_peekTimer));
+on("sidebar","mouseleave",()=>{ const sb=_sb(); if(!sb || !sb.classList.contains("peek")) return;
+  _peekTimer=setTimeout(()=>{ if(!sb.matches(":focus-within")) sb.classList.remove("open","peek"); }, 280); });
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ const sb=_sb(); if(sb && sb.classList.contains("open") && document.body.classList.contains("side-auto")) sb.classList.remove("open","peek"); } });
 on("sideBackdrop","click",()=>{ const sb=document.getElementById("sidebar"); if(sb) sb.classList.remove("open"); });
 /* ===== Global search: every department at once, in a dropdown that never
    moves you off the page you're on. Models (one row per brand + code, best
