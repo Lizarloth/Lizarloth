@@ -1030,7 +1030,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S31</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S32</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1357,8 +1357,8 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
         <div id="covStale" class="mini-list"></div>
       </div>
       <div class="card">
-        <h3><span class="dot" style="background:var(--cobalt)"></span>Possibly listed twice <span id="covDupSum" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
-        <p class="ph-note" style="margin:-6px 0 10px">Same brand and model code at one retailer under two listings. Usually a page the retailer replaced, but colour versions sometimes share a code: open both before removing one.</p>
+        <h3><span class="dot" style="background:var(--cobalt)"></span>Replaced pages <span id="covDupSum" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+        <p class="ph-note" style="margin:-6px 0 10px">The same model and colour at one retailer, where one listing stopped updating while the other carries on: the retailer moved it to a new page. The old one still counts in averages until removed. Colour versions and listings the retailer still updates are not flagged.</p>
         <div id="covDupes"></div>
       </div>
     </div>
@@ -3113,7 +3113,9 @@ function modelMembers(p){
     const cur=per.get(k);
     if(!cur || (f.price(cur)==null && f.price(q)!=null)) per.set(k,q);
   }
-  return [...per.values()].sort((a,b)=>(f.price(a)??1e9)-(f.price(b)??1e9));
+  const all=[...per.values()];
+  const mine=colourGroups(all).find(g=>g.includes(p)) || all;     // only this colour version
+  return mine.sort((a,b)=>(f.price(a)??1e9)-(f.price(b)??1e9));
 }
 function skuNewness(p){
   const n=parseInt(p.sku,10); if(!(n>0)) return null;
@@ -3614,7 +3616,7 @@ function benchDedupe(list){
     groups.get(key).push(p);
   }
   const rows=[];
-  for(const members of groups.values()){
+  for(const members of [...groups.values()].flatMap(colourGroups)){   // colour versions are separate models
     // collapse same-site duplicates (same retailer_sku, or same site if no sku)
     // so a stale URL-change twin never counts as a second retailer offer
     const perSite=new Map();
@@ -5494,18 +5496,23 @@ function renderProducts(){
   // 4. the same model listed more than once at one retailer
   const bySiteCode=new Map();
   for(const p of all){
-    const x=extractModel(f.name(p)); if(!x.code || x.code.length<4) continue;
+    const x=extractModel(f.name(p)); if(!x.code || x.code.length<5 || !/\d/.test(x.code)) continue;   // a real model code, not a word from the title
     const k=f.site(p)+"|"+normCode(x.brand)+"|"+normCode(x.code);
     const e=bySiteCode.get(k)||{g:{brand:cap(x.brand||""), code:x.code}, s:f.site(p), L:[]};
     e.L.push(p); bySiteCode.set(k,e);
   }
-  const dupes=[...bySiteCode.values()].filter(e=>e.L.length>1)
+  // colour versions under one code (black / white) are different products, not duplicates
+  // and two listings the retailer still updates are both live products (variants, bundles):
+  // a replaced page is one that stopped updating while its twin carries on
+  const replaced=e=>{ if(!live.includes(e.s)) return false;
+    const ages=e.L.map(p=>_ageDays(p.scraped_at)); return Math.min(...ages)<=2 && Math.max(...ages)-Math.min(...ages)>=2; };
+  const dupes=[...bySiteCode.values()].flatMap(e=>colourGroups(e.L).map(L=>({...e, L}))).filter(e=>e.L.length>1 && replaced(e))
     .map(e=>({...e, L:e.L.sort((a,b)=>String(b.scraped_at).localeCompare(String(a.scraped_at)))}))
     .sort((a,b)=>isMyBrand(b.L[0])-isMyBrand(a.L[0]));
   document.getElementById("covDupSum").textContent=`· ${dupes.length}`;
   document.getElementById("covDupes").innerHTML = dupes.slice(0,20).map(d=>`<div class="cov-dup"><div class="cov-dup-h"><b>${esc(d.g.brand)} ${esc(d.g.code)}</b> · ${d.L.length} listings at ${SITE_LABEL[d.s]}</div>`
-      + d.L.map((p,i)=>lstRow(p, `${fmt(f.price(p))} · last price ${ago(_ageDays(p.scraped_at))}${i?" · older":" · newest"}`)).join("")+`</div>`).join("")
-    || `<div class="empty">No model is listed twice at the same retailer.</div>`;
+      + d.L.map((p,i)=>lstRow(p, `${fmt(f.price(p))} · last price ${ago(_ageDays(p.scraped_at))}${i?" · stopped updating":" · current"}`)).join("")+`</div>`).join("")
+    || `<div class="empty">No replaced pages: every model has one live listing per retailer.</div>`;
 
   // 5. completeness per retailer
   const pc=(n,d)=>d?Math.round(n/d*100)+"%":"–";
@@ -5549,11 +5556,14 @@ function histDept(key, ks){
 /* every current model in the department, merged across retailers: per retailer
    a daily price (carried forward from its last change) and promo flag */
 function histModels(dept, days){
-  const by={}, H=historyById();
-  for(const p of deptListOf(dept)){
-    if(isClearance(p)) continue;
-    const key=histModelKey(f.name(p)), site=f.site(p), x=extractModel(f.name(p));
-    const m=by[key]||(by[key]={key, brand:cap(x.brand||""), code:x.code||"", name:f.name(p), mine:isMyBrand(p), listings:[], sites:{}, promo:{}});
+  const by={}, H=historyById(), base={};
+  for(const p of deptListOf(dept)) if(!isClearance(p)) (base[histModelKey(f.name(p))]=base[histModelKey(f.name(p))]||[]).push(p);
+  // colour versions of one code are separate models (keyed by tone when a code has several)
+  const versions=[];
+  for(const [b, L] of Object.entries(base)){ const G=colourGroups(L); G.forEach(g=>versions.push({b, g, tone:G.length>1?(g.map(listingTone).find(Boolean)||""):""})); }
+  for(const {b, g, tone} of versions) for(const p of g){
+    const key=tone?b+"|"+tone:b, site=f.site(p), x=extractModel(f.name(p));
+    const m=by[key]||(by[key]={key, base:b, tone, brand:cap(x.brand||""), code:(x.code||"")+(tone?" ("+tone+")":""), name:f.name(p), mine:isMyBrand(p), listings:[], sites:{}, promo:{}});
     m.listings.push(p);
     const rows=(H[String(f.id(p))]||[]).filter(h=>h.price!=null);
     const price=[], promo=[]; let i=0, cur=null, old=null;
@@ -5590,7 +5600,7 @@ let _phSets={src:null, dept:null, sets:[]};
 function histRivals(dept, m, days){
   const list=deptListOf(dept);
   if(_phSets.src!==list || _phSets.dept!==dept) _phSets={src:list, dept, sets:specMatchSets(dept, list)};
-  const set=_phSets.sets.find(s=>histModelKey(f.name(s.me.b))===m.key);
+  const set=_phSets.sets.find(s=>histModelKey(f.name(s.me.b))===m.base && (!m.tone || listingTone(s.me.b)===m.tone || listingTone(s.me.s)===m.tone));
   if(!set || set.peers.length<2) return null;
   const peers=set.peers.slice(0,10), lines=peers.map(pp=>dailyPrices(f.id(pp.b), days));
   const line=days.map((_,j)=>{ const v=lines.map(a=>a[j]).filter(v=>v!=null).sort((a,b)=>a-b), n=v.length;
@@ -6932,6 +6942,22 @@ function specMatchColour(members){
   }
   return null;
 }
+/* Colour versions that share a model code (Kendrix MB106E black / white) are
+   different products. A listing's colour tone: retailers name one finish
+   differently ("Inox" / "Silver" / "Graphite"), so families fold into broad
+   tones and only a different tone splits. null = the listing doesn't say. */
+const COLOUR_TONE = {"White":"white", "Beige / Cream":"beige", "Black":"black",
+                     "Inox / Silver":"metal", "Grey":"metal", "Graphite / Dark":"metal", "Other colour":"other"};
+function listingTone(p){ return p.__tone!==undefined ? p.__tone : (p.__tone = COLOUR_TONE[specMatchColour([p])] || null); }
+/* split listings into colour versions; a listing that states no colour joins the largest version */
+function colourGroups(members){
+  const by=new Map(), unk=[];
+  for(const p of members){ const t=listingTone(p); if(t){ if(!by.has(t)) by.set(t,[]); by.get(t).push(p); } else unk.push(p); }
+  if(by.size<=1) return [members];
+  const groups=[...by.values()].sort((a,b)=>b.length-a.length);
+  groups[0].push(...unk);
+  return groups;
+}
 // a built-in fridge or a fully integrated dishwasher hides behind a kitchen door: colour doesn't matter
 const colourMatters=(d,p)=> d==="cooling" ? (p.__norm||(p.__norm=normalize(p))).installType!=="builtin"
                           : d==="dishwashing" ? dishNorm(p).integration!=="fully" : true;
@@ -6965,9 +6991,14 @@ function specMatchSets(d, list){
 function smRows(list){
   const nSpecs=p=>Object.keys(f.specs(p)||{}).length;
   const byCode=new Map();
-  for(const r of benchDedupe(list.filter(p=>!isClearance(p)))){
-    const p=r.p; if(f.price(p)==null) continue;
-    const x=extractModel(f.name(p)), k=(x.code&&x.code.length>=4) ? normCode(x.brand)+"|"+normCode(x.code) : "id:"+f.id(p);
+  // same brand + code = one model, per colour tone; rows that state no colour join that code's first version
+  const rows=benchDedupe(list.filter(p=>!isClearance(p))).filter(r=>f.price(r.p)!=null)
+    .map(r=>({r, tone:[r.p, ...(r.others||[])].map(listingTone).find(Boolean)||""}))
+    .sort((a,b)=>(b.tone?1:0)-(a.tone?1:0));
+  for(const {r, tone} of rows){
+    const p=r.p, x=extractModel(f.name(p));
+    let k=(x.code&&x.code.length>=4) ? normCode(x.brand)+"|"+normCode(x.code)+"|" : "id:"+f.id(p);
+    if(!k.startsWith("id:")) k = tone ? k+tone : ([...byCode.keys()].find(q=>q.startsWith(k)) || k);
     const members=[p, ...(r.others||[])], e=byCode.get(k)||{best:p, members:[]};
     if(f.price(p)<f.price(e.best)) e.best=p;
     e.members.push(...members); byCode.set(k,e);
