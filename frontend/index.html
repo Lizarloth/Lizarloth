@@ -61,9 +61,9 @@
   --cobalt-soft:#E2F0EF;
   --line-soft:#F0ECE3;
   /* ambient page background: dot grid at the sides, two soft glows */
-  --dot:rgba(27,26,23,.11);
-  --glow-a:rgba(11,110,110,.10);
-  --glow-b:rgba(199,125,51,.09);
+  --dot:rgba(11,80,80,.24);
+  --glow-a:rgba(11,110,110,.17);
+  --glow-b:rgba(199,125,51,.16);
 }
 [data-theme="dark"]{
   --ice:#17150F;          /* page background (warm charcoal) */
@@ -108,7 +108,7 @@ body{
    drift slowly. Composite-only motion; still when motion is off. */
 body::before,body::after{content:"";position:fixed;pointer-events:none;z-index:-1}
 body::before{inset:0;
-  background-image:radial-gradient(circle,var(--dot) 1.1px,transparent 1.6px);background-size:22px 22px;
+  background-image:radial-gradient(circle,var(--dot) 1.3px,transparent 1.8px);background-size:22px 22px;
   -webkit-mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.5) 10%,transparent 22%,transparent 78%,rgba(0,0,0,.5) 90%,#000 100%);
           mask-image:linear-gradient(90deg,#000 0%,rgba(0,0,0,.5) 10%,transparent 22%,transparent 78%,rgba(0,0,0,.5) 90%,#000 100%)}
 body::after{inset:-20vmax;
@@ -1250,7 +1250,7 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S50</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S51</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="side-edge" id="sideEdge" aria-hidden="true"></div>
