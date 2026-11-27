@@ -340,6 +340,20 @@ def list_products(db: Session = Depends(get_db)):
         for pid, raw in (db.query(PriceHistory.product_id, PriceHistory.raw_data)
                          .join(own, PriceHistory.id == own.c.mid).all()):
             spec_row[pid] = raw
+    # A second catalogue sweep on the same day adds a reading with no stock
+    # status after the stock check: carry the last status from the past 2 days.
+    avail_carry = {}
+    no_avail = [pid for pid, h in latest_by_pid.items() if not h.availability]
+    if no_avail:
+        since = datetime.utcnow() - timedelta(days=2)
+        av_at = (db.query(PriceHistory.product_id, func.max(PriceHistory.scraped_at).label("mx"))
+                 .filter(PriceHistory.product_id.in_(no_avail), PriceHistory.availability != None,
+                         PriceHistory.availability != "", PriceHistory.scraped_at >= since)
+                 .group_by(PriceHistory.product_id).subquery())
+        for pid, av in (db.query(PriceHistory.product_id, PriceHistory.availability)
+                        .join(av_at, (PriceHistory.product_id == av_at.c.product_id)
+                                     & (PriceHistory.scraped_at == av_at.c.mx)).all()):
+            avail_carry.setdefault(pid, av)
     out = []
     for p in products:
         latest = latest_by_pid.get(p.id)
@@ -361,7 +375,7 @@ def list_products(db: Session = Depends(get_db)):
             "created_at": p.created_at.isoformat() if p.created_at else None,
             "price": latest.price if latest else None,
             "old_price": latest.old_price if latest else None,
-            "availability": latest.availability if latest else None,
+            "availability": (latest.availability or avail_carry.get(p.id)) if latest else None,
             "specs": specs,
             "image": image,
             "scraped_at": latest.scraped_at.isoformat() if latest and latest.scraped_at else None,
