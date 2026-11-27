@@ -7977,7 +7977,7 @@ function onFirstView(el, fn){
 }
 // pending run bars anywhere in the page start when they come into view
 new MutationObserver(()=>document.querySelectorAll(".run[data-p]:not([data-wait])").forEach(el=>{
-  el.dataset.wait="1"; onFirstView(el, ()=>requestAnimationFrame(()=>{ _growPlayed.add(el.dataset.k); el.style.setProperty("--p", el.dataset.p); el.removeAttribute("data-p"); }));
+  el.dataset.wait="1"; onFirstView(el.parentElement, ()=>requestAnimationFrame(()=>{ _growPlayed.add(el.dataset.k); el.style.setProperty("--p", el.dataset.p); el.removeAttribute("data-p"); }));
 })).observe(document.documentElement, {childList:true, subtree:true});
 function chartAnimation(id){
   if(_chartDrawn.has(id) || motionReduced()) return false;
