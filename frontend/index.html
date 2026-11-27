@@ -658,8 +658,48 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 .empty .big{font-size:34px;margin-bottom:10px}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid #fff;border-top-color:transparent;border-radius:99px;animation:rot .7s linear infinite;vertical-align:-2px;margin-right:6px}
 .loadbar{height:3px;background:transparent;overflow:hidden;position:absolute;left:0;right:0;top:0;z-index:5}   /* across the content area, whatever its padding */
-.boot-loader{position:fixed;inset:0;z-index:9000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:var(--bg);transition:opacity .35s ease}
-.boot-loader.hide{opacity:0;pointer-events:none}
+/* ---------- 1. Loading screen: dark, branded, a counter that follows the real load ---------- */
+.boot-loader{position:fixed;inset:0;z-index:9000;background:#050505;color:#f2f2f2;transition:opacity .5s ease,visibility .5s;overflow:hidden}
+.boot-loader.hide{opacity:0;visibility:hidden;pointer-events:none}
+.bl-top{position:absolute;top:28px;left:32px;display:flex;align-items:center;gap:12px}
+.bl-top svg{width:34px;height:34px;display:block}
+.bl-eyebrow{font:500 11px 'JetBrains Mono';letter-spacing:.24em;text-transform:uppercase;color:#8d8d8d}
+.bl-center{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:0 24px}
+.bl-word{font:italic 400 clamp(34px,5.4vw,64px)/1.1 'Instrument Serif',Georgia,serif;color:#e9e9e9}
+.bl-word small{display:block;font:500 12px 'Hanken Grotesk';font-style:normal;letter-spacing:.08em;text-transform:uppercase;color:#7c7c7c;margin-bottom:10px}
+.bl-word span{display:inline-block;transition:opacity .35s ease,transform .45s cubic-bezier(.16,1,.3,1)}
+.bl-word span.out{opacity:0;transform:translateY(-18px)}
+.bl-word span.in{opacity:0;transform:translateY(18px);transition:none}
+.bl-count{position:absolute;right:32px;bottom:34px;font:600 clamp(56px,9vw,112px)/1 'Bricolage Grotesque';letter-spacing:-.04em;font-variant-numeric:tabular-nums;color:#fff}
+.bl-count small{font-size:.32em;color:#8d8d8d;margin-left:4px;letter-spacing:0}
+.bl-bar{position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(255,255,255,.08)}
+.bl-bar i{display:block;height:100%;transform-origin:left;transform:scaleX(0);background:linear-gradient(90deg,#0B6E6E,#5CC8C8,#E0A155);box-shadow:0 0 10px rgba(92,200,200,.45)}
+@media(max-width:640px){ .bl-top{top:20px;left:18px} .bl-count{right:18px;bottom:24px} }
+
+/* ---------- 2. Dashboard header: a dark band with a live dotted wave ---------- */
+.l-hero{background:#06080a;border-color:#06080a;color:#f2f2f2;isolation:isolate;
+  --ink:#f2f2f2;--ink-soft:#a7a7a7;--line-soft:rgba(255,255,255,.09);--teal:#6FD3D3;--cobalt:#6FD3D3}
+.l-hero > :not(canvas){position:relative;z-index:1}
+.l-wave{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.35) 30%,#000 62%);
+          mask-image:linear-gradient(90deg,transparent 0%,rgba(0,0,0,.35) 30%,#000 62%)}
+.l-hero .l-statstrip{background:linear-gradient(180deg,rgba(6,8,10,.55),rgba(6,8,10,.9))}
+.l-hero.play .l-eyebrow{animation:ab-soft .8s cubic-bezier(.16,1,.3,1) .02s both}
+.l-hero.play .l-h1{animation:ab-mask-in .95s cubic-bezier(.16,1,.3,1) .1s both}
+.l-hero.play .l-lede{animation:ab-soft .9s cubic-bezier(.16,1,.3,1) .26s both}
+@keyframes ab-mask-in{from{opacity:0;clip-path:inset(0 0 100% 0);transform:translateY(14px)}to{opacity:1;clip-path:inset(0 0 0 0);transform:none}}
+html[data-motion="reduce"] .l-hero.play :is(.l-eyebrow,.l-h1,.l-lede){animation:none}
+
+/* ---------- 3. Spotlight: a soft glow follows the pointer along a card's border ---------- */
+:is(.card,.today-tile,.ab-card,.stat-card,.l-pulse){position:relative}
+.spot-on::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:1px;pointer-events:none;z-index:2;
+  background:radial-gradient(260px circle at var(--mx,50%) var(--my,50%),var(--spot,rgba(11,110,110,.55)),transparent 62%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+          mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0);
+  opacity:0;animation:spot-in .25s ease forwards}
+@keyframes spot-in{to{opacity:1}}
+[data-theme="dark"] .spot-on::before,#page-about .spot-on::before{--spot:rgba(111,211,211,.5)}
+.l-pulse .card.spot-on::before{display:none}
 .boot-spinner{width:42px;height:42px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--cobalt);animation:bootspin .8s linear infinite}
 .boot-text{font:700 17px 'Hanken Grotesk';color:var(--ink)}
 .boot-sub{font:400 13px 'Hanken Grotesk';color:var(--ink-soft);max-width:280px;text-align:center}
@@ -1210,7 +1250,7 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S49</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S50</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="side-edge" id="sideEdge" aria-hidden="true"></div>
@@ -1246,10 +1286,11 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
 
 <main>
   <div class="loadbar" id="loadbar"></div>
-  <div id="bootLoader" class="boot-loader">
-    <div class="boot-spinner"></div>
-    <div class="boot-text">Loading market data…</div>
-    <div class="boot-sub">Fetching the latest prices across Kotsovolos, Public &amp; Plaisio</div>
+  <div id="bootLoader" class="boot-loader" role="status" aria-label="Loading Pricedge">
+    <div class="bl-top"><svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M0 11 A11 11 0 0 1 11 0 L32 0 L48 16 L48 37 A11 11 0 0 1 37 48 L11 48 A11 11 0 0 1 0 37 Z" fill="#0B6E6E"/><path d="M32 0 L48 16 L34.5 16 A2.5 2.5 0 0 1 32 13.5 Z" fill="#083D3A"/><path d="M17 36 V13 H25 A6.8 6.8 0 0 1 25 26.6 H17" stroke="#F4F1EA" stroke-width="4.4" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="bl-eyebrow">Pricedge · price intelligence</span></div>
+    <div class="bl-center"><div class="bl-word" id="blWord"><small>Loading prices from</small><span>Kotsovolos</span></div></div>
+    <div class="bl-count" id="blCount" aria-hidden="true">000</div>
+    <div class="bl-bar" aria-hidden="true"><i id="blBar"></i></div>
   </div>
   <div class="banner" id="apiBanner">
     ⚠ Backend unreachable — showing demo data. Check that the Railway service is awake, then refresh.
@@ -2413,8 +2454,7 @@ async function loadAll(){
     if(lb) lb.classList.remove("on");
     firstLoad=false;
     renderAll();   // app is usable now
-    pageEntrance({cards:false});   // the numbers arrive: count them up once
-    const bl=document.getElementById("bootLoader"); if(bl) bl.classList.add("hide");
+    bootFinish(()=>pageEntrance());   // the loader runs to 100, fades, then the page plays in
     // history + alerts load in the background and re-render when ready
     Promise.all([loadHistory(), api("/api/alerts?limit=50")])
       .then(([history, alerts])=>{
@@ -2460,7 +2500,7 @@ async function loadAll(){
   if(lb) lb.classList.remove("on");
   firstLoad=false;
   renderAll();
-  const bl2=document.getElementById("bootLoader"); if(bl2) bl2.classList.add("hide");
+  bootFinish(()=>pageEntrance());
 }
 /* Price history: 90 days from /api/history/daily — per product its first
    reading in the window, then only the days something changed. state.history
@@ -6438,6 +6478,7 @@ function pageEntrance({cards=true, numbers=true}={}){
   if(!cards) return;
   // top-level cards only (a card inside a card moves with its parent)
   if(page.id==="page-about"){ aboutEntrance(); aboutScroll(); }
+  page.querySelectorAll(".l-hero").forEach(h=>{ h.classList.remove("play"); void h.offsetWidth; h.classList.add("play"); });
   const all=[...page.querySelectorAll(".card, .ab-card, .today-tile, .grid.metrics > .stat-card")].filter(el=>el.offsetParent!==null);
   const els=all.filter(el=>!all.some(o=>o!==el && o.contains(el)));
   els.forEach(el=>el.classList.add("rv"));
@@ -6456,6 +6497,105 @@ function pageEntrance({cards=true, numbers=true}={}){
   _rvTimer=setTimeout(()=>document.querySelectorAll(".rv:not(.rv-in)").forEach(el=>{
     const r=el.getBoundingClientRect(); if(r.top<innerHeight) el.classList.remove("rv"); }), 1500);
 }
+/* ---- 1. Loading screen: the counter eases towards ~90 while the product data
+   loads, runs to 100 the moment it has arrived, then the screen fades and the page
+   entrance plays. It never adds waiting: it lasts exactly as long as the load. */
+const BOOT={p:0, done:false, t0:performance.now(), raf:0, wordT:0, wi:0, after:null};
+const BOOT_WORDS=["Kotsovolos","Public","Plaisio","BestPrice"];
+function bootTick(now){
+  const el=document.getElementById("bootLoader"); if(!el) return;
+  const cap = BOOT.done ? 100 : 90*(1-Math.exp(-(now-BOOT.t0)/1600));
+  BOOT.p += (cap-BOOT.p) * (BOOT.done ? .22 : .06);
+  if(BOOT.done && BOOT.p>99.4) BOOT.p=100;
+  const c=document.getElementById("blCount"), b=document.getElementById("blBar");
+  if(c) c.firstChild.nodeValue=String(Math.floor(BOOT.p)).padStart(3,"0");
+  if(b) b.style.transform=`scaleX(${(BOOT.p/100).toFixed(4)})`;
+  if(!BOOT.done && !motionReduced() && now-BOOT.wordT>900){ BOOT.wordT=now; bootWord(); }
+  if(BOOT.p>=100){ setTimeout(bootHide, 280); return; }
+  BOOT.raf=requestAnimationFrame(bootTick);
+}
+function bootWord(){
+  const s=document.querySelector("#blWord span"); if(!s) return;
+  s.classList.add("out");
+  setTimeout(()=>{ BOOT.wi=(BOOT.wi+1)%BOOT_WORDS.length; s.textContent=BOOT_WORDS[BOOT.wi];
+    s.classList.remove("out"); s.classList.add("in"); void s.offsetWidth; s.classList.remove("in"); }, 300);
+}
+function bootHide(){
+  const el=document.getElementById("bootLoader"); if(!el || el.classList.contains("hide")) return;
+  el.classList.add("hide");
+  if(BOOT.after){ const f=BOOT.after; BOOT.after=null; setTimeout(f, 120); }
+}
+/* called when the data is in (or demo data is shown); then = what to run once it has faded */
+function bootFinish(then){
+  BOOT.done=true; BOOT.after=then||null;
+  if(motionReduced()){ cancelAnimationFrame(BOOT.raf); BOOT.p=100; bootHide(); return; }
+  if(!BOOT.raf) BOOT.raf=requestAnimationFrame(bootTick);
+}
+(function bootStart(){ BOOT.raf=requestAnimationFrame(bootTick); })();
+
+/* ---- 2. Dashboard header wave: a field of dots rolling like the About video,
+   drawn on a canvas behind the header text. Runs only while the header is on
+   screen, the tab is visible and motion is on; otherwise one still frame. */
+const WAVES=new Map();     // canvas -> {visible}
+function waveInit(){
+  document.querySelectorAll(".l-hero").forEach(h=>{
+    if(h.querySelector(".l-wave")) return;
+    const c=document.createElement("canvas"); c.className="l-wave"; c.setAttribute("aria-hidden","true");
+    h.prepend(c); WAVES.set(c,{visible:false});
+    waveIO.observe(c);
+  });
+}
+const waveIO=new IntersectionObserver(es=>es.forEach(e=>{ const w=WAVES.get(e.target); if(w) w.visible=e.isIntersecting; }));
+function waveDraw(c, t){
+  const dpr=Math.min(2, devicePixelRatio||1), W=c.clientWidth, H=c.clientHeight; if(!W||!H) return;
+  if(c.width!==Math.round(W*dpr) || c.height!==Math.round(H*dpr)){ c.width=Math.round(W*dpr); c.height=Math.round(H*dpr); }
+  const g=c.getContext("2d"); g.setTransform(dpr,0,0,dpr,0,0); g.clearRect(0,0,W,H);
+  const cols=Math.min(64, Math.max(30, Math.round(W/16))), rows=16;
+  for(let r=0;r<rows;r++){
+    const z=r/(rows-1), persp=.45+z*.75;                       // back rows small, front rows large
+    const y0=H*.18 + z*H*.62;
+    for(let i=0;i<cols;i++){
+      const u=i/(cols-1), x=W*(.5+(u-.5)*persp*1.25);
+      const h=Math.sin(u*6.2+t*.9+z*2.4)*Math.cos(z*3.1-t*.55+u*1.7);
+      const y=y0 - h*H*.11*persp;
+      const a=(.16+.5*z)*(.55+.45*(h+1)/2);
+      g.fillStyle=`rgba(235,238,240,${a.toFixed(3)})`;
+      g.beginPath(); g.arc(x,y,(.7+1.5*z)*(.85+.3*(h+1)/2),0,Math.PI*2); g.fill();
+    }
+  }
+}
+let _waveLast=0;
+function waveLoop(now){
+  requestAnimationFrame(waveLoop);
+  if(now-_waveLast<33) return;            // ~30 fps is plenty for a slow wave
+  _waveLast=now;
+  if(document.hidden) return;
+  const still=motionReduced();
+  for(const [c,w] of WAVES){
+    if(!w.visible || !c.isConnected) continue;
+    if(still){ if(!w.drawnStill){ waveDraw(c, 1.2); w.drawnStill=true; } continue; }
+    w.drawnStill=false; waveDraw(c, now/1000);
+  }
+}
+requestAnimationFrame(waveLoop);
+
+/* ---- 3. Spotlight: the hovered card gets --mx/--my at the pointer; its ::before
+   draws a soft ring there. Fine pointers only; off when motion is off. */
+const SPOT_SEL=".card, .today-tile, .ab-card, .stat-card, .l-pulse";
+let _spotEl=null, _spotTick=false, _spotEv=null;
+if(matchMedia("(hover:hover) and (pointer:fine)").matches){
+  document.addEventListener("pointermove", e=>{ _spotEv=e; if(_spotTick) return; _spotTick=true;
+    requestAnimationFrame(()=>{ _spotTick=false; const ev=_spotEv;
+      let el=motionReduced()?null:ev.target.closest&&ev.target.closest(SPOT_SEL);
+      if(el && el.closest(".l-pulse") && !el.classList.contains("l-pulse")) el=el.closest(".l-pulse");   // one ring for the market-structure block
+      if(el!==_spotEl){ if(_spotEl) _spotEl.classList.remove("spot-on"); _spotEl=el; if(el) el.classList.add("spot-on"); }
+      if(el){ const r=el.getBoundingClientRect(); el.style.setProperty("--mx",(ev.clientX-r.left)+"px"); el.style.setProperty("--my",(ev.clientY-r.top)+"px"); }
+    }); }, {passive:true});
+  document.addEventListener("pointerleave", ()=>{ if(_spotEl){ _spotEl.classList.remove("spot-on"); _spotEl=null; } });
+}
+
+waveInit();
+
 /* Count-up for the headline numbers: same format back (€1.099,00 / 1,454 /
    −50.0% / 4.72★ / +82), easeOutCubic, ~0.75 s, staggered. Stops if a render
    replaces the text meanwhile. */
@@ -6474,7 +6614,7 @@ function _numOut(v,F){
   if(F.th) i=i.replace(/\B(?=(\d{3})+(?!\d))/g,F.th);
   return F.sign+i+(d!==undefined?F.dec+d:"");
 }
-function countUpIn(page, sel=".today-tile .n, .stat-card .metric-value", base=0){
+function countUpIn(page, sel=".today-tile .n, .stat-card .metric-value, .l-stat .v", base=0){
   const targets=[...page.querySelectorAll(sel)].filter(el=>el.offsetParent!==null).slice(0,12);
   targets.forEach((el,k)=>{
     // the first text node holding a number (values can sit inside a coloured span)
