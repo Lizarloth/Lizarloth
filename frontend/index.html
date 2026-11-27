@@ -1045,7 +1045,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S37</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S38</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -6382,7 +6382,8 @@ on("page-perception","click",e=>{
   if(c){ const [b,k]=c.dataset.bpCell.split("|");
     bpFilter.brand=b; bpFilter.pillar=k; renderPerception(); bpReaderOpen(`${b}|pillar|${k}|${bpFilter.type}`); return; }
   const rp=e.target.closest("[data-bradpick]");
-  if(rp){ const key="rpick_"+(bpFilter.rmode||"brand"), cur=bpFilter[key]||[], k=rp.dataset.bradpick;
+  if(rp){ const key="rpick_"+(bpFilter.rmode||"brand")+"_"+state.dept, k=rp.dataset.bradpick;
+    const cur=bpFilter[key] || [...document.querySelectorAll("#bpRadPick .chip.on")].map(c=>c.dataset.bradpick);   // the default picks on screen
     bpFilter[key]=cur.includes(k)?cur.filter(x=>x!==k):[...cur,k].slice(-4); renderPerception(); return; }
   const ro=e.target.closest("[data-brad]");
   if(ro){ bpFilter[ro.dataset.brad]=ro.dataset.pv;
