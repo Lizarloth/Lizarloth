@@ -1303,10 +1303,31 @@ def _near_targets(seen):
 MARKET_MINUTES = 25       # time budget for the BestPrice market pass
 
 
-def check_market(seen):
-    """BestPrice: every shop's offer for your models and their nearest rivals."""
+def check_market(seen, public_names=None):
+    """BestPrice: every shop's offer for your models and their nearest rivals.
+    Order: your models Public lists (their Public price comes from here while
+    Public is paused), your other models, then rivals; within each, the model
+    read longest ago first. public_names: names of Public's listings (the
+    backend's, since a run with Public paused has none of its own)."""
     import bestprice
-    bestprice.run(_near_targets(seen), _push_market, log=log, budget_minutes=MARKET_MINUTES)
+    def mine(r):
+        house = _HOUSE_PLUS if r["dept"] in ("cooking", "dishwashing") else _HOUSE
+        return any(b in (r["name"] or "").upper() for b in house)
+    if public_names is None:
+        public_names = [r["name"] for r in seen if r.get("site") == "public"]
+    at_public = {bestprice.extract_model(n) for n in public_names}
+    models = [{"name": r["name"], "tier": (0 if bestprice.extract_model(r["name"]) in at_public else 1) if mine(r) else 2}
+              for r in _near_targets(seen)]
+    bestprice.run(models, _push_market, log=log, budget_minutes=MARKET_MINUTES)
+
+
+def _backend_seen():
+    """The backend's products as runner rows (for passes run without a scrape)."""
+    return [{"site": p.get("site"), "url": p.get("url"), "name": p.get("name"), "price": p.get("price"),
+             "category": p.get("category"), "sku": p.get("sku"),
+             "reviews": (p.get("specs") or {}).get("__reviews"),
+             "dept": (p.get("specs") or {}).get("__dept", "cooling")}
+            for p in get_tracked_products() if p.get("url")]
 
 
 def _push_market(items, _tries=4):
@@ -1654,7 +1675,13 @@ def run_plp(sites, scope_subs, headless=True, enrich_prices=False, check_stock_a
     if enrich_prices and reprice_targets:
         reprice_unbeatable(reprice_targets, headless=headless)
     if market_after and seen:
-        check_market(seen)
+        public_names = None
+        if "public" not in sites:          # Public paused: which models it lists comes from the backend
+            try:
+                public_names = [r["name"] for r in _backend_seen() if r["site"] == "public"]
+            except Exception as e:
+                log(f"  (Public listings from the backend failed, non-fatal: {str(e)[:60]})")
+        check_market(seen, public_names)
     if check_stock_after and seen:
         check_stock(seen)
     if reviews_after and seen:
@@ -1717,12 +1744,17 @@ def main():
     if args.reviews and not args.plp:
         global REVIEWS_MINUTES
         REVIEWS_MINUTES = max(5, (args.max_minutes or 25) - 5)
-        seen = [{"site": p.get("site"), "url": p.get("url"), "name": p.get("name"),
-                 "reviews": (p.get("specs") or {}).get("__reviews"),
-                 "dept": (p.get("specs") or {}).get("__dept", "cooling")}
-                for p in get_tracked_products() if p.get("url")]
+        seen = _backend_seen()
         log(f"=== reviews catch-up: {sum(1 for s in seen if s['reviews'])} rated products on the backend ===")
         check_reviews(seen)
+        return
+
+    # --market without --plp: a BestPrice pass over the backend's products (no
+    # listing scrape), e.g. to use today's allowance on Public's gaps right away
+    if args.market and not args.plp:
+        seen = _backend_seen()
+        log(f"=== BestPrice pass: {len(seen)} listings on the backend ===")
+        check_market(seen)
         return
 
     # Decide which subcategories are in scope for this run.

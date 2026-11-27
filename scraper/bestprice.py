@@ -167,20 +167,24 @@ def _offers(mcp, bp_id, offer_count):
 
 
 def run(models, push, log=print, budget_minutes=25):
-    """models: [{'name': ...}] in priority order (yours first). push(items)
-    sends a batch to /api/ingest/market. Stops at the time budget or after 5
-    errors in a row."""
+    """models: [{'name': ..., 'tier': n}] (lower tier first). Within a tier the
+    model read longest ago goes first, so the daily allowance (~30-40 models)
+    rotates through the whole list instead of re-reading the same top ones.
+    push(items) sends a batch to /api/ingest/market. Stops at the time budget
+    or after 5 errors in a row."""
     t_end = time.time() + budget_minutes * 60
     cache = _load_cache()
     today = dt.date.today()
     targets, keys = [], set()
-    for m in models:
+    for i, m in enumerate(models):
         brand, code = extract_model(m.get("name"))
         if len(code) < 6 or (brand, code) in keys:     # too short to match safely
             continue
         keys.add((brand, code))
-        targets.append((brand, code, m["name"]))
-    log(f"[market] BestPrice: {len(targets)} models")
+        last = (cache.get(f"{brand}|{code}") or {}).get("read", "")      # "" = never read: first
+        targets.append(((m.get("tier", 0), last, i), brand, code, m["name"]))
+    targets = [t[1:] for t in sorted(targets)]
+    log(f"[market] BestPrice: {len(targets)} models, least recently read first")
     try:
         mcp = Mcp()
     except Exception as e:
@@ -233,6 +237,7 @@ def run(models, push, log=print, budget_minutes=25):
             time.sleep(30 * fails)      # back off; BestPrice errors on heavy use
             continue
         done += 1
+        hit["read"] = today.isoformat()
         if offers:
             batch.append({"brand": brand, "code": code, "bp_id": hit["id"], "title": hit.get("title"),
                           "offer_count": hit.get("count"), "offers": offers})
