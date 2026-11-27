@@ -1309,7 +1309,7 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S57</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S58</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="side-edge" id="sideEdge" aria-hidden="true"></div>
@@ -3574,7 +3574,7 @@ function renderModelPanel(p, keepScroll){
     const age = L ? (L.kind==="launch" ? `launched ${_daysSince(L.first_seen)===0?"today":_daysSince(L.first_seen)+" d ago"}` : "back in range")
               : (nw!=null && nw<=0.03 ? "among the newest listings" : "");
     return `<div class="mp-offer"><span class="pill ${SITE_PILL[f.site(q)]||"na"}">${SITE_LABEL[f.site(q)]||f.site(q)}</span>
-      <span class="mp-o-main">${b!=="Not reported"?`<span class="sw-st" style="background:${AVAIL_COLOR[b]||"#94A3B8"}">${esc(b)}</span> `:'<span style="color:var(--ink-soft)">stock not checked</span> '}${q.sku?`· SKU ${esc(q.sku)}`:""}${age?` · <b style="color:var(--mint)">${age}</b>`:""}</span>
+      <span class="mp-o-main">${b!=="Not reported"?`<span class="sw-st" style="background:${AVAIL_COLOR[b]||"#94A3B8"}">${esc(b)}</span> `:""}${q.sku?`SKU ${esc(q.sku)}`:""}${age?` · <b style="color:var(--mint)">${age}</b>`:""}</span>
       <span class="mp-price">${f.price(q)!=null?fmtWas(q):"—"}${best&&q===best&&priced.length>1?'<span class="mp-best">BEST</span>':""}</span>
       ${url?`<a class="mp-ext" href="${esc(url)}" target="_blank" rel="noopener">Open ↗</a>`:""}</div>`;
   }).join("");
@@ -8072,12 +8072,20 @@ function makeChart(id,type,data,extra={}){
   const horiz = extra.indexAxis==="y";
   const txt = cssAt(cv,"--ink-soft") || "#64748B", ink = cssAt(cv,"--ink") || "#1B1A17", grid = cssAt(cv,"--grid");
   const upper = function(v){ const l=this.getLabelForValue(v); return typeof l==="string" && l.length<=18 ? l.toUpperCase() : l; };
-  const valTicks={font:{family:"JetBrains Mono",size:10},color:txt,padding:6,callback:v=>money?"€"+v:v};
+  // ticks are rounded: a narrow axis steps in fractions (559.8000000000001)
+  const tick = v => { const r=Math.round(v*100)/100; return Number.isInteger(r) ? r.toLocaleString("el-GR") : r.toLocaleString("el-GR",{minimumFractionDigits:2, maximumFractionDigits:2}); };
+  const valTicks={font:{family:"JetBrains Mono",size:10},color:txt,padding:6,callback:v=>money?"€"+tick(v):tick(v)};
   const catTicks={font:{family:"JetBrains Mono",size:10},color:txt,padding:6,callback:upper};
   const baseScales = (type==="doughnut"||type==="pie") ? {} : {
     x:{grid:{display:!horiz,color:grid,drawTicks:false},border:{display:false,dash:[3,4]},beginAtZero:horiz,stacked:!!sx(extra).stacked,ticks: horiz?valTicks:catTicks},
     y:{grid:{color:horiz?"transparent":grid,drawTicks:false},border:{display:false,dash:[3,4]},beginAtZero:!horiz,stacked:!!sy(extra).stacked,ticks: horiz?catTicks:valTicks}
   };
+  // price lines: never zoom so far that a €1 difference looks like a cliff; keep at least ±3% of the price in view
+  if(type==="line" && money){
+    const vals=data.datasets.flatMap(d=>(d.data||[]).map(v=>typeof v==="object"&&v?v.y:v)).filter(v=>typeof v==="number"&&isFinite(v));
+    if(vals.length){ const lo=Math.min(...vals), hi=Math.max(...vals), pad=Math.max(hi*0.03, (hi-lo)*0.15);
+      Object.assign(baseScales.y, {beginAtZero:false, suggestedMin:Math.max(0,lo-pad), suggestedMax:hi+pad}); }
+  }
   if(horiz && extra.tracks!==false){ baseScales.x.display=false; }       // the values sit at the bar ends instead
   // skin the datasets: gradient bars, thin ring
   if(type==="bar") data.datasets.forEach(ds=>{ if(ds._skinned) return; ds._skinned=true;
