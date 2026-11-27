@@ -231,6 +231,14 @@ nav button.active{background:var(--cobalt);color:#fff}
 .bp-stars{color:#E0A13A;font-size:12px;letter-spacing:1px;white-space:nowrap} .bp-stars span{color:var(--line)}
 .bp-q{font-size:13px;line-height:1.45}
 .bp-meta{grid-column:2;font-size:11.5px;color:var(--ink-soft)}
+.bp-stars.s5{color:var(--mint)} .bp-stars.s4{color:var(--warn)} .bp-stars.s3{color:var(--heat)}
+.bp-quote.s5{border-left-color:var(--mint)} .bp-quote.s4{border-left-color:var(--warn)} .bp-quote.s3{border-left-color:var(--heat)}
+.ns{font:700 13px 'JetBrains Mono';font-variant-numeric:tabular-nums}
+.ns.hi{color:var(--mint)} .ns.mid{color:var(--warn)} .ns.lo{color:var(--heat)} .ns.few{color:var(--ink-faint);font-weight:400}
+.ns-bar{display:inline-flex;width:90px;height:8px;border-radius:4px;overflow:hidden;vertical-align:middle;background:var(--soft-bg)}
+.ns-bar i{display:block;height:100%} .ns-bar .s5{background:var(--mint)} .ns-bar .s4{background:var(--warn)} .ns-bar .s3{background:var(--heat)}
+.mp-ns{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 0 4px;font-size:12.5px}
+.mp-ns-l{font-weight:600} .mp-ns small{color:var(--ink-soft)}
 .bp-quote mark{background:rgba(224,161,58,.28);color:inherit;border-radius:3px;padding:0 1px}
 .bpr-drawer{width:560px;display:flex;flex-direction:column}
 .bpr-list{flex:1;overflow-y:auto;padding:8px 14px 24px}
@@ -1030,7 +1038,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S35</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S36</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1530,7 +1538,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <div class="card">
       <h3><span class="dot" style="background:var(--cobalt)"></span>Star ratings by brand <span id="bpStarScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
       <div style="overflow-x:auto"><table>
-        <thead><tr><th>Brand</th><th style="text-align:right">Rated models</th><th style="text-align:right">Kotsovolos</th><th style="text-align:right">Plaisio</th><th style="text-align:right">All reviews</th><th style="text-align:right" title="Review-weighted average">Average ★</th></tr></thead>
+        <thead><tr><th>Brand</th><th style="text-align:right">Rated models</th><th style="text-align:right">Kotsovolos</th><th style="text-align:right">Plaisio</th><th style="text-align:right">All reviews</th><th style="text-align:right" title="Review-weighted average">Average ★</th><th style="text-align:right" title="% of 5★ reviews minus % of 1–3★, from the Kotsovolos review texts read (5+ needed)">Net score</th></tr></thead>
         <tbody id="bpStars"></tbody>
       </table></div>
     </div>
@@ -3191,7 +3199,9 @@ function modelReviewsHTML(members, rating, badges){
     <div class="mp-rv-head">${rating?`<span class="mp-rv-stars">${rating.stars.toFixed(2)}★</span><span class="mp-rv-n">${rating.n} reviews</span>`
       :'<span class="mp-rv-n">No customer ratings yet</span>'}
       ${rating?Object.entries(rating.per).map(([s,v])=>`<span class="pill ${SITE_PILL[s]||"na"}">${SITE_LABEL[s]||s} ${v.r.toFixed(1)}★ (${v.n})</span>`).join(" "):""}
-      ${ratingBadgesHTML(badges)}</div>`;
+      ${ratingBadgesHTML(badges)}</div>
+    ${rows.length?`<div class="mp-ns"><span class="mp-ns-l">Net score</span> ${netHTML(netScore(rows))} ${netBar(netScore(rows))}
+      <small>${(s=>`${s.pro} five-star · ${s.pas} four-star · ${s.det} one-to-three-star of ${s.n} review texts`)(netScore(rows))}</small></div>`:""}`;
   if(!rating) return head;
   if(state.reviews===undefined) return head+`<div class="mp-rv-note">Loading review texts…</div>`;
   if(!rows.length) return head+`<div class="mp-rv-note">${rating.per.kotsovolos?"Review texts for this model haven't been read yet: the daily run reads them a batch at a time.":"Only star ratings here: the review texts are read from Kotsovolos pages."}</div>`;
@@ -3202,7 +3212,7 @@ function modelReviewsHTML(members, rating, badges){
     return `<div class="mp-pl${x.retailer?" ret":""}"><span class="mp-pl-l">${esc(x.label)}${x.retailer?' <small>(retailer)</small>':""}</span>
       <span class="mp-pl-bar" title="${c.pos} positive, ${neu} neutral, ${c.neg} negative"><i class="p" style="width:${c.pos/c.n*100}%"></i><i class="z" style="width:${neu/c.n*100}%"></i><i class="n" style="width:${c.neg/c.n*100}%"></i></span>
       <span class="mp-pl-n">${c.n}</span></div>`; }).join("");
-  const quote=(r,cls)=>{ const t=String(r.text||"").replace(/\s+/g," "); return `<div class="bp-quote ${cls}"><span class="bp-stars">${"★".repeat(r.stars||0)}<span>${"★".repeat(5-(r.stars||0))}</span></span><span class="bp-q">${esc(t.length>200?t.slice(0,199)+"…":t)}</span><span class="bp-meta">${esc(r.date||"")} · ${SITE_LABEL[r.site]||r.site}</span></div>`; };
+  const quote=r=>{ const t=String(r.text||"").replace(/\s+/g," "); return `<div class="bp-quote ${starTone(r.stars)}">${starsHTML(r.stars)}<span class="bp-q">${esc(t.length>200?t.slice(0,199)+"…":t)}</span><span class="bp-meta">${esc(r.date||"")} · ${SITE_LABEL[r.site]||r.site}</span></div>`; };
   const tagged=rows.filter(r=>Object.keys(r.tags).length);
   // each review goes in one list: 1–2★ = dislike; 4–5★ = like unless its topics are net negative; 3★ = its topics decide
   const tone=r=>{ const net=Object.values(r.tags).reduce((a,v)=>a+v,0), s=r.stars||0;
@@ -3211,8 +3221,8 @@ function modelReviewsHTML(members, rating, badges){
   const dislikes=tagged.filter(r=>tone(r)<0).sort((a,b)=>(a.stars||0)-(b.stars||0)).slice(0,2);
   return head + `<div class="mp-rv-note">${rows.length} review text${rows.length===1?"":"s"} read · ${tagged.length} mention a pillar · bars: <b style="color:var(--cobalt)">positive</b> / neutral / <b style="color:var(--heat)">negative</b></div>`
     + (bars?`<div class="mp-pls">${bars}</div>`:"")
-    + (likes.length?`<div class="mp-rv-sub">What buyers like</div>${likes.map(r=>quote(r,"pos")).join("")}`:"")
-    + (dislikes.length?`<div class="mp-rv-sub">What buyers dislike</div>${dislikes.map(r=>quote(r,"neg")).join("")}`:"");
+    + (likes.length?`<div class="mp-rv-sub">What buyers like</div>${likes.map(quote).join("")}`:"")
+    + (dislikes.length?`<div class="mp-rv-sub">What buyers dislike</div>${dislikes.map(quote).join("")}`:"");
 }
 function renderModelPanel(p, keepScroll){
   const dept=deptOf(p), members=modelMembers(p), priced=members.filter(q=>f.price(q)!=null);
@@ -4776,6 +4786,29 @@ function bpTagWith(items, text, stars){
   }
   return out;
 }
+/* Star tones, the way Net Promoter Score reads a scale: 5★ = promoter (green),
+   4★ = passive (amber), 1–3★ = detractor (red). Buyers average ~4.7★, so
+   counting 4★ as positive would call nearly everything positive. */
+const starTone = s => s>=5 ? "s5" : s>=4 ? "s4" : "s3";
+const starsHTML = s => { s=Math.round(s||0); return `<span class="bp-stars ${starTone(s)}" aria-label="${s} of 5 stars">${"★".repeat(s)}<span>${"★".repeat(5-s)}</span></span>`; };
+/* Net score (NPS-style, from each review's own stars): % 5★ − % 1–3★, −100…+100 */
+function netScore(list){
+  const n=list.length; if(!n) return null; let pro=0, det=0;
+  for(const r of list){ const s=r.stars||0; if(s>=5) pro++; else if(s<=3) det++; }
+  return {n, pro, pas:n-pro-det, det, score:Math.round((pro-det)/n*100)};
+}
+const NET_MIN = 5;      // fewer reviews than this: no score shown
+function netHTML(ns){
+  if(!ns) return '<span class="ns few">–</span>';
+  const tip=`${ns.pro} five-star · ${ns.pas} four-star · ${ns.det} one-to-three-star, of ${ns.n} reviews`;
+  if(ns.n<NET_MIN) return `<span class="ns few" title="${tip}: too few for a score">–</span>`;
+  return `<span class="ns ${ns.score>=50?"hi":ns.score>=0?"mid":"lo"}" title="${tip}">${ns.score>0?"+":ns.score<0?"−":""}${Math.abs(ns.score)}</span>`;
+}
+function netBar(ns){
+  if(!ns) return "";
+  const w=v=>(v/ns.n*100).toFixed(1)+"%";
+  return `<span class="ns-bar" title="${ns.pro} five-star · ${ns.pas} four-star · ${ns.det} one-to-three-star"><i class="s5" style="width:${w(ns.pro)}"></i><i class="s4" style="width:${w(ns.pas)}"></i><i class="s3" style="width:${w(ns.det)}"></i></span>`;
+}
 let _bpCache = {key:null, rows:null};
 function bpRows(){
   // tie each review to its product (brand, department, type) by url; keep the tags
@@ -4819,12 +4852,14 @@ function renderPerception(){
   const brands=Object.values(B).sort((a,b)=>b.n-a.n);
   const avg=e=>e&&e.n?e.sum/e.n:null, star=v=>v==null?"–":v.toFixed(2)+"★";
   document.getElementById("bpStarScope").textContent=`· ${brands.reduce((a,e)=>a+e.n,0).toLocaleString("en-GB")} reviews on ${brands.reduce((a,e)=>a+e.models,0)} listings`;
+  const nsRows = state.reviews ? bpRows().filter(r=>r.dept===dept && (F.type==="all" || r.type===F.type)) : null;
+  const nsOf = b => nsRows ? netScore(nsRows.filter(r=>r.brand===b)) : null;
   document.getElementById("bpStars").innerHTML = brands.slice(0,30).map(e=>`<tr><td><b>${esc(e.b)}</b>${e.mine?' <span class="mv-mine">YOURS</span>':""}</td>
       <td style="text-align:right">${e.models}</td>
       <td style="text-align:right">${e.site.kotsovolos?`${star(avg(e.site.kotsovolos))} <span style="color:var(--ink-soft);font-size:11.5px">(${e.site.kotsovolos.n})</span>`:"–"}</td>
       <td style="text-align:right">${e.site.plaisio?`${star(avg(e.site.plaisio))} <span style="color:var(--ink-soft);font-size:11.5px">(${e.site.plaisio.n})</span>`:"–"}</td>
-      <td style="text-align:right">${e.n}</td><td style="text-align:right"><b>${star(avg(e))}</b></td></tr>`).join("")
-    || `<tr><td colspan="6" style="color:var(--ink-soft);padding:20px;text-align:center">No ratings yet: they arrive with the next listing run.</td></tr>`;
+      <td style="text-align:right">${e.n}</td><td style="text-align:right"><b>${star(avg(e))}</b></td><td style="text-align:right">${nsRows?netHTML(nsOf(e.b)):"…"}</td></tr>`).join("")
+    || `<tr><td colspan="7" style="color:var(--ink-soft);padding:20px;text-align:center">No ratings yet: they arrive with the next listing run.</td></tr>`;
   // ---- pillar matrix (review texts) ----
   const metrics=document.getElementById("bpMetrics"), quotes=document.getElementById("bpQuotes");
   if(state.reviews===undefined){ host.innerHTML=`<tbody><tr><td style="color:var(--ink-soft);padding:16px">Loading reviews…</td></tr></tbody>`; return; }
@@ -4835,7 +4870,7 @@ function renderPerception(){
   metrics.innerHTML = m1("Review texts read", rows.length.toLocaleString("en-GB"), `${new Set(rows.map(r=>r.url)).size} models · Kotsovolos`, "sc-blue")
     + m1("Mention a pillar", rows.length?Math.round(tagged.length/rows.length*100)+"%":"–", "the rest are short (“very good”)", "sc-aqua")
     + m1("Your brands", mineRows.length, "reviews of your models", "sc-mint")
-    + m1("Average stars", rows.length?(rows.reduce((a,r)=>a+(r.stars||0),0)/rows.length).toFixed(2)+"★":"–", "of the reviews read", "sc-heat");
+    + m1("Average stars", rows.length?(rows.reduce((a,r)=>a+(r.stars||0),0)/rows.length).toFixed(2)+"★":"–", `net score ${(n=>n&&n.n>=NET_MIN?(n.score>0?"+":"")+n.score:"–")(netScore(rows))} (5★ minus 1–3★)`, "sc-heat");
   if(!rows.length){
     host.innerHTML=`<tbody><tr><td style="color:var(--ink-soft);padding:16px">No review texts for this department yet: the daily run reads them a batch at a time (your models first).</td></tr></tbody>`;
     quotes.innerHTML=""; document.getElementById("bpCards").innerHTML=""; document.getElementById("bpDrivers").innerHTML=""; return;
@@ -5087,7 +5122,7 @@ function bpHighlight(text, words){
 function bpReaderRender(){
   document.getElementById("bprTitle").textContent=BPR.title;
   const cnt={all:BPR.rows.length, neg:BPR.rows.filter(x=>x.t<0).length, neu:BPR.rows.filter(x=>x.t===0).length, pos:BPR.rows.filter(x=>x.t>0).length};
-  document.getElementById("bprSub").textContent=`${BPR.sub} · ${cnt.all} review${cnt.all===1?"":"s"}`;
+  document.getElementById("bprSub").textContent=`${BPR.sub} · ${cnt.all} review${cnt.all===1?"":"s"}`+((n=>n&&n.n>=NET_MIN?` · net score ${n.score>0?"+":""}${n.score}`:"")(netScore(BPR.rows.map(x=>x.r))));
   const tab=(k,label)=>`<button class="dr-tab${BPR.tone===k?" on":""}" data-bprt="${k}">${label} <small>${cnt[k]}</small></button>`;
   document.getElementById("bprTabs").innerHTML = tab("all","All")+tab("neg","Complaints")+tab("pos","Praise")+tab("neu","Neutral");
   const q=gsNorm(BPR.q).trim();
@@ -5095,8 +5130,8 @@ function bpReaderRender(){
   if(q) list=list.filter(x=>gsNorm(x.r.text+" "+x.r.name).includes(q));
   list.sort((a,b)=>(a.t-b.t) || (a.r.stars-b.r.stars) || String(b.r.date).localeCompare(String(a.r.date)));
   const words=q?[...BPR.words, ...q.split(/\s+/)]:BPR.words;
-  document.getElementById("bprList").innerHTML = list.slice(0,BPR.n).map(({r,t})=>`<div class="bp-quote ${t>0?"pos":t<0?"neg":""}">
-      <span class="bp-stars" aria-label="${r.stars||0} of 5 stars">${"★".repeat(r.stars||0)}<span>${"★".repeat(5-(r.stars||0))}</span></span>
+  document.getElementById("bprList").innerHTML = list.slice(0,BPR.n).map(({r,t})=>`<div class="bp-quote ${starTone(r.stars)}">
+      ${starsHTML(r.stars)}
       <span class="bp-q">${bpHighlight(String(r.text||"").replace(/\s+/g," "), words)}</span>
       <span class="bp-meta">${r.p?`<a class="rl" href="#" data-model="${esc(f.id(r.p))}">${esc(modelTitle(r.name,30))}</a>`:esc(modelTitle(r.name,30))} · ${esc(r.brand||"")} · ${esc(r.date||"")}</span></div>`).join("")
     + (list.length>BPR.n?`<button class="btn ghost ph-more" data-bprmore>Show ${Math.min(20,list.length-BPR.n)} more of ${list.length}</button>`:"")
@@ -5124,7 +5159,7 @@ function renderReviewAlerts(){
   document.getElementById("revAlertSum").textContent=`· ${bad.length} low review${bad.length===1?"":"s"} · ${spikes.length} rising complaint${spikes.length===1?"":"s"}`;
   el.innerHTML = (spikes.length?`<div class="bp-reasons" style="margin-bottom:12px"><b>Complaints rising on your models:</b> ${spikes.map(s=>`<button class="bp-reason neg" data-bpr="__mine|topic|${s.P.k}|all">${esc(s.P.label)} <small>${s.recent} in 30 days vs ~${s.rate.toFixed(1)} before</small></button>`).join("")}</div>`:"")
     + (bad.length ? bad.slice(0,10).map(r=>`<div class="ab-rival disrupt">
-        <div class="ab-rival-main"><span class="bp-stars">${"★".repeat(r.stars||0)}<span>${"★".repeat(5-(r.stars||0))}</span></span> <b>${r.p?`<a class="rl" href="#" data-model="${esc(f.id(r.p))}">${esc(modelTitle(r.name,36))}</a>`:esc(modelTitle(r.name,36))}</b> <span class="ab-edges">${topicsOf(r)}</span></div>
+        <div class="ab-rival-main">${starsHTML(r.stars)} <b>${r.p?`<a class="rl" href="#" data-model="${esc(f.id(r.p))}">${esc(modelTitle(r.name,36))}</a>`:esc(modelTitle(r.name,36))}</b> <span class="ab-edges">${topicsOf(r)}</span></div>
         <div class="ab-rival-sub">“${esc(String(r.text||"").replace(/\s+/g," ").slice(0,240))}${String(r.text||"").length>240?"…":""}” · ${esc(r.date||"")}</div></div>`).join("")
       + (bad.length>10?`<button class="ab-expand" data-bpr="__mine|bad|*|all">Read every 1–2★ review of your models</button>`:"")
       : `<div class="empty">No 1–2★ reviews on your ${DEPT_NAME[dept].toLowerCase()} models in the last 30 days.</div>`);
