@@ -545,19 +545,46 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 .df-lbl{font:600 11px 'Hanken Grotesk';letter-spacing:.05em;text-transform:uppercase;color:var(--ink-soft);margin-right:2px}
 
 /* Price History controls */
-.hist-controls{margin-bottom:16px}
-.hist-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
-.hist-row select,.hist-row input{width:auto;min-width:180px}
-.hist-row input{flex:1;min-width:220px}
-.hist-results{display:flex;flex-direction:column;gap:4px;max-height:240px;overflow-y:auto}
-.hist-res{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border:1px solid var(--line);border-radius:9px;background:var(--frost);cursor:pointer;font-size:13px}
-.hist-res:hover{border-color:var(--cobalt)}
-.hist-res .hr-meta{font-size:11px;color:var(--ink-soft)}
-.hist-res .hr-add{color:var(--cobalt);font-weight:700;font-size:18px;line-height:1}
-.hist-picks{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:10px}
-.hist-pick{display:flex;align-items:center;gap:7px;padding:5px 10px;border-radius:99px;font:600 12px 'Hanken Grotesk';color:#fff}
-.hist-pick .hp-x{cursor:pointer;opacity:.8}
-.hist-pick .hp-x:hover{opacity:1}
+.ph-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px}
+.ph-bar select{width:auto}
+.ph-bar input{flex:1;min-width:200px;width:auto}
+.ph-scope{display:flex;gap:6px}
+.ph-grid{display:grid;grid-template-columns:minmax(300px,380px) minmax(0,1fr);gap:18px;align-items:start}
+@media(max-width:1100px){.ph-grid{grid-template-columns:1fr}}
+.ph-listcard{padding-bottom:10px}
+.ph-row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 10px;border:1px solid transparent;border-radius:10px;background:none;color:var(--ink);cursor:pointer;font:inherit;transition:background-color .15s var(--ease-out),border-color .15s var(--ease-out)}
+.ph-row+.ph-row{margin-top:2px}
+@media (hover:hover) and (pointer:fine){.ph-row:hover{background:var(--soft-bg)}}
+.ph-row.on{background:var(--cobalt-soft);border-color:var(--cobalt)}
+.ph-nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:13px}
+.ph-sub,.cov-sub{display:block;font-size:11.5px;color:var(--ink-soft)}
+.ph-spark{width:80px;height:24px;flex:none}
+.ph-spark polyline{fill:none;stroke:var(--cobalt);stroke-width:1.6;stroke-linejoin:round}
+.ph-fig{display:flex;flex-direction:column;align-items:flex-end;min-width:66px;font-variant-numeric:tabular-nums}
+.ph-now{font:600 13px 'JetBrains Mono'}
+.ph-chg{font:600 11.5px 'JetBrains Mono'}
+.ph-flag{display:inline-block;align-self:flex-start;font:700 10.5px 'Hanken Grotesk';letter-spacing:.03em;padding:1px 7px;border-radius:99px;background:var(--soft-bg);color:var(--ink-soft)}
+.ph-flag.lo{background:var(--mint);color:#fff}
+.ph-flag.hi{background:var(--heat);color:#fff}
+.ph-flag.mine{background:var(--cobalt);color:var(--on-cobalt,#fff)}
+.ph-flag.promo{background:var(--heat);color:#fff}
+.ph-more{width:100%;margin-top:8px}
+.ph-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:14px}
+.ph-title{font:700 19px 'Bricolage Grotesque'}
+.ph-name{font-size:12.5px;color:var(--ink-soft);margin-top:2px}
+.ph-stats{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-bottom:14px}
+.ph-note{font-size:12px;color:var(--ink-soft);line-height:1.5;margin-top:10px}
+.cov-row{align-items:flex-start}
+.cov-miss{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+.cov-rm{padding:5px 11px;font-size:12px;flex:none}
+.cov-dup{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:10px}
+.cov-dup-h{font-size:12.5px;color:var(--ink-soft);margin-bottom:2px}
+.cov-admin>summary{cursor:pointer;list-style:none}
+.cov-admin>summary::-webkit-details-marker{display:none}
+.cov-admin>summary h3::before{content:"+";font-weight:700;color:var(--cobalt)}
+.cov-admin[open]>summary h3::before{content:"−"}
+.cov-admin[open]>summary{margin-bottom:12px}
+@media(max-width:640px){.cov-row{flex-wrap:wrap}.cov-miss{flex-basis:100%}}
 .sku-brandbar{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin:0 0 14px}
 .bchip{padding:5px 11px;border:1px solid var(--line);border-radius:99px;font:600 12px 'Hanken Grotesk';cursor:pointer;color:var(--ink-soft);background:var(--frost)}
 .bchip.on{background:var(--cobalt);border-color:var(--cobalt);color:#fff}
@@ -978,10 +1005,10 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="history"><span class="ico" data-ico="history"></span> Price history</button>
     <button data-page="matches"><span class="ico" data-ico="compare"></span> Match review<span class="dr-count" id="matchCount"></span></button>
     <button data-page="export"><span class="ico" data-ico="exports"></span> Exports</button>
-    <button data-page="products"><span class="ico" data-ico="products"></span> Manage products</button>
+    <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S29</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S30</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1292,51 +1319,87 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
 
   <!-- PRODUCTS -->
   <section class="page" id="page-products">
-    <h2 class="page-title">Manage products</h2>
-    <p class="page-sub">The daily scrape finds every product in each category by itself; you rarely need this. Add a product page by hand, or remove a listing that shouldn't be tracked. To look a product up, use the search at the top.</p>
-    <div class="grid two-col">
+    <h2 class="page-title">Coverage &amp; data health</h2>
+    <p class="page-sub" id="covSub"></p>
+    <div class="grid metrics" id="covFresh"></div>
+    <div class="card" style="margin-bottom:18px">
+      <h3><span class="dot" style="background:var(--heat)"></span>Distribution gaps <span id="covGapSum" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+      <p class="ph-note" style="margin:-6px 0 10px">Your models a retailer doesn't list while it sells same-spec rivals: shelf space going to the competition. Biggest rival presence first.</p>
+      <div id="covGaps" class="mini-list"></div>
+      <p class="ph-note" id="covGapNote"></p>
+    </div>
+    <div class="grid two-col" style="margin-bottom:18px">
       <div class="card">
-        <h3>Tracked products <span id="mpgCount" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
-        <input id="mpgSearch" type="search" placeholder="Filter by name, brand or code…" aria-label="Filter tracked products" style="margin-bottom:10px">
-        <div style="overflow-x:auto"><table>
-          <thead><tr><th>Name / URL</th><th>Department</th><th>Retailer</th><th>Price</th><th></th></tr></thead>
-          <tbody id="productTable"></tbody>
-        </table></div>
+        <h3><span class="dot" style="background:var(--gold, #C77D33)"></span>Stopped updating <span id="covStaleSum" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+        <p class="ph-note" style="margin:-6px 0 10px">No new price for 3+ days while the rest of that retailer updated: usually delisted, or moved to a new page address. Their old price still counts in averages until removed.</p>
+        <div id="covStale" class="mini-list"></div>
       </div>
       <div class="card">
-        <h3>Add product</h3>
-        <label>Product URL</label>
-        <input id="newUrl" placeholder="https://www.kotsovolos.gr/…">
-        <label>Alert me below (€, optional)</label>
-        <input id="newThreshold" type="number" placeholder="e.g. 650">
-        <div style="margin-top:18px"><button class="btn" id="addProduct">Add product</button></div>
+        <h3><span class="dot" style="background:var(--cobalt)"></span>Possibly listed twice <span id="covDupSum" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+        <p class="ph-note" style="margin:-6px 0 10px">Same brand and model code at one retailer under two listings. Usually a page the retailer replaced, but colour versions sometimes share a code: open both before removing one.</p>
+        <div id="covDupes"></div>
       </div>
     </div>
+    <div class="card" style="margin-bottom:18px">
+      <h3>Data completeness</h3>
+      <div style="overflow-x:auto"><table>
+        <thead><tr><th>Retailer</th><th style="text-align:right">Listings</th><th style="text-align:right">Price</th><th style="text-align:right">Specs (5+)</th><th style="text-align:right">Image</th><th style="text-align:right">Rating</th><th style="text-align:right">EAN</th></tr></thead>
+        <tbody id="covComplete"></tbody>
+      </table></div>
+    </div>
+    <details class="card cov-admin">
+      <summary><h3 style="margin:0">Add or remove a listing by hand <span id="mpgCount" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3></summary>
+      <p class="ph-note">The daily scrape finds every product in each category by itself; you rarely need this. Covers every department.</p>
+      <div class="grid two-col">
+        <div>
+          <input id="mpgSearch" type="search" placeholder="Filter by name, brand or code…" aria-label="Filter tracked products" style="margin-bottom:10px">
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>Name / URL</th><th>Department</th><th>Retailer</th><th>Price</th><th></th></tr></thead>
+            <tbody id="productTable"></tbody>
+          </table></div>
+        </div>
+        <div>
+          <label>Product URL</label>
+          <input id="newUrl" placeholder="https://www.kotsovolos.gr/…">
+          <label>Alert me below (€, optional)</label>
+          <input id="newThreshold" type="number" placeholder="e.g. 650">
+          <div style="margin-top:18px"><button class="btn" id="addProduct">Add product</button></div>
+        </div>
+      </div>
+    </details>
   </section>
 
   <!-- HISTORY -->
   <section class="page" id="page-history">
     <h2 class="page-title">Price history</h2>
-    <p class="page-sub">Track a model's price across retailers over time, or compare several models side by side.</p>
-    <div class="hist-controls">
-      <div class="hist-row">
-        <select id="histBrand"></select>
-        <input id="histSearch" placeholder="Search model or code…" autocomplete="off">
-        <select id="histMode">
-          <option value="retailer">One line per retailer (single model)</option>
-          <option value="compare">Compare models (cheapest price each)</option>
-        </select>
+    <p class="page-sub">Which models moved and by how much: each model's price per retailer over time, its low and high, the days it was on promo, and what its same-spec rivals cost meanwhile.</p>
+    <div class="ph-bar">
+      <div class="ph-scope" id="phScope" role="group" aria-label="Whose models">
+        <button class="fchip on" data-phs="mine">Your models</button><button class="fchip" data-phs="rivals">Rivals</button><button class="fchip" data-phs="all">All</button>
       </div>
-      <div class="hist-picks" id="histPicks"></div>
-      <div class="hist-results" id="histSearchResults"></div>
+      <select id="phWin" aria-label="Time window"><option value="30">Last 30 days</option><option value="60">Last 60 days</option><option value="90" selected>Last 90 days</option></select>
+      <input id="histSearch" type="search" placeholder="Find a model or code…" aria-label="Find a model" autocomplete="off">
     </div>
-    <div class="card"><div class="chart-box"><canvas id="historyChart"></canvas></div></div>
-    <div class="card" style="margin-top:18px">
-      <h3>Price changes <span id="histLogScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
-      <div style="overflow-x:auto"><table>
-        <thead><tr><th>Date</th><th>Product</th><th>Retailer</th><th>Price</th></tr></thead>
-        <tbody id="historyTable"></tbody>
-      </table></div>
+    <div class="ph-grid">
+      <div class="card ph-listcard">
+        <h3>Biggest moves <span id="phListSum" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+        <div id="phList"></div>
+      </div>
+      <div class="ph-main">
+        <div class="card">
+          <div id="phHead" class="ph-head"></div>
+          <div class="grid metrics ph-stats" id="phStats"></div>
+          <div class="chart-box tall"><canvas id="historyChart"></canvas></div>
+          <p class="ph-note" id="phNote"></p>
+        </div>
+        <div class="card" style="margin-top:18px">
+          <h3>Every price change <span id="histLogScope" style="font-weight:500;color:var(--ink-soft);font-size:13px"></span></h3>
+          <div style="overflow-x:auto"><table>
+            <thead><tr><th>Date</th><th>Retailer</th><th style="text-align:right">From</th><th style="text-align:right">To</th><th style="text-align:right">Change</th><th></th></tr></thead>
+            <tbody id="historyTable"></tbody>
+          </table></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -3235,7 +3298,7 @@ function renderAll(){
   if(vis("page-shelf")) safeRender("shelf",renderShelf);
   if(vis("page-gaps")) safeRender("gaps",renderGaps);
   if(vis("page-perception")) safeRender("perception",renderPerception);
-  if(vis("page-products")) safeRender("products",renderProducts);   // Manage products: same page in every department
+  if(vis("page-products")) safeRender("products",renderProducts);   // Coverage: same page in every department, scoped to it
   if(_pendingModel && allProducts().length){ const id=_pendingModel; _pendingModel=null; setTimeout(()=>openModel(id),0); }
   else if(MP.id){ const mp=_prodIndex().byId[MP.id]; if(mp) setTimeout(()=>renderModelPanel(mp, true),0); }   // fresh data (history, launches) lands in the open panel
   safeRender("freshness",renderFreshness);
@@ -5081,140 +5144,282 @@ const CONF = {
   single:   {cls:"c-neu", icon:"·", label:"1 retailer",   tip:"Only listed by one retailer."},
 };
 
+/* ===== COVERAGE & DATA HEALTH (page-products) =====
+   For the current department: how fresh each retailer's data is, your models a
+   retailer doesn't carry while it sells same-spec rivals, listings that stopped
+   updating, the same model listed twice at one retailer, and how complete the
+   data is. Adding / removing a listing by hand sits at the bottom. */
+const COV_SITES = ["kotsovolos","public","plaisio"];
+let covState = { gapN:15, staleN:15 };
+const _ageDays = t => t ? (Date.now()-new Date(/Z$|[+-]\d\d:?\d\d$/.test(t)?t:t+"Z").getTime())/864e5 : Infinity;
 function renderProducts(){
-  // cap the render (every other list does) — with 1000+ SKUs an unbounded
-  // table was the slowest render in the app, re-run on every refresh
-  // every department; filtered by the box above the table (the global search is for looking things up)
+  const dept=state.dept, all=deptListOf(dept)||[];
+  const sub=document.getElementById("covSub");
+  if(sub) sub.textContent=`${DEPT_NAME[dept]}: where your models are missing, and whether the data behind every page is fresh and complete.`;
+  // 1. freshness per retailer
+  const bySite={};
+  for(const s of COV_SITES){
+    const L=all.filter(p=>f.site(p)===s);
+    const newest=L.reduce((a,p)=>p.scraped_at&&(!a||p.scraped_at>a)?p.scraped_at:a, null);
+    bySite[s]={L, newest, age:_ageDays(newest), fresh:L.filter(p=>_ageDays(p.scraped_at)<=2).length};
+  }
+  // current = most of its listings updated in the last 2 days (BestPrice can refresh a few of a blocked retailer)
+  const isLive=s=>bySite[s].L.length && bySite[s].fresh/bySite[s].L.length>=0.5;
+  const live=COV_SITES.filter(isLive);
+  const ago=a=>a<1?"today":a<2?"yesterday":Math.floor(a)+" days ago";
+  const m1=(label,val,foot,cls)=>`<div class="stat-card ${cls}"><div class="metric-value">${val}</div><div class="metric-label">${label}</div><div class="metric-foot">${foot}</div></div>`;
+  document.getElementById("covFresh").innerHTML = COV_SITES.map(s=>{ const b=bySite[s];
+    if(!b.L.length) return m1(SITE_LABEL[s], "–", "no listings in this department", "sc-blue");
+    const stale=!isLive(s), pct=Math.round(b.fresh/b.L.length*100);
+    return m1(SITE_LABEL[s], stale?`${pct}%`:ago(b.age), stale ? `of ${b.L.length.toLocaleString("en-GB")} listings updated in the last 2 days · left out of the checks below`
+      : `${b.L.length.toLocaleString("en-GB")} listings · ${Math.round(b.fresh/b.L.length*100)}% updated in the last 2 days`, stale?"sc-heat":"sc-mint");
+  }).join("");
+
+  // 2. distribution gaps: your models a live retailer doesn't list, where it sells same-spec rivals
+  const M=SPEC_MATCH[dept];
+  const nSpecs=p=>Object.keys(f.specs(p)||{}).length;
+  const groups=new Map();
+  for(const p of all){
+    if(isClearance(p) || f.price(p)==null) continue;
+    const x=extractModel(f.name(p)); if(!x.code || x.code.length<4) continue;
+    const k=normCode(x.brand)+"|"+normCode(x.code);
+    const g=groups.get(k)||{k, brand:cap(x.brand||""), code:x.code, mine:isMyBrand(p), sites:{}, s:p};
+    if(!g.sites[f.site(p)] || f.price(p)<f.price(g.sites[f.site(p)])) g.sites[f.site(p)]=p;
+    if(nSpecs(p)>nSpecs(g.s)) g.s=p;
+    groups.set(k,g);
+  }
+  // cooking has no spec rule: same segment as on Segments & gaps (type, kind, size band)
+  const segKey=p=>{ const g=GAP_SEG[dept]&&GAP_SEG[dept](p); return g?g.parts.join("|"):null; };
+  const same=(a,b)=>{ const r=sameSpecRival(dept,a,b); if(r!==null) return r; const k=segKey(a); return !!k && k===segKey(b); };
+  const gaps=[]; let gapNoRival=0;
+  for(const g of groups.values()){
+    if(!g.mine) continue;
+    for(const s of live){
+      if(g.sites[s]) continue;
+      const rivals=[...groups.values()].filter(r=>!r.mine && r.sites[s] && same(g.s, r.s)).map(r=>r.sites[s]).sort((a,b)=>f.price(a)-f.price(b));
+      if(!rivals.length){ gapNoRival++; continue; }
+      // your price shown from a retailer whose data is current when there is one
+      const elsewhere=Object.values(g.sites).sort((a,b)=>(live.includes(f.site(b))-live.includes(f.site(a))) || f.price(a)-f.price(b))[0];
+      gaps.push({g, s, rivals, elsewhere});
+    }
+  }
+  gaps.sort((a,b)=>b.rivals.length-a.rivals.length);
+  const lostSites=COV_SITES.filter(s=>bySite[s].L.length && !live.includes(s)).map(s=>SITE_LABEL[s]);
+  document.getElementById("covGapSum").textContent = `· ${gaps.length} gap${gaps.length===1?"":"s"}`;
+  document.getElementById("covGaps").innerHTML = (gaps.slice(0,covState.gapN).map(x=>{ const c=x.rivals[0];
+    return `<div class="mini-row cov-row">
+      <span class="mini-name"><a href="#" data-model="${esc(String(f.id(x.elsewhere)))}"><b>${esc(x.g.brand)} ${esc(x.g.code)}</b></a>
+        <span class="cov-sub">yours ${fmt(f.price(x.elsewhere))} at ${SITE_LABEL[f.site(x.elsewhere)]} · ${esc(M?M.specs(x.g.s):(segKey(x.g.s)||"").split("|").join(" · "))}</span></span>
+      <span class="cov-miss"><span class="pill ${SITE_PILL[x.s]||"na"}">Not at ${SITE_LABEL[x.s]}</span>
+        <span class="cov-sub">${x.rivals.length} ${M?"same-spec rival":"rival"}${x.rivals.length>1?"s":""} ${M?"":"in this segment "}there from ${fmt(f.price(c))} (${esc(modelTitle(f.name(c),24))})</span></span></div>`; }).join("")
+    + (gaps.length>covState.gapN?`<button class="btn ghost ph-more" data-covmore="gapN">Show ${Math.min(15,gaps.length-covState.gapN)} more</button>`:""))
+    || `<div class="empty">Every model of yours is listed at every retailer that sells a same-spec rival.</div>`;
+  document.getElementById("covGapNote").textContent =
+    `Retailers checked: ${live.map(s=>SITE_LABEL[s]).join(", ")||"none"}${lostSites.length?` (${lostSites.join(", ")} left out: data not current)`:""}. `
+    + `${M?"Same spec = the Price index rule":"Cooking: same segment as on Segments & gaps (type, kind, size band)"}. `
+    + (gapNoRival?`${gapNoRival} more gap${gapNoRival>1?"s":""} where that retailer sells no comparable rival either.`:"");
+
+  // 3. listings that stopped updating while their retailer's data is current
+  const stale=[];
+  for(const s of live) for(const p of bySite[s].L){ const lag=_ageDays(p.scraped_at)-bySite[s].age; if(lag>=3) stale.push({p, lag}); }
+  stale.sort((a,b)=>isMyBrand(b.p)-isMyBrand(a.p) || b.lag-a.lag);
+  const rmBtn=p=>`<button class="btn danger cov-rm" onclick="removeProduct('${esc(String(f.id(p)))}')">Remove</button>`;
+  const lstRow=(p,extra)=>`<div class="mini-row cov-row"><span class="pill ${SITE_PILL[f.site(p)]||"na"}">${SITE_LABEL[f.site(p)]||f.site(p)}</span>
+      <span class="mini-name"><a class="rl" href="${esc(f.url(p))}" target="_blank" rel="noopener">${esc(modelTitle(f.name(p),40))}</a>${isMyBrand(p)?' <span class="ph-flag mine">yours</span>':""}<span class="cov-sub">${extra}</span></span>${rmBtn(p)}</div>`;
+  document.getElementById("covStaleSum").textContent=`· ${stale.length}`;
+  document.getElementById("covStale").innerHTML = (stale.slice(0,covState.staleN).map(x=>lstRow(x.p, `last price ${fmt(f.price(x.p))} · ${ago(_ageDays(x.p.scraped_at))}`)).join("")
+    + (stale.length>covState.staleN?`<button class="btn ghost ph-more" data-covmore="staleN">Show ${Math.min(15,stale.length-covState.staleN)} more</button>`:""))
+    || `<div class="empty">Every listing updated with its retailer's last scrape.</div>`;
+
+  // 4. the same model listed more than once at one retailer
+  const bySiteCode=new Map();
+  for(const p of all){
+    const x=extractModel(f.name(p)); if(!x.code || x.code.length<4) continue;
+    const k=f.site(p)+"|"+normCode(x.brand)+"|"+normCode(x.code);
+    const e=bySiteCode.get(k)||{g:{brand:cap(x.brand||""), code:x.code}, s:f.site(p), L:[]};
+    e.L.push(p); bySiteCode.set(k,e);
+  }
+  const dupes=[...bySiteCode.values()].filter(e=>e.L.length>1)
+    .map(e=>({...e, L:e.L.sort((a,b)=>String(b.scraped_at).localeCompare(String(a.scraped_at)))}))
+    .sort((a,b)=>isMyBrand(b.L[0])-isMyBrand(a.L[0]));
+  document.getElementById("covDupSum").textContent=`· ${dupes.length}`;
+  document.getElementById("covDupes").innerHTML = dupes.slice(0,20).map(d=>`<div class="cov-dup"><div class="cov-dup-h"><b>${esc(d.g.brand)} ${esc(d.g.code)}</b> · ${d.L.length} listings at ${SITE_LABEL[d.s]}</div>`
+      + d.L.map((p,i)=>lstRow(p, `${fmt(f.price(p))} · last price ${ago(_ageDays(p.scraped_at))}${i?" · older":" · newest"}`)).join("")+`</div>`).join("")
+    || `<div class="empty">No model is listed twice at the same retailer.</div>`;
+
+  // 5. completeness per retailer
+  const pc=(n,d)=>d?Math.round(n/d*100)+"%":"–";
+  document.getElementById("covComplete").innerHTML = COV_SITES.filter(s=>bySite[s].L.length).map(s=>{ const L=bySite[s].L;
+    const c=fn=>pc(L.filter(fn).length, L.length);
+    return `<tr><td><span class="pill ${SITE_PILL[s]||"na"}">${SITE_LABEL[s]}</span></td><td style="text-align:right">${L.length.toLocaleString("en-GB")}</td>
+      <td style="text-align:right">${c(p=>f.price(p)!=null)}</td><td style="text-align:right">${c(p=>nSpecs(p)>=5)}</td>
+      <td style="text-align:right">${c(p=>!!f.image(p))}</td><td style="text-align:right">${c(p=>(f.specs(p)||{}).__rating!=null)}</td>
+      <td style="text-align:right">${c(p=>!!p.ean)}</td></tr>`; }).join("");
+
+  // 6. manual add / remove (all departments)
   const q=gsNorm((document.getElementById("mpgSearch")||{}).value||"").trim();
   const list=allProducts().filter(p=>!q || q.split(/\s+/).every(t=>gsNorm(f.name(p)+" "+f.url(p)).includes(t)));
-  const capped = list.slice(0,200);
-  const more = list.length - capped.length;
+  const capped=list.slice(0,200), more=list.length-capped.length;
   const cnt=document.getElementById("mpgCount"); if(cnt) cnt.textContent=`· ${list.length.toLocaleString("en-GB")}${q?" matching":""}`;
   document.getElementById("productTable").innerHTML = (capped.map(p=>`
     <tr><td title="${esc(f.url(p))}">${esc(short(f.name(p),46))}</td>
     <td>${esc(DEPT_NAME[deptOf(p)]||"")}</td>
     <td><span class="pill ${SITE_PILL[f.site(p)]||"na"}">${SITE_LABEL[f.site(p)]||f.site(p)}</span></td>
     <td class="price">${fmt(f.price(p))}</td>
-    <td><button class="btn danger" style="padding:6px 12px" onclick="removeProduct('${esc(String(f.id(p)))}')">Remove</button></td></tr>
-  `).join("") + (more>0?`<tr><td colspan="5" style="color:var(--ink-soft);font-size:12px">Showing the first 200 of ${list.length.toLocaleString("en-GB")}: type in the filter to narrow it down.</td></tr>`:"")) || `<tr><td colspan="5"><div class="empty"><div class="big"><svg viewBox="0 0 24 24" class="ic2"><rect class="body" x="3" y="3" width="18" height="18" rx="4"/><path class="det" d="M12 8v8M8 12h8"/></svg></div>Nothing matches.</div></td></tr>`;
+    <td>${rmBtn(p)}</td></tr>
+  `).join("") + (more>0?`<tr><td colspan="5" style="color:var(--ink-soft);font-size:12px">Showing the first 200 of ${list.length.toLocaleString("en-GB")}: type in the filter to narrow it down.</td></tr>`:"")) || `<tr><td colspan="5"><div class="empty">Nothing matches.</div></td></tr>`;
 }
 
-let histState = { brand:"all", q:"", mode:"retailer", picks:[] };  // picks = array of model keys
-/* group history rows by model key, keeping per-retailer + per-day prices */
+/* ===== PRICE HISTORY =====
+   Opens on the models that moved most in the window (yours by default). For
+   the selected model: one stepped line per retailer, the median price of its
+   same-spec rivals (dashed), promo days shaded, its low / high, every change. */
+let histState = { scope:"mine", win:90, q:"", sel:null, n:12 };
 function histModelKey(name){ const {brand,code}=extractModel(name); return (brand||"?")+":"+(code||name.slice(0,20)); }
-function laundryKeySet(){ return new Set((state.laundry||[]).map(p=>histModelKey(f.name(p)))); }
 /* history rows carry only a product name, so the department is resolved by
-   model key against each department's catalogue */
+   model key against each department's catalogue (Deal Radar's movers) */
 function deptKeySets(){
   const keys = list => new Set((list||[]).map(p=>histModelKey(f.name(p))));
-  return {laundry: laundryKeySet(), cooking: keys(state.cooking), dishwashing: keys(state.dishwashing)};
+  return {laundry: keys(state.laundry), cooking: keys(state.cooking), dishwashing: keys(state.dishwashing)};
 }
 function histDept(key, ks){
   return ks.cooking.has(key) ? "cooking" : ks.dishwashing.has(key) ? "dishwashing"
        : ks.laundry.has(key) ? "laundry" : "cooling";
 }
-function buildHistoryModels(){
-  const ks = deptKeySets();
-  const models={};
-  state.history.forEach(h=>{
-    const name=h.product||h.name||h.product_name; if(!name) return;
-    const pr=num(h.price); if(pr==null) return;
-    const key=histModelKey(name);
-    if(histDept(key, ks) !== state.dept) return;   // each department sees only its own models
-    const site=normSite(h.site||h.source);
-    const day=(h.scraped_at||h.date||"").slice(0,10); if(!day) return;
-    const m=models[key]||(models[key]={key, name, brand:extractModel(name).brand||"", code:extractModel(name).code||"", sites:{}, byDay:{}});
-    // per-retailer median price (sanity: skip impossible <15% of model median later)
-    (m.sites[site]=m.sites[site]||{})[day]=Math.min(m.sites[site][day]??Infinity, pr);
-    (m.byDay[day]=m.byDay[day]||[]).push(pr);
-  });
-  // sanity floor per model
-  for(const k in models){
-    const all=[].concat(...Object.values(models[k].byDay)); const med=all.slice().sort((a,b)=>a-b)[Math.floor(all.length/2)]||0;
-    models[k].median=med;
-  }
-  return models;
-}
-function renderHistory(){
-  const models=buildHistoryModels();
-  const allModels=Object.values(models);
-  // brand dropdown
-  const brands=[...new Set(allModels.map(m=>cap(m.brand)).filter(Boolean))].sort();
-  const hb=document.getElementById("histBrand");
-  if(hb){ hb.innerHTML=`<option value="all">All brands</option>`+brands.map(b=>`<option value="${esc(b)}" ${histState.brand===b?'selected':''}>${esc(b)}</option>`).join(""); }
-  const hm=document.getElementById("histMode"); if(hm) hm.value=histState.mode;
-
-  // search results (filtered by brand + query), excluding already-picked
-  let cands=allModels;
-  if(histState.brand!=="all") cands=cands.filter(m=>cap(m.brand)===histState.brand);
-  if(histState.q){ const q=histState.q.toUpperCase(); cands=cands.filter(m=>(m.name+m.code).toUpperCase().includes(q)); }
-  cands=cands.filter(m=>!histState.picks.includes(m.key)).slice(0,40);
-  const resEl=document.getElementById("histSearchResults");
-  if(resEl){
-    // in single-retailer mode only one pick allowed; show hint
-    resEl.innerHTML = cands.map(m=>{
-      const days=Object.keys(m.byDay).length;
-      return `<div class="hist-res" data-hkey="${esc(m.key)}">
-        <div><b>${esc(cap(m.brand))} ${esc(m.code||short(m.name,24))}</b> <span class="hr-meta">· ${Object.keys(m.sites).length} retailer(s) · ${days} day(s)</span></div>
-        <span class="hr-add">+</span></div>`;
-    }).join("") || `<div style="font-size:12.5px;color:var(--ink-soft);padding:8px">No matching models${histState.q?" for “"+esc(histState.q)+"”":""}.</div>`;
-  }
-
-  // picked chips
-  const palette=["#1463FF","#C77D33","#FF6A3D","#16BE7D","#9B59FF","#FFB020"];
-  const pickEl=document.getElementById("histPicks");
-  if(pickEl){
-    pickEl.innerHTML = histState.picks.map((k,i)=>{
-      const m=models[k]; if(!m) return "";
-      return `<span class="hist-pick" style="background:${palette[i%palette.length]}">${esc(cap(m.brand))} ${esc(m.code||short(m.name,18))}<span class="hp-x" data-hrm="${esc(k)}">✕</span></span>`;
-    }).join("");
-  }
-
-  // build chart datasets
-  const allDays=(state.histDays&&state.histDays.length)?state.histDays:[...new Set(state.history.map(h=>(h.scraped_at||h.date||"").slice(0,10)).filter(Boolean))].sort();
-  // history rows are change points: carry each value forward to the next change
-  const carry = vals => { let last=null; return vals.map(v=>{ if(v!=null) last=v; return last; }); };
-  let datasets=[];
-  if(histState.mode==="retailer" && histState.picks.length){
-    // one line per retailer for the (first) picked model
-    const m=models[histState.picks[0]];
-    if(m){ const sites=["kotsovolos","public","plaisio"];
-      datasets=sites.filter(s=>m.sites[s]).map((s,i)=>({
-        label:SITE_LABEL[s]||s,
-        data:carry(allDays.map(d=>{const v=m.sites[s][d]; return (v!=null && v>=m.median*0.15)?v:null;})),
-        borderColor:SITE_COLOR[s]||palette[i],
-        backgroundColor:"transparent",stepped:true,spanGaps:true,pointRadius:0}));
+/* every current model in the department, merged across retailers: per retailer
+   a daily price (carried forward from its last change) and promo flag */
+function histModels(dept, days){
+  const by={}, H=historyById();
+  for(const p of deptListOf(dept)){
+    if(isClearance(p)) continue;
+    const key=histModelKey(f.name(p)), site=f.site(p), x=extractModel(f.name(p));
+    const m=by[key]||(by[key]={key, brand:cap(x.brand||""), code:x.code||"", name:f.name(p), mine:isMyBrand(p), listings:[], sites:{}, promo:{}});
+    m.listings.push(p);
+    const rows=(H[String(f.id(p))]||[]).filter(h=>h.price!=null);
+    const price=[], promo=[]; let i=0, cur=null, old=null;
+    for(const d of days){
+      while(i<rows.length && String(rows[i].scraped_at).slice(0,10)<=d){ cur=num(rows[i].price); old=num(rows[i].old_price); i++; }
+      price.push(cur); promo.push(cur!=null && old!=null && old>cur*1.01);
     }
-  } else if(histState.mode==="compare"){
-    // one line per picked model (cheapest price across retailers each day)
-    datasets=histState.picks.map((k,i)=>{ const m=models[k]; if(!m) return null;
-      const perSite=Object.values(m.sites).map(sv=>carry(allDays.map(d=>{ const v=sv[d]; return (v!=null&&v>=m.median*0.15)?v:null; })));
-      return {label:(cap(m.brand)+" "+(m.code||short(m.name,16))).trim(),
-        data:allDays.map((d,j)=>{ const vals=perSite.map(a=>a[j]).filter(v=>v!=null); return vals.length?Math.min(...vals):null; }),
-        borderColor:palette[i%palette.length],backgroundColor:"transparent",stepped:true,spanGaps:true,pointRadius:0};
-    }).filter(Boolean);
+    const s=m.sites[site];
+    if(!s){ m.sites[site]=price; m.promo[site]=promo; }
+    else price.forEach((v,j)=>{ if(v!=null && (s[j]==null || v<s[j])) s[j]=v; m.promo[site][j]=m.promo[site][j]||promo[j]; });
   }
-  if(datasets.length){
-    makeChart("historyChart","line",{labels:allDays.map(d=>d.slice(5)),datasets},{plugins:{legend:{position:"top"}}});
-  } else {
-    emptyChart("historyChart", histState.picks.length? "No price points yet — history fills in as scrapes accumulate." : "Search and pick a model above to see its price history.");
+  const out=[];
+  for(const m of Object.values(by)){
+    const vals=[].concat(...Object.values(m.sites)).filter(v=>v!=null).sort((a,b)=>a-b);
+    if(!vals.length) continue;
+    const floor=vals[Math.floor(vals.length/2)]*0.15;          // drop impossible readings (parse slips)
+    for(const s in m.sites) m.sites[s]=m.sites[s].map(v=>v!=null&&v>=floor?v:null);
+    m.cheap=days.map((_,j)=>{ const v=Object.values(m.sites).map(a=>a[j]).filter(v=>v!=null); return v.length?Math.min(...v):null; });
+    const idx=m.cheap.map((v,j)=>v!=null?j:-1).filter(j=>j>=0); if(!idx.length) continue;
+    m.first=m.cheap[idx[0]]; m.now=m.cheap[idx[idx.length-1]];
+    m.pct=m.first?(m.now-m.first)/m.first*100:0;
+    m.lo=Infinity; m.hi=-Infinity;
+    idx.forEach(j=>{ const v=m.cheap[j]; if(v<m.lo){m.lo=v; m.loDay=days[j];} if(v>=m.hi){m.hi=v; m.hiDay=days[j];} });
+    m.changes=0;
+    for(const s in m.sites){ const a=m.sites[s]; for(let j=1;j<a.length;j++) if(a[j]!=null && a[j-1]!=null && a[j]!==a[j-1]) m.changes++; }
+    m.promoDays=days.filter((_,j)=>Object.values(m.promo).some(a=>a[j])).length;
+    out.push(m);
   }
+  return out;
+}
+/* median daily price of a model's same-spec rivals (Price index matching),
+   cheapest listing of each; only for your models (the matching is built per model of yours) */
+let _phSets={src:null, dept:null, sets:[]};
+function histRivals(dept, m, days){
+  const list=deptListOf(dept);
+  if(_phSets.src!==list || _phSets.dept!==dept) _phSets={src:list, dept, sets:specMatchSets(dept, list)};
+  const set=_phSets.sets.find(s=>histModelKey(f.name(s.me.b))===m.key);
+  if(!set || set.peers.length<2) return null;
+  const peers=set.peers.slice(0,10), lines=peers.map(pp=>dailyPrices(f.id(pp.b), days));
+  const line=days.map((_,j)=>{ const v=lines.map(a=>a[j]).filter(v=>v!=null).sort((a,b)=>a-b), n=v.length;
+    return n>=2 ? (n%2?v[(n-1)/2]:(v[n/2-1]+v[n/2])/2) : null; });
+  return {line, n:peers.length, now:set.med};
+}
+function phSpark(vals){
+  const v=vals.filter(x=>x!=null); if(v.length<2) return `<svg class="ph-spark" viewBox="0 0 80 24" aria-hidden="true"></svg>`;
+  const lo=Math.min(...v), hi=Math.max(...v), rg=hi-lo||1, n=vals.length;
+  let pts=[], last=null;
+  vals.forEach((x,j)=>{ if(x!=null) last=x; if(last!=null) pts.push(`${(j/(n-1)*78+1).toFixed(1)},${(22-(last-lo)/rg*20).toFixed(1)}`); });
+  return `<svg class="ph-spark" viewBox="0 0 80 24" aria-hidden="true"><polyline points="${pts.join(" ")}"/></svg>`;
+}
+const phDay=d=>new Date(d+"T00:00:00Z").toLocaleDateString("en-GB",{day:"numeric",month:"short",timeZone:"UTC"});
+const phPct=v=>(v>0?"+":v<0?"−":"±")+Math.abs(v).toFixed(1)+"%";
+const phCol=v=>v<-0.05?"var(--mint)":v>0.05?"var(--heat)":"var(--ink-soft)";
+/* promo days drawn as a light band behind the lines */
+const phPromoBands={id:"phPromoBands", beforeDatasetsDraw(chart, _a, opts){
+  const flags=opts.flags||[], x=chart.scales.x, a=chart.chartArea; if(!flags.length||!x) return;
+  const ctx=chart.ctx, w=(a.right-a.left)/Math.max(1,flags.length-1);
+  ctx.save(); ctx.fillStyle=opts.color||"rgba(255,106,61,.10)";
+  flags.forEach((on,j)=>{ if(on){ const cx=x.getPixelForValue(j); ctx.fillRect(cx-w/2, a.top, w, a.bottom-a.top); } });
+  ctx.restore(); }};
+function renderHistory(){
+  const page=document.getElementById("page-history"); if(!page || !page.classList.contains("visible")) return;
+  const dept=state.dept, listEl=document.getElementById("phList");
+  document.querySelectorAll("#phScope [data-phs]").forEach(b=>b.classList.toggle("on", b.dataset.phs===histState.scope));
+  const wEl=document.getElementById("phWin"); if(wEl) wEl.value=String(histState.win);
+  const cut=new Date(Date.now()-histState.win*864e5).toISOString().slice(0,10);
+  const days=(state.histDays||[]).filter(d=>d>=cut), since=days.length?phDay(days[0]):"";
+  const clear=msg=>{ listEl.innerHTML=`<div class="empty">${msg}</div>`; ["phHead","phStats","phNote","historyTable"].forEach(id=>{ const e=document.getElementById(id); if(e) e.innerHTML=""; }); emptyChart("historyChart",msg); };
+  if(days.length<2) return clear(state.history===undefined ? "Loading price history…" : "Price history fills in as daily scrapes accumulate.");
+  const models=histModels(dept, days);
+  let list=models.filter(m=>histState.scope==="all" || (histState.scope==="mine")===m.mine);
+  if(histState.q){ const t=gsNorm(histState.q).split(/\s+/); list=list.filter(m=>t.every(x=>gsNorm(m.name+" "+m.brand+" "+m.code).includes(x))); }
+  list.sort((a,b)=>((b.changes>0)-(a.changes>0)) || Math.abs(b.pct)-Math.abs(a.pct) || b.changes-a.changes);
+  if(!list.some(m=>m.key===histState.sel)) histState.sel=list[0]?list[0].key:null;
+  const moved=list.filter(m=>m.changes>0).length;
+  document.getElementById("phListSum").textContent=`· ${moved} of ${list.length} moved since ${since}`;
+  const shown=list.slice(0,histState.n);
+  listEl.innerHTML = shown.map(m=>{
+    const flag = m.now<=m.lo && m.lo<m.hi ? `<span class="ph-flag lo">period low</span>`
+               : m.now>=m.hi && m.lo<m.hi ? `<span class="ph-flag hi">period high</span>` : "";
+    return `<button class="ph-row${m.key===histState.sel?" on":""}" data-phk="${esc(m.key)}" aria-pressed="${m.key===histState.sel}">
+      <span class="ph-nm"><b>${esc(m.brand)} ${esc(m.code||short(m.name,20))}</b><span class="ph-sub">${Object.keys(m.sites).length} retailer${Object.keys(m.sites).length>1?"s":""} · ${m.changes} change${m.changes===1?"":"s"}${m.promoDays?` · promo ${m.promoDays} d`:""}</span>${flag}</span>
+      ${phSpark(m.cheap)}
+      <span class="ph-fig"><span class="ph-now">${fmt(m.now)}</span><span class="ph-chg" style="color:${phCol(m.pct)}">${m.changes?phPct(m.pct):"no change"}</span></span></button>`;
+  }).join("") + (list.length>shown.length?`<button class="btn ghost ph-more" data-phmore>Show ${Math.min(12,list.length-shown.length)} more</button>`:"")
+    || `<div class="empty">No ${histState.scope==="mine"?"models of yours":"models"} match${histState.q?" “"+esc(histState.q)+"”":""}.</div>`;
 
-  // raw log (scoped to picks if any)
-  const pickedKeys=new Set(histState.picks);
-  const logRows=state.history.filter(h=>{
-    const name=h.product||h.name||h.product_name; if(!name) return false;
-    if(pickedKeys.size && !pickedKeys.has(histModelKey(name))) return false;
-    const pr=num(h.price); const m=models[histModelKey(name)];
-    return pr!=null && (!m||!m.median||pr>=m.median*0.15);
-  });
-  const scopeEl=document.getElementById("histLogScope");
-  if(scopeEl) scopeEl.textContent = histState.picks.length? `· ${histState.picks.length} selected model(s)` : "· all models";
-  document.getElementById("historyTable").innerHTML = logRows.slice(-80).reverse().map(h=>`
-    <tr><td class="mono" style="font-size:12px">${esc((h.scraped_at||h.date||"").replace("T"," ").slice(0,16))}</td>
-    <td>${esc(short(h.product||h.name||h.product_name||"—",44))}</td>
-    <td><span class="pill ${SITE_PILL[normSite(h.site||h.source)]||"na"}">${SITE_LABEL[normSite(h.site||h.source)]||"—"}</span></td>
-    <td class="price">${fmt(num(h.price))}</td></tr>`).join("") || `<tr><td colspan="4"><div class="empty">No price history for this selection yet.</div></td></tr>`;
+  const m=models.find(x=>x.key===histState.sel);
+  if(!m) return clear("Pick a model on the left.");
+  const sites=["kotsovolos","public","plaisio"].filter(s=>m.sites[s]);
+  const best=m.listings.filter(p=>f.price(p)!=null).sort((a,b)=>f.price(a)-f.price(b))[0]||m.listings[0];
+  const riv=m.mine ? histRivals(dept, m, days) : null;
+  document.getElementById("phHead").innerHTML=`<div><div class="ph-title">${esc(m.brand)} ${esc(m.code)}${m.mine?' <span class="ph-flag mine">yours</span>':""}</div><div class="ph-name">${esc(m.name)}</div></div>
+    <button class="btn ghost" data-model="${esc(String(f.id(best)))}">Model page →</button>`;
+  const nowSite=sites.find(s=>{ const a=m.sites[s]; return a[a.length-1]===m.now; });
+  const m1=(label,val,foot,cls)=>`<div class="stat-card ${cls}"><div class="metric-value">${val}</div><div class="metric-label">${label}</div><div class="metric-foot">${foot}</div></div>`;
+  const rivNow=riv&&riv.line[riv.line.length-1];
+  document.getElementById("phStats").innerHTML =
+      m1("Cheapest now", fmt(m.now), nowSite?`at ${SITE_LABEL[nowSite]}`:"", "sc-blue")
+    + m1(`Change since ${since}`, `<span style="color:${phCol(m.pct)}">${m.changes?phPct(m.pct):"±0%"}</span>`, `from ${fmt(m.first)}`, "sc-aqua")
+    + m1(`Low since ${since}`, fmt(m.lo), m.now<=m.lo&&m.lo<m.hi?"that's today's price":phDay(m.loDay), "sc-mint")
+    + m1(`High since ${since}`, fmt(m.hi), phDay(m.hiDay), "sc-heat")
+    + (rivNow ? m1("vs same-spec rivals", `<span style="color:${phCol((m.now-rivNow)/rivNow*100)}">${phPct((m.now-rivNow)/rivNow*100)}</span>`, `their median ${fmt(rivNow)} · ${riv.n} rivals`, "sc-blue") : "");
+  const datasets=sites.map(s=>({label:SITE_LABEL[s], data:m.sites[s], borderColor:SITE_COLOR[s], backgroundColor:"transparent", stepped:true, spanGaps:true, pointRadius:0, borderWidth:2}));
+  if(riv) datasets.push({label:`Same-spec rivals (median of ${riv.n})`, data:riv.line, borderColor:getCSS("--ink-faint"), borderDash:[5,4], backgroundColor:"transparent", stepped:true, spanGaps:true, pointRadius:0, borderWidth:1.5});
+  const flags=days.map((_,j)=>sites.some(s=>m.promo[s][j]));
+  makeChart("historyChart","line",{labels:days.map(phDay), datasets},
+    {scales:{y:{beginAtZero:false}}, chartPlugins:[phPromoBands], plugins:{legend:{position:"top"}}});
+  if(charts.historyChart){ charts.historyChart.options.plugins.phPromoBands={flags}; charts.historyChart.update("none"); }
+  document.getElementById("phNote").textContent =
+    (m.promoDays?`Shaded: the ${m.promoDays} day${m.promoDays>1?"s":""} a retailer showed a crossed-out price (promo). `:"No promo days in this window. ")
+    + (riv?"Dashed: median price of the same-spec rivals (same specs and colour family as on the Price index), cheapest listing each."
+          : m.mine?"No same-spec rivals to compare against (needs at least two).":"Rival lines show for your own models.");
+  // every change, newest first
+  const log=[];
+  for(const s of sites){ const a=m.sites[s];
+    for(let j=1;j<a.length;j++) if(a[j]!=null && a[j-1]!=null && a[j]!==a[j-1]) log.push({d:days[j], s, from:a[j-1], to:a[j], promo:m.promo[s][j]}); }
+  log.sort((a,b)=>a.d<b.d?1:-1);
+  document.getElementById("histLogScope").textContent=`· ${log.length} for ${m.brand} ${m.code}`;
+  document.getElementById("historyTable").innerHTML = log.slice(0,80).map(r=>{ const p=(r.to-r.from)/r.from*100;
+    return `<tr><td class="mono" style="font-size:12px">${phDay(r.d)}</td>
+      <td><span class="pill ${SITE_PILL[r.s]||"na"}">${SITE_LABEL[r.s]}</span></td>
+      <td class="price" style="text-align:right">${fmt(r.from)}</td><td class="price" style="text-align:right"><b>${fmt(r.to)}</b></td>
+      <td style="text-align:right;color:${phCol(p)};font-weight:600">${phPct(p)}</td>
+      <td>${r.promo?'<span class="ph-flag promo">promo</span>':""}</td></tr>`; }).join("")
+    || `<tr><td colspan="6"><div class="empty">No price changes for this model since ${since}.</div></td></tr>`;
 }
 
 /* ---------------------------------------------------------
@@ -6067,23 +6272,15 @@ on("dashFilters","click",e=>{
   if(e.target.id==="dashColorMode"){ e.preventDefault(); dashFilter.colorMode=dashFilter.colorMode==="include"?"exclude":"include"; renderDashboard(); return; }
   if(e.target.id==="dashReset"){ dashFilter.sub="any";dashFilter.retailer="any";dashFilter.cap="any";dashFilter.width="any";dashFilter.height="any";dashFilter.brands.clear();dashFilter.energy.clear();dashFilter.color.clear();dashFilter.colorMode="include";dashFilter.trim="off"; renderDashboard(); }
 });
-on("histBrand","change",e=>{ histState.brand=e.target.value; renderHistory(); });
-on("histMode","change",e=>{ histState.mode=e.target.value;
-  // single-retailer mode only plots one model — keep just the first pick
-  if(histState.mode==="retailer" && histState.picks.length>1) histState.picks=histState.picks.slice(0,1);
-  renderHistory();
+on("phScope","click",e=>{ const b=e.target.closest("[data-phs]"); if(!b) return; histState.scope=b.dataset.phs; histState.sel=null; histState.n=12; renderHistory(); });
+on("phWin","change",e=>{ histState.win=+e.target.value||90; renderHistory(); });
+on("histSearch","input",e=>{ histState.q=e.target.value.trim(); histState.n=12; renderHistory(); });
+on("phList","click",e=>{
+  if(e.target.closest("[data-phmore]")){ histState.n+=12; renderHistory(); return; }
+  const r=e.target.closest("[data-phk]"); if(!r) return;
+  histState.sel=r.dataset.phk; renderHistory();
 });
-on("histSearch","input",e=>{ histState.q=e.target.value.trim(); renderHistory(); });
-on("histSearchResults","click",e=>{ const r=e.target.closest(".hist-res"); if(!r) return;
-  const k=r.dataset.hkey;
-  if(histState.mode==="retailer") histState.picks=[k];      // single model in retailer mode
-  else if(!histState.picks.includes(k)){ if(histState.picks.length<6) histState.picks.push(k); }
-  histState.q=""; const si=document.getElementById("histSearch"); if(si) si.value="";
-  renderHistory();
-});
-on("histPicks","click",e=>{ const x=e.target.closest(".hp-x"); if(!x) return;
-  histState.picks=histState.picks.filter(k=>k!==x.dataset.hrm); renderHistory();
-});
+on("page-products","click",e=>{ const b=e.target.closest("[data-covmore]"); if(!b) return; covState[b.dataset.covmore]+=15; renderProducts(); });
 
 /* image lightbox (zoom) — delegated so it works for rendered images */
 document.addEventListener("click",e=>{
@@ -6704,7 +6901,7 @@ function makeChart(id,type,data,extra={}){
     x:{grid:{display:!horiz,color:getCSS("--grid")},beginAtZero:horiz,stacked:!!sx.stacked,ticks: horiz?valTicks:catTicks},
     y:{grid:{color:horiz?"transparent":getCSS("--grid")},beginAtZero:!horiz,stacked:!!sy.stacked,ticks: horiz?catTicks:valTicks}
   };
-  charts[id]=new Chart(document.getElementById(id),{type,data,options:{
+  charts[id]=new Chart(document.getElementById(id),{type,data,plugins:extra.chartPlugins||[],options:{
     responsive:true,maintainAspectRatio:false,animation,
     indexAxis: extra.indexAxis||"x",
     interaction: (type==="line")?{mode:"index",intersect:false}:{mode:"nearest",intersect:true},
