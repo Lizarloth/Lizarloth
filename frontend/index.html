@@ -1030,7 +1030,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S32</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S33</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -1863,7 +1863,7 @@ const f = {
   url  : p => p.url || p.product_url || "",
   id   : p => p.id ?? p.product_id ?? f.url(p),
   avail: p => p.availability || p.avail || p.stock || "",
-  image: p => p.image || p.img || null,
+  image: p => p.image || p.img || borrowedImage(p),
   category: p => (p.category || p.subcategory || "").toLowerCase(),
 };
 
@@ -6179,7 +6179,7 @@ function normalize(p){
   let installType = "freestanding";
   if(/ENTOIXIZ|ΕΝΤΟΙΧΙΖ|BUILT.?IN|BUILTIN|ENTIXOIZ|ΕΝΤΟΙΧΙΣΜ/.test(instHay)) installType="builtin";
   return {energy, capacity, width, height, dims, cooling, color, noise, installType,
-          image: p.image || null};
+          image: f.image(p)};
 }
 
 /* =========================================================
@@ -6957,6 +6957,25 @@ function colourGroups(members){
   const groups=[...by.values()].sort((a,b)=>b.length-a.length);
   groups[0].push(...unk);
   return groups;
+}
+/* A listing without a photo borrows one from another retailer's listing of
+   the same brand + code and colour tone (any tone when it states none). */
+let _imgIdx = {src:null, byTone:new Map(), byCode:new Map()};
+function borrowedImage(p){
+  if(p.__bimg!==undefined) return p.__bimg;
+  const all=allProducts();
+  if(_imgIdx.src!==all.length){
+    const byTone=new Map(), byCode=new Map();
+    for(const q of all){ const im=q.image||q.img; if(!im) continue;
+      const x=extractModel(f.name(q)); if(!x.code || x.code.length<5) continue;
+      const k=normCode(x.brand)+"|"+normCode(x.code), t=listingTone(q);
+      if(!byCode.has(k)) byCode.set(k, im);
+      if(t && !byTone.has(k+"|"+t)) byTone.set(k+"|"+t, im); }
+    _imgIdx={src:all.length, byTone, byCode};
+  }
+  const x=extractModel(f.name(p)); if(!x.code || x.code.length<5) return (p.__bimg=null);
+  const k=normCode(x.brand)+"|"+normCode(x.code), t=listingTone(p);
+  return (p.__bimg = (t ? _imgIdx.byTone.get(k+"|"+t) : _imgIdx.byCode.get(k)) || null);
 }
 // a built-in fridge or a fully integrated dishwasher hides behind a kitchen door: colour doesn't matter
 const colourMatters=(d,p)=> d==="cooling" ? (p.__norm||(p.__norm=normalize(p))).installType!=="builtin"

@@ -525,7 +525,71 @@ def fix_urls(session, rows):
     return rows
 
 
-def collect_category(session, cat_id, cat_name, debug=True, dept="cooling"):
+# Some listings come without a thumbnail. The single-product lookup lists the
+# product's photos as attachments (usage IMAGES, identifier = the image URL);
+# the first one is the main shot. Looked up once per product and cached (an
+# empty answer is retried after IMAGE_RETRY_DAYS), at most IMAGE_LOOKUPS_PER_RUN
+# per run so a backlog clears over a few runs at a gentle pace.
+_IMAGE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "kotsovolos_images.json")
+_IMAGES = None
+_IMAGE_BUDGET = [0]
+IMAGE_LOOKUPS_PER_RUN = 400
+IMAGE_RETRY_DAYS = 14
+
+
+def _image_lookup(session, sku):
+    r = session.get(PRODUCT_API, params={"articleNumber": sku, "storeId": STORE_ID,
+                                         "p_name": "findByArticleNumber"}, timeout=40)
+    ents = r.json().get("catalogEntryView") or []
+    for a in ((ents[0].get("attachments") or []) if ents else []):
+        url = str(a.get("identifier") or "")
+        if a.get("usage") == "IMAGES" and url.startswith("http"):
+            return url
+    return ""
+
+
+def fill_images(session, rows):
+    """Give rows without a thumbnail the product's main photo (cached lookups)."""
+    global _IMAGES
+    if _IMAGES is None:
+        try:
+            with open(_IMAGE_FILE, encoding="utf-8") as fh:
+                _IMAGES = json.load(fh)
+        except Exception:
+            _IMAGES = {}
+    today = time.strftime("%Y-%m-%d")
+    changed = False
+    for r in rows:
+        sku = str(r.get("sku_id") or "")
+        if r.get("image") or not sku:
+            continue
+        hit = _IMAGES.get(sku)
+        stale = hit is not None and not hit.get("url") and \
+            (time.mktime(time.strptime(today, "%Y-%m-%d")) - time.mktime(time.strptime(hit.get("checked", today), "%Y-%m-%d"))) / 86400 >= IMAGE_RETRY_DAYS
+        if hit is None or stale:
+            if _IMAGE_BUDGET[0] >= IMAGE_LOOKUPS_PER_RUN:
+                continue
+            _IMAGE_BUDGET[0] += 1
+            try:
+                url = _image_lookup(session, sku)
+            except Exception as e:
+                print(f"  ! image lookup for {sku} failed: {str(e)[:60]}")
+                continue
+            hit = _IMAGES[sku] = {"url": url, "checked": today}
+            changed = True
+            time.sleep(0.6)
+        if hit.get("url"):
+            r["image"] = hit["url"]
+    if changed:
+        try:
+            with open(_IMAGE_FILE, "w", encoding="utf-8") as fh:
+                json.dump(_IMAGES, fh, ensure_ascii=False, indent=0, sort_keys=True)
+        except Exception:
+            pass
+    return rows
+
+
+def collect_category(session, cat_id, cat_name, debug=True, dept="cooling", images=True):
     merged = {}
     total = None
     page = 1
@@ -555,7 +619,8 @@ def collect_category(session, cat_id, cat_name, debug=True, dept="cooling"):
             break
         page += 1
         time.sleep(0.4)
-    return fix_urls(session, list(merged.values())), total
+    rows = fix_urls(session, list(merged.values()))
+    return (fill_images(session, rows) if images else rows), total
 
 
 def collect_cooking(session, cat, debug=False):
@@ -563,12 +628,12 @@ def collect_cooking(session, cat, debug=False):
     rows each source's filter accepts, drop accessories."""
     merged, total = {}, 0
     for cid, ok in COOKING[cat]:
-        rows, _ = collect_category(session, cid, cat, debug=debug, dept="cooking")
+        rows, _ = collect_category(session, cid, cat, debug=debug, dept="cooking", images=False)
         for r in rows:
             if ok(r) and cooking.keep(cat, r):
                 merged.setdefault(r["sku_id"], r)
     total = len(merged)
-    return list(merged.values()), total
+    return fill_images(session, list(merged.values())), total
 
 
 def collect_dish(session, debug=False):
@@ -576,11 +641,11 @@ def collect_dish(session, debug=False):
     category is already its derived dashboard type."""
     merged = {}
     for cid in DISH:
-        rows, _ = collect_category(session, cid, "dishwasher", debug=debug, dept="dishwashing")
+        rows, _ = collect_category(session, cid, "dishwasher", debug=debug, dept="dishwashing", images=False)
         for r in rows:
             if "Πιάτων" in r.get("_kind", "") and "Επένδυση" not in r.get("_kind", "") and dishwashing.keep(r):
                 merged.setdefault(r["sku_id"], r)
-    return list(merged.values()), len(merged)
+    return fill_images(session, list(merged.values())), len(merged)
 
 
 def write_excel(rows, path="kotsovolos_plp.xlsx", cols=None, title="kotsovolos"):
