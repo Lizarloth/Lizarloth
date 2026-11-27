@@ -147,8 +147,17 @@ nav button.active .ic2,.dept-pill.on .ic2,.run-btn .ic2{--dt-body:#fff;--dt-det:
 .about-lock .about-mark{width:52px;height:52px;flex:none}
 .about-lock .about-mark svg{width:52px;height:52px;display:block}
 /* ---------- About: cinematic hero (after MotionSites "Agent Wave") ---------- */
-.ab-hero{position:relative;isolation:isolate;overflow:hidden;border-radius:20px;background:#000;color:#fff;
-  min-height:clamp(520px,calc(100vh - 140px),760px);display:grid;grid-template-rows:auto 1fr auto;margin-bottom:28px}
+/* About is full-bleed and dark: the content column lets go of its width and padding,
+   the hero fills the screen under the top bar, the rest sits on the same black */
+main:has(> #page-about.visible){max-width:none;padding:0}
+#page-about{background:#050505;color:#f2f2f2;padding-bottom:72px;
+  --frost:rgba(255,255,255,.035);--line:rgba(255,255,255,.1);--ink:#f2f2f2;--ink-soft:#9d9d9d;--ink-faint:#6e6e6e;
+  --soft-bg:rgba(255,255,255,.06);--shadow:none;--cobalt:#5CC8C8;--cobalt-soft:rgba(92,200,200,.12);--mint:#5BBF8F}
+#page-about.visible{min-height:calc(100dvh - var(--tbh,64px))}
+#page-about > :not(.ab-hero){max-width:1240px;margin-left:auto;margin-right:auto;padding-left:32px;padding-right:32px}
+@media(max-width:640px){#page-about > :not(.ab-hero){padding-left:16px;padding-right:16px}}
+.ab-hero{position:relative;isolation:isolate;overflow:hidden;background:#000;color:#fff;
+  min-height:max(560px,calc(100dvh - var(--tbh,64px)));display:grid;grid-template-rows:auto 1fr auto}
 .ab-video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2;opacity:0;transition:opacity 1.4s ease}
 .ab-video.on{opacity:1}
 .ab-scrim{position:absolute;inset:0;z-index:-1;pointer-events:none;
@@ -198,7 +207,7 @@ nav button.active .ic2,.dept-pill.on .ic2,.run-btn .ic2{--dt-body:#fff;--dt-det:
 .ab-hero.play .ab-h1 em{animation:ab-em 1.2s ease .7s both}
 .ab-hero.play .ab-stat{animation:ab-soft .9s cubic-bezier(.16,1,.3,1) both}
 /* manifesto: words light up as it scrolls through the view */
-.ab-manifesto{padding:26px 8px 34px}
+.ab-manifesto{padding-top:88px;padding-bottom:64px}
 .ab-manifesto p{max-width:900px;margin:0 auto;text-align:center;font:600 clamp(20px,2.3vw,30px)/1.38 'Bricolage Grotesque';letter-spacing:-.02em;color:var(--ink)}
 .ab-manifesto .w{opacity:.18;transition:opacity .25s ease}
 .ab-manifesto .w.lit{opacity:1}
@@ -218,7 +227,7 @@ nav button.active .ic2,.dept-pill.on .ic2,.run-btn .ic2{--dt-body:#fff;--dt-det:
 }
 .ab-card:focus-visible{outline:2px solid var(--cobalt);outline-offset:2px}
 @media(max-width:640px){
-  .ab-hero{border-radius:14px;min-height:560px}
+  .ab-hero{min-height:max(560px,calc(100dvh - var(--tbh,64px)))}
   .ab-video{object-position:center 30%}
   .ab-scrim{background:linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,.55) 32%,rgba(0,0,0,.74) 60%,rgba(0,0,0,.9) 100%)}
   .ab-h1{font-size:clamp(25px,7.4vw,30px)}
@@ -1152,7 +1161,7 @@ html[data-motion="reduce"] .rv{opacity:1;transform:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S43</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S44</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -6304,7 +6313,7 @@ function motionReduced(){ return document.documentElement.dataset.motion==="redu
    manifesto that lights up word by word as it scrolls through the view. */
 function renderAbout(){
   const el=document.getElementById("abStats"); if(!el) return;
-  bpLoad();
+  bpLoad(); aboutTopbar();
   const all=allProducts();
   const brands=new Set(all.map(p=>cap(extractModel(f.name(p)).brand||"")).filter(Boolean)).size;
   const stats=[
@@ -6345,12 +6354,15 @@ function aboutScroll(){
     const r=p.getBoundingClientRect(), vh=innerHeight;
     // 0 when the paragraph's top reaches 85% of the view, 1 when its bottom reaches 45%
     const t=Math.max(0, Math.min(1, (vh*.85-r.top)/((vh*.85-vh*.45)+r.height)));
-    const lit=motionReduced()?words.length:Math.round(t*words.length);
+    const atEnd=scrollY+innerHeight>=document.documentElement.scrollHeight-4;   // short page: light it all at the bottom
+    const lit=motionReduced()||atEnd?words.length:Math.round(t*words.length);
     words.forEach((w,i)=>w.classList.toggle("lit", i<lit));
   });
 }
 window.addEventListener("scroll", aboutScroll, {passive:true});
-window.addEventListener("resize", aboutScroll, {passive:true});
+window.addEventListener("resize", ()=>{ aboutTopbar(); aboutScroll(); }, {passive:true});
+/* the hero fills the screen under the sticky top bar, whatever its height */
+function aboutTopbar(){ const tb=document.querySelector(".topbar"); if(tb) document.documentElement.style.setProperty("--tbh", tb.offsetHeight+"px"); }
 
 /* ---- Page entrance: when a page opens, its cards rise in one after another
    (ones further down as they scroll into view) and its headline numbers count
