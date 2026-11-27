@@ -1030,7 +1030,7 @@ html[data-motion="reduce"] .seen-flash{animation:none!important}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S34</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S35</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="mp-backdrop" id="mpBackdrop"></div>
@@ -3204,8 +3204,11 @@ function modelReviewsHTML(members, rating, badges){
       <span class="mp-pl-n">${c.n}</span></div>`; }).join("");
   const quote=(r,cls)=>{ const t=String(r.text||"").replace(/\s+/g," "); return `<div class="bp-quote ${cls}"><span class="bp-stars">${"★".repeat(r.stars||0)}<span>${"★".repeat(5-(r.stars||0))}</span></span><span class="bp-q">${esc(t.length>200?t.slice(0,199)+"…":t)}</span><span class="bp-meta">${esc(r.date||"")} · ${SITE_LABEL[r.site]||r.site}</span></div>`; };
   const tagged=rows.filter(r=>Object.keys(r.tags).length);
-  const likes=tagged.filter(r=>Object.values(r.tags).some(v=>v>0)).sort((a,b)=>Object.keys(b.tags).length-Object.keys(a.tags).length).slice(0,2);
-  const dislikes=tagged.filter(r=>Object.values(r.tags).some(v=>v<0)).slice(0,2);
+  // each review goes in one list: 1–2★ = dislike; 4–5★ = like unless its topics are net negative; 3★ = its topics decide
+  const tone=r=>{ const net=Object.values(r.tags).reduce((a,v)=>a+v,0), s=r.stars||0;
+    return s<=2 ? -1 : s>=4 ? (net<0?-1:1) : Math.sign(net); };
+  const likes=tagged.filter(r=>tone(r)>0).sort((a,b)=>Object.keys(b.tags).length-Object.keys(a.tags).length).slice(0,2);
+  const dislikes=tagged.filter(r=>tone(r)<0).sort((a,b)=>(a.stars||0)-(b.stars||0)).slice(0,2);
   return head + `<div class="mp-rv-note">${rows.length} review text${rows.length===1?"":"s"} read · ${tagged.length} mention a pillar · bars: <b style="color:var(--cobalt)">positive</b> / neutral / <b style="color:var(--heat)">negative</b></div>`
     + (bars?`<div class="mp-pls">${bars}</div>`:"")
     + (likes.length?`<div class="mp-rv-sub">What buyers like</div>${likes.map(r=>quote(r,"pos")).join("")}`:"")
@@ -4735,7 +4738,7 @@ const BP_PILLARS = [
   {k:"noise", label:"Noise", any:["ΘΟΡΥΒ","ΑΘΟΡΥΒ"," ΗΣΥΧ","ΑΚΟΥΓΕΤΑΙ","ΒΟΥΙΖ","ΔΟΝΗΣ","ΚΡΑΔΑΣΜ"],
    pos:["ΑΘΟΡΥΒ"," ΗΣΥΧ","ΔΕΝ ΚΑΝΕΙ ΘΟΡΥΒΟ","ΔΕΝ ΑΚΟΥΓΕΤΑΙ","ΧΑΜΗΛΟ ΘΟΡΥΒΟ","ΧΑΜΗΛΟΣ ΘΟΡΥΒΟΣ","ΚΑΘΟΛΟΥ ΘΟΡΥΒΟ"], neg:["ΘΟΡΥΒΩΔ","ΚΑΝΕΙ ΘΟΡΥΒΟ","ΘΟΡΥΒΟ ΚΑΝΕΙ","ΒΟΥΙΖ","ΔΟΝΗΣ","ΚΡΑΔΑΣΜ"]},
   {k:"space", label:"Space & capacity", any:["ΧΩΡΟΣ","ΧΩΡΟ ","ΧΩΡΑΕΙ","ΧΩΡΗΤΙΚ","ΜΕΓΕΘΟΣ","ΕΥΡΥΧΩΡ","ΡΑΦΙ","ΣΥΡΤΑΡ","ΣΕΡΒΙΤΣΙ"],
-   pos:["ΕΥΡΥΧΩΡ","ΑΡΚΕΤΟΣ ΧΩΡΟΣ","ΑΡΚΕΤΟ ΧΩΡΟ","ΧΩΡΑΕΙ","ΜΕΓΑΛΗ ΧΩΡΗΤΙΚ","ΠΟΛΥ ΧΩΡΟ"], neg:["ΜΙΚΡΟΣ ΧΩΡΟΣ","ΛΙΓΟΣ ΧΩΡΟΣ","ΔΕΝ ΧΩΡΑΕΙ","ΣΤΕΝΟ"]},
+   pos:["ΕΥΡΥΧΩΡ","ΑΡΚΕΤΟΣ ΧΩΡΟΣ","ΑΡΚΕΤΟ ΧΩΡΟ","ΧΩΡΑΕΙ","ΜΕΓΑΛΗ ΧΩΡΗΤΙΚ","ΠΟΛΥ ΧΩΡΟ"], neg:["ΜΙΚΡΟΣ ΧΩΡΟΣ","ΛΙΓΟΣ ΧΩΡΟΣ","ΔΕΝ ΧΩΡΑΕΙ","ΣΤΕΝΟ","ΧΩΡΑΕΙ ΜΟΝΟ","ΧΩΡΑΝΕ ΜΟΝΟ","ΜΟΝΟ ΕΝΑ ΣΥΡΤΑΡ","ΜΙΚΡΗ ΚΑΤΑΨΥΞ","ΜΙΚΡΗ ΧΩΡΗΤΙΚ"]},
   {k:"energy", label:"Energy use", any:["ΚΑΤΑΝΑΛΩΣ"," ΡΕΥΜΑ","ΕΝΕΡΓΕΙΑΚ","ΚΙΛΟΒΑΤ"],
    pos:["ΧΑΜΗΛΗ ΚΑΤΑΝΑΛΩΣ","ΛΙΓΟ ΡΕΥΜΑ","ΟΙΚΟΝΟΜΙΑ ΡΕΥΜΑΤ","ΜΙΚΡΗ ΚΑΤΑΝΑΛΩΣ"], neg:["ΥΨΗΛΗ ΚΑΤΑΝΑΛΩΣ","ΠΟΛΥ ΡΕΥΜΑ","ΚΑΙΕΙ ΡΕΥΜΑ","ΜΕΓΑΛΗ ΚΑΤΑΝΑΛΩΣ"]},
   {k:"reliab", label:"Reliability", any:["ΧΑΛΑΣ","ΒΛΑΒ","ΠΡΟΒΛΗΜ","ΑΞΙΟΠΙΣΤ","ΔΙΑΡΚ","ΑΝΤΙΚΑΤΑΣΤ","ΕΠΙΣΚΕΥ","ΣΕΡΒΙΣ","ΕΛΑΤΤΩΜΑΤ"],
@@ -4764,8 +4767,11 @@ function bpTagWith(items, text, stars){
   const byStars = stars>=4 ? 1 : stars<=2 ? -1 : 0;
   for(const P of items){
     if(!P.any.some(w=>t.includes(w))) continue;
-    let t2=t; for(const p of P.pos) t2=t2.split(p).join(" ");     // "δεν κάνει θόρυβο" must not read as "κάνει θόρυβο"
-    const pos=P.pos.some(p=>t.includes(p)), neg=P.neg.some(n=>t2.includes(n));
+    // longest phrase wins, either way: "δεν κάνει θόρυβο" (praise) is not "κάνει θόρυβο",
+    // and "χωράει μόνο" (complaint) is not "χωράει"; a matched phrase is blanked out
+    const ph=P._ph||(P._ph=[...P.pos.map(p=>[p,1]), ...P.neg.map(n=>[n,-1])].sort((a,b)=>b[0].length-a[0].length));
+    let s=t, pos=false, neg=false;
+    for(const [p,v] of ph) if(s.includes(p)){ if(v>0) pos=true; else neg=true; s=s.split(p).join(" | "); }
     out[P.k] = pos&&!neg ? 1 : neg&&!pos ? -1 : byStars;
   }
   return out;
@@ -4919,14 +4925,14 @@ const BP_TOPICS = {
      pos:["ΑΘΟΡΥΒ"," ΗΣΥΧ","ΔΕΝ ΑΚΟΥΓΕΤΑΙ","ΔΕΝ ΚΑΝΕΙ ΘΟΡΥΒΟ","ΚΑΘΟΛΟΥ ΘΟΡΥΒΟ","ΧΑΜΗΛΟ ΘΟΡΥΒΟ"], neg:["ΘΟΡΥΒΩΔ","ΚΑΝΕΙ ΘΟΡΥΒΟ","ΘΟΡΥΒΟ ΚΑΝΕΙ","ΒΟΥΙΖ"," ΚΡΟΤ","ΤΡΙΖΕΙ","ΠΟΛΥ ΘΟΡΥΒΟ"]},
     {k:"c_cool", label:"Cooling performance", any:["ΨΥΧΕΙ","ΨΥΞΗ","ΚΡΥΩΝ","ΚΡΥΟ ","ΘΕΡΜΟΚΡΑΣ","ΔΡΟΣΙΖ"],
      pos:["ΨΥΧΕΙ ΠΟΛΥ","ΨΥΧΕΙ ΤΕΛΕΙΑ","ΨΥΧΕΙ ΓΡΗΓΟΡΑ","ΚΑΛΗ ΨΥΞΗ","ΔΥΝΑΤΗ ΨΥΞΗ","ΚΡΥΩΝΕΙ ΓΡΗΓΟΡΑ"], neg:["ΔΕΝ ΨΥΧΕΙ","ΔΕΝ ΚΡΥΩΝ","ΑΔΥΝΑΜΗ ΨΥΞΗ","ΖΕΣΤΑΙΝΕΤΑΙ"]},
-    {k:"c_freezer", label:"Freezer & ice", any:["ΚΑΤΑΨΥΞ","ΠΑΓΟ","ΠΑΓΑΚ","ΠΑΓΩΝ"],
-     pos:["ΔΕΝ ΠΙΑΝΕΙ ΠΑΓΟ","ΧΩΡΙΣ ΠΑΓΟ"], neg:["ΠΙΑΝΕΙ ΠΑΓΟ","ΚΑΝΕΙ ΠΑΓΟ","ΓΕΜΙΖΕΙ ΠΑΓΟ","ΠΑΓΟΣ ΣΤΑ","ΠΑΓΟΣ ΣΤΟ"]},
+    {k:"c_freezer", label:"Freezer & ice", any:["ΚΑΤΑΨΥΞ","ΠΑΓΟ","ΠΑΓΑΚ","ΠΑΓΩΝ","ΑΠΟΨΥΞ"],
+     pos:["ΔΕΝ ΠΙΑΝΕΙ ΠΑΓΟ","ΧΩΡΙΣ ΠΑΓΟ","ΔΕΝ ΧΡΕΙΑΖΕΤΑΙ ΑΠΟΨΥΞ","ΧΩΡΙΣ ΑΠΟΨΥΞ"], neg:["ΠΙΑΝΕΙ ΠΑΓΟ","ΚΑΝΕΙ ΠΑΓΟ","ΔΗΜΙΟΥΡΓΕΙ ΠΑΓΟ","ΓΕΜΙΖΕΙ ΠΑΓΟ","ΠΑΓΟΣ ΣΤΑ","ΠΑΓΟΣ ΣΤΟ","ΚΑΝΕΙ ΑΠΟΨΥΞ","ΚΑΝΩ ΑΠΟΨΥΞ","ΘΕΛΕΙ ΑΠΟΨΥΞ","ΧΡΕΙΑΖΕΤΑΙ ΑΠΟΨΥΞ","ΜΙΚΡΗ ΚΑΤΑΨΥΞ","ΜΟΝΟ ΕΝΑ ΣΥΡΤΑΡ"]},
     {k:"c_damp", label:"Damp & condensation", any:["ΥΓΡΑΣΙ","ΣΤΑΓΟΝ","ΙΔΡΩΝ","ΣΥΜΠΥΚΝ","ΝΕΡΑ ΣΤΟ","ΣΤΑΖΕΙ","ΝΕΡΟ ΣΤΟ ΠΑΤΩΜΑ"],
      pos:[], neg:["ΥΓΡΑΣΙ","ΣΤΑΓΟΝ","ΙΔΡΩΝ","ΣΤΑΖΕΙ","ΝΕΡΑ ΣΤΟ","ΝΕΡΟ ΣΤΟ ΠΑΤΩΜΑ"]},
     {k:"c_door", label:"Doors, seals & handles", any:["ΠΟΡΤΑ","ΠΟΡΤΕΣ","ΛΑΣΤΙΧ","ΧΕΡΟΥΛ","ΜΕΝΤΕΣ","ΑΝΑΣΤΡΟΦ"],
      pos:["ΚΛΕΙΝΕΙ ΚΑΛΑ","ΚΛΕΙΝΕΙ ΑΘΟΡΥΒΑ"], neg:["ΔΕΝ ΚΛΕΙΝΕΙ","ΜΕΝΕΙ ΑΝΟΙΧΤ","ΣΠΑΣΕ","ΣΤΡΑΒ"]},
     {k:"c_shelves", label:"Shelves & drawers", any:["ΡΑΦΙ","ΣΥΡΤΑΡ"," ΘΗΚΗ"," ΘΗΚΕΣ","ΚΑΛΑΘ","ΕΣΩΤΕΡΙΚ","ΜΠΟΥΚΑΛ"],
-     pos:[" ΒΟΛΙΚ","ΕΥΡΥΧΩΡ","ΠΡΑΚΤΙΚ","ΚΑΛΗ ΔΙΑΡΡΥΘΜΙΣ","ΕΞΥΠΝΗ ΔΙΑΡΡΥΘΜΙΣ"], neg:[" ΡΑΓΙΣ","ΣΠΑΣΕ","ΣΠΑΣΜΕΝ","ΦΘΗΝΟ ΠΛΑΣΤΙΚ","ΛΙΓΑ ΡΑΦΙΑ","ΜΙΚΡΑ ΣΥΡΤΑΡ"]},
+     pos:[" ΒΟΛΙΚ","ΕΥΡΥΧΩΡ","ΠΡΑΚΤΙΚ","ΚΑΛΗ ΔΙΑΡΡΥΘΜΙΣ","ΕΞΥΠΝΗ ΔΙΑΡΡΥΘΜΙΣ"], neg:[" ΡΑΓΙΣ","ΣΠΑΣΕ","ΣΠΑΣΜΕΝ","ΦΘΗΝΟ ΠΛΑΣΤΙΚ","ΛΙΓΑ ΡΑΦΙΑ","ΜΙΚΡΑ ΣΥΡΤΑΡ","ΜΟΝΟ ΕΝΑ ΣΥΡΤΑΡ","ΧΩΡΑΕΙ ΜΟΝΟ","ΧΩΡΑΝΕ ΜΟΝΟ"]},
     {k:"c_smell", label:"Smell", any:["ΜΥΡΩΔ","ΜΥΡΙΖ","ΟΣΜΗ","ΟΣΜΕΣ"], pos:["ΔΕΝ ΜΥΡΙΖΕΙ","ΧΩΡΙΣ ΜΥΡΩΔ"], neg:["ΜΥΡΙΖΕΙ","ΜΥΡΩΔΙΑ ΠΛΑΣΤ","ΑΣΧΗΜΗ ΜΥΡ","ΒΡΩΜ"]},
     {k:"c_controls", label:"Display & controls", any:["ΟΘΟΝ"," ΚΟΥΜΠ","ΕΝΔΕΙΞ","ΘΕΡΜΟΣΤΑΤ","ΡΥΘΜΙΣ","ΕΦΑΡΜΟΓ","WIFI","WI FI"],
      pos:["ΕΥΚΟΛΕΣ ΡΥΘΜΙΣ","ΕΥΚΟΛΗ ΡΥΘΜΙΣ"], neg:["ΔΥΣΚΟΛΗ ΡΥΘΜΙΣ","ΜΠΕΡΔΕΜ"]},
@@ -4946,7 +4952,7 @@ const BP_TOPICS = {
     {k:"l_progs", label:"Programmes & controls", any:["ΠΡΟΓΡΑΜΜ","ΟΘΟΝ"," ΚΟΥΜΠ","ΕΠΙΛΟΓΕΣ","ΕΦΑΡΜΟΓ","WIFI","WI FI","ΧΡΟΝΟΔΙΑΚ","ΑΤΜΟ"],
      pos:["ΠΟΛΛΑ ΠΡΟΓΡΑΜΜ","ΠΟΙΚΙΛΙΑ ΠΡΟΓΡΑΜΜ","ΕΥΚΟΛΟ ΣΤΗ ΧΡΗΣΗ","ΕΥΚΟΛΗ ΧΡΗΣΗ"], neg:["ΜΠΕΡΔΕΜ","ΠΟΛΥΠΛΟΚ","ΔΕΝ ΣΥΝΔΕΕΤΑΙ"]},
     {k:"l_drum", label:"Drum & capacity", any:["ΚΑΔΟ","ΚΙΛΑ","ΚΙΛΩΝ","ΧΩΡΗΤΙΚ","ΠΑΠΛΩΜ","ΚΟΥΒΕΡΤ"],
-     pos:["ΜΕΓΑΛΟΣ ΚΑΔΟΣ","ΜΕΓΑΛΟ ΚΑΔΟ","ΧΩΡΑΕΙ","ΠΑΠΛΩΜ","ΚΟΥΒΕΡΤ"], neg:["ΜΙΚΡΟΣ ΚΑΔΟΣ","ΔΕΝ ΧΩΡΑΕΙ"]},
+     pos:["ΜΕΓΑΛΟΣ ΚΑΔΟΣ","ΜΕΓΑΛΟ ΚΑΔΟ","ΧΩΡΑΕΙ","ΠΑΠΛΩΜ","ΚΟΥΒΕΡΤ"], neg:["ΜΙΚΡΟΣ ΚΑΔΟΣ","ΔΕΝ ΧΩΡΑΕΙ","ΧΩΡΑΕΙ ΜΟΝΟ","ΧΩΡΑΝΕ ΜΟΝΟ"]},
     {k:"l_drawer", label:"Detergent drawer", any:["ΘΗΚΗ ΑΠΟΡΡΥΠ","ΣΥΡΤΑΡΑΚΙ","ΘΗΚΗ ΤΟΥ ΑΠΟΡΡΥΠ","ΜΑΛΑΚΤΙΚ"],
      pos:[], neg:["ΜΕΝΕΙ ΝΕΡΟ","ΜΕΝΕΙ ΜΑΛΑΚΤΙΚ","ΜΕΝΕΙ ΑΠΟΡΡΥΠ","ΜΑΥΡΙΛ","ΜΟΥΧΛ"]},
     {k:"l_mould", label:"Smell, mould & seal", any:["ΜΟΥΧΛ","ΜΥΡΩΔ","ΜΥΡΙΖ","ΛΑΣΤΙΧ","ΜΑΥΡΙΛ","ΒΡΩΜ"],
@@ -4966,7 +4972,7 @@ const BP_TOPICS = {
     {k:"d_time", label:"Programme length", any:[" ΩΡΕΣ"," ΩΡΑ "," ΛΕΠΤΑ","ΔΙΑΡΚΕΙΑ ΠΡΟΓΡΑΜΜ","ΓΡΗΓΟΡΟ ΠΡΟΓΡΑΜΜ","ΓΡΗΓΟΡΑ ΠΡΟΓΡΑΜΜ"],
      pos:["ΓΡΗΓΟΡΟ ΠΡΟΓΡΑΜΜ","ΓΡΗΓΟΡΑ ΠΡΟΓΡΑΜΜ","ΣΕ ΛΙΓΑ ΛΕΠΤΑ"], neg:["ΠΟΛΛΕΣ ΩΡΕΣ","ΠΟΛΥ ΩΡΑ","ΑΤΕΛΕΙΩΤ","ΑΡΓΕΙ ΠΟΛΥ"]},
     {k:"d_racks", label:"Baskets & loading", any:["ΚΑΛΑΘ"," ΣΚΕΥ","ΣΕΡΒΙΤΣΙ","ΜΑΧΑΙΡΟΠΙΡ","ΧΩΡΑΕΙ","ΧΩΡΑΝΕ","ΚΑΤΣΑΡΟΛ","ΤΗΓΑΝ"],
-     pos:["ΧΩΡΑΕΙ","ΧΩΡΑΝΕ","ΕΥΡΥΧΩΡ","ΤΡΙΤΟ ΚΑΛΑΘ","3Ο ΚΑΛΑΘ","ΡΥΘΜΙΖΟΜΕΝ"], neg:["ΔΕΝ ΧΩΡΑΕΙ","ΔΕΝ ΧΩΡΑΝΕ","ΣΠΑΣΕ","ΣΤΕΝΟΧΩΡ"]},
+     pos:["ΧΩΡΑΕΙ","ΧΩΡΑΝΕ","ΕΥΡΥΧΩΡ","ΤΡΙΤΟ ΚΑΛΑΘ","3Ο ΚΑΛΑΘ","ΡΥΘΜΙΖΟΜΕΝ"], neg:["ΔΕΝ ΧΩΡΑΕΙ","ΔΕΝ ΧΩΡΑΝΕ","ΣΠΑΣΕ","ΣΤΕΝΟΧΩΡ","ΧΩΡΑΕΙ ΜΟΝΟ","ΧΩΡΑΝΕ ΜΟΝΟ"]},
     {k:"d_progs", label:"Programmes & controls", any:["ΠΡΟΓΡΑΜΜ","ΟΘΟΝ"," ΚΟΥΜΠ","ΕΦΑΡΜΟΓ","WIFI","WI FI","ΧΡΟΝΟΔΙΑΚ","ΑΙΣΘΗΤΗΡ"],
      pos:["ΠΟΛΛΑ ΠΡΟΓΡΑΜΜ","ΠΟΙΚΙΛΙΑ ΠΡΟΓΡΑΜΜ","ΕΥΚΟΛΟ ΣΤΗ ΧΡΗΣΗ"], neg:["ΜΠΕΡΔΕΜ","ΠΟΛΥΠΛΟΚ"]},
     {k:"d_fit", label:"Installation & fit", any:["ΤΟΠΟΘΕΤ","ΕΓΚΑΤΑΣΤ","ΕΝΤΟΙΧ"," ΠΑΝΕΛ","ΠΟΡΤΑ ΤΟΥ ΝΤΟΥΛΑΠ","ΝΤΟΥΛΑΠ"],
@@ -4989,7 +4995,7 @@ const BP_TOPICS = {
     {k:"k_door", label:"Door & outside heat", any:["ΠΟΡΤΑ","ΤΖΑΜΙ","ΚΑΙΓΕΤΑΙ","ΖΕΣΤΑΙΝΕΤΑΙ ΕΞΩ"],
      pos:["ΔΕΝ ΚΑΙΓΕΤΑΙ","ΚΡΥΑ ΠΟΡΤΑ"], neg:["ΚΑΙΓΕΤΑΙ","ΚΑΙΕΙ Η ΠΟΡΤΑ","ΖΕΣΤΑΙΝΕΤΑΙ Η ΠΟΡΤΑ","ΖΕΣΤΑΙΝΕΤΑΙ ΕΞΩ"]},
     {k:"k_space", label:"Capacity, racks & trays", any:["ΧΩΡΗΤΙΚ","ΣΧΑΡ","ΤΑΨΙ","ΛΙΤΡ","ΤΗΛΕΣΚΟΠ","ΟΔΗΓ","ΕΥΡΥΧΩΡ"],
-     pos:["ΜΕΓΑΛΗ ΧΩΡΗΤΙΚ","ΕΥΡΥΧΩΡ","ΤΗΛΕΣΚΟΠ","ΧΩΡΑΕΙ"], neg:["ΜΙΚΡΟΣ","ΔΕΝ ΧΩΡΑΕΙ","ΜΙΚΡΗ ΧΩΡΗΤΙΚ"]},
+     pos:["ΜΕΓΑΛΗ ΧΩΡΗΤΙΚ","ΕΥΡΥΧΩΡ","ΤΗΛΕΣΚΟΠ","ΧΩΡΑΕΙ"], neg:["ΜΙΚΡΟΣ","ΔΕΝ ΧΩΡΑΕΙ","ΜΙΚΡΗ ΧΩΡΗΤΙΚ","ΧΩΡΑΕΙ ΜΟΝΟ","ΧΩΡΑΝΕ ΜΟΝΟ"]},
     {k:"k_micro", label:"Microwave heating & grill", any:["ΖΕΣΤΑΙΝ","ΞΕΠΑΓΩΝ","ΓΚΡΙΛ","GRILL","ΦΟΥΡΝΑΚΙ"],
      pos:["ΖΕΣΤΑΙΝΕΙ ΓΡΗΓΟΡΑ","ΖΕΣΤΑΙΝΕΙ ΟΜΟΙΟΜΟΡΦ","ΖΕΣΤΑΙΝΕΙ ΤΕΛΕΙΑ"], neg:["ΔΕΝ ΖΕΣΤΑΙΝ","ΖΕΣΤΑΙΝΕΙ ΑΝΟΜΟΙΟΜΟΡΦ","ΑΡΓΕΙ ΝΑ ΖΕΣΤ"]},
   ],
