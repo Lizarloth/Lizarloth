@@ -379,6 +379,33 @@ nav button.active{background:var(--cobalt);color:#fff}
 .mp-ns-l{font-weight:600} .mp-ns small{color:var(--ink-soft)}
 .bp-quote mark{background:rgba(224,161,58,.28);color:inherit;border-radius:3px;padding:0 1px}
 .bpr-drawer{width:560px;display:flex;flex-direction:column}
+/* drill-down panel */
+.drill-drawer{width:600px;display:flex;flex-direction:column}
+.drill-crumbs{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:12px 22px 0;font-size:12.5px}
+.dc-root{background:none;border:0;padding:0;font:600 12.5px 'Hanken Grotesk';color:var(--cobalt);cursor:pointer}
+.dc-sep{color:var(--ink-faint)}
+.dc-step{display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:99px;background:var(--cobalt-soft);color:var(--cobalt);font-weight:600}
+.dc-step button{border:0;background:none;color:inherit;cursor:pointer;font-size:11px;opacity:.75;padding:0 2px}
+.dt-l{align-self:center;font:600 11px 'JetBrains Mono';letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin-right:4px;white-space:nowrap}
+.drill-body{flex:1;overflow-y:auto;padding:8px 16px 28px}
+.dk{display:flex;flex-direction:column;gap:2px}
+.dk-row{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 44px 78px;gap:10px;align-items:center;width:100%;text-align:left;
+  padding:8px 8px;border:0;border-radius:8px;background:none;color:var(--ink);font:inherit;cursor:pointer}
+@media (hover:hover) and (pointer:fine){.dk-row:hover{background:var(--cobalt-soft)}}
+.dk-l{font-size:13px;font-weight:600;min-width:0;overflow-wrap:anywhere}
+.dk-l small{font-weight:600;font-size:11px;color:var(--cobalt);margin-left:4px}
+.dk-bar{height:8px;border-radius:4px;background:var(--soft-bg);overflow:hidden}
+.dk-bar i{display:block;height:100%;border-radius:4px;background:var(--cobalt)}
+.dk-n{font:600 12.5px 'JetBrains Mono';text-align:right}
+.dk-a{font:500 12px 'JetBrains Mono';text-align:right;color:var(--ink-soft)}
+.dm-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;grid-template-rows:auto auto;column-gap:10px;align-items:center;padding:8px 8px;border-bottom:1px solid var(--soft-bg)}
+.dm-row.mine{box-shadow:inset 3px 0 0 var(--cobalt)}
+.dm-name{grid-column:1;font-size:13px;font-weight:600}
+.dm-meta{grid-column:1;grid-row:2;font-size:11.5px;color:var(--ink-soft)}
+.dm-row .pill{grid-column:2;grid-row:1/3}
+.dm-p{grid-column:3;grid-row:1/3;font:600 13px 'JetBrains Mono';text-align:right;white-space:nowrap}
+.dm-promo{color:var(--heat);font-size:11px}
+@media(max-width:640px){.dk-row{grid-template-columns:minmax(0,1fr) 60px 40px 70px}}
 .bpr-list{flex:1;overflow-y:auto;padding:8px 14px 24px}
 .dr-tab small{opacity:.7;margin-left:3px}
 .bp-link{background:none;border:0;padding:0;font:inherit;color:var(--cobalt);cursor:pointer;text-align:left}
@@ -1251,7 +1278,7 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S52</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S54</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="side-edge" id="sideEdge" aria-hidden="true"></div>
@@ -1334,7 +1361,7 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
 
     <div class="l-pulse">
       <h2>Market structure</h2>
-      <p class="l-psub">Market overview for the current filter.</p>
+      <p class="l-psub">Market overview for the current filter. Click any bar or slice to explore it.</p>
       <div class="pulse-grid">
         <div class="card"><h3>Top brands by models listed</h3><div class="chart-box"><canvas id="brandChart"></canvas></div></div>
         <div class="card"><h3>Price distribution</h3><div class="chart-box"><canvas id="priceDistChart"></canvas></div></div>
@@ -1390,7 +1417,7 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
 
     <div class="l-pulse">
       <h2>Market structure</h2>
-      <p class="l-psub" id="lauPulseSub">Market overview for the current filter.</p>
+      <p class="l-psub" id="lauPulseSub">Market overview for the current filter. Click any bar or slice to explore it.</p>
       <div class="pulse-grid">
         <div class="card"><h3>Top brands by models listed</h3><div class="chart-box"><canvas id="lBrandChart"></canvas></div></div>
         <div class="card"><h3>Price distribution</h3><div class="chart-box"><canvas id="lPriceChart"></canvas></div></div>
@@ -1450,7 +1477,7 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
 
     <div class="l-pulse">
       <h2>Market structure</h2>
-      <p class="l-psub">Market overview for the current filter.</p>
+      <p class="l-psub">Market overview for the current filter. Click any bar or slice to explore it.</p>
       <div class="pulse-grid">
         <div class="card"><h3>Top brands by models listed</h3><div class="chart-box"><canvas id="cBrandChart"></canvas></div></div>
         <div class="card"><h3>Price distribution</h3><div class="chart-box"><canvas id="cPriceChart"></canvas></div></div>
@@ -1509,7 +1536,7 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
 
     <div class="l-pulse">
       <h2>Market structure</h2>
-      <p class="l-psub">Market overview for the current filter.</p>
+      <p class="l-psub">Market overview for the current filter. Click any bar or slice to explore it.</p>
       <div class="pulse-grid">
         <div class="card"><h3>Top brands by models listed</h3><div class="chart-box"><canvas id="dBrandChart"></canvas></div></div>
         <div class="card"><h3>Price distribution</h3><div class="chart-box"><canvas id="dPriceChart"></canvas></div></div>
@@ -1925,6 +1952,16 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
 
 <div class="lightbox" id="lightbox"><img id="lightboxImg" src="" alt="Product image — enlarged"><button class="lb-close" id="lbClose">✕</button></div>
 
+<div class="drawer-scrim" id="drillScrim" onclick="drillClose()"></div>
+<aside class="drawer drill-drawer" id="drillDrawer" aria-label="Explore">
+  <div class="drawer-head">
+    <div><div class="drawer-title" id="drillTitle">Explore</div><div class="drawer-sub" id="drillSub"></div></div>
+    <button class="lb-close" id="drillClose" aria-label="Close" onclick="drillClose()" style="position:static;width:36px;height:36px;background:var(--soft-bg);color:var(--ink)">✕</button>
+  </div>
+  <div class="drill-crumbs" id="drillCrumbs"></div>
+  <div class="drawer-tabs" id="drillTabs"></div>
+  <div class="drill-body" id="drillBody"></div>
+</aside>
 <div class="drawer-scrim" id="bprScrim"></div>
 <aside class="drawer bpr-drawer" id="bprDrawer" aria-label="Reviews">
   <div class="drawer-head">
@@ -2786,11 +2823,13 @@ function renderLaundry(){
       const bins=[0,200,300,400,500,700,1000,99999], labels=["<200","200-300","300-400","400-500","500-700","700-1k","1k+"];
       const counts=labels.map(()=>0);
       pr.forEach(v=>{ for(let i=0;i<bins.length-1;i++){ if(v>=bins[i]&&v<bins[i+1]){counts[i]++;break;} } });
-      makeChart("lPriceChart","bar",{labels,datasets:[{data:counts,backgroundColor:"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}}});
+      makeChart("lPriceChart","bar",{labels,datasets:[{data:counts,backgroundColor:"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}},
+        drill:i=>({list:cset, title:"Laundry", step:{dim:"price", label:"€"+labels[i], test:p=>{ const v=f.price(p); return v!=null&&v>=bins[i]&&v<bins[i+1]; }}})});
     } else emptyChart("lPriceChart","No price data yet");
     const enmix={}; cset.forEach(p=>{const e=laundryNorm(p).energy; if(e)enmix[e]=(enmix[e]||0)+1;});
     const eL=["A","B","C","D","E","F","G"].filter(x=>enmix[x]);
-    if(eL.length) makeChart("lEnergyChart","doughnut",{labels:eL,datasets:[{data:eL.map(x=>enmix[x]),backgroundColor:eL.map(x=>L_EC[x]||"#94A3B8")}]},{plugins:{legend:{position:"right"}}});
+    if(eL.length) makeChart("lEnergyChart","doughnut",{labels:eL,datasets:[{data:eL.map(x=>enmix[x]),backgroundColor:eL.map(x=>L_EC[x]||"#94A3B8")}]},{plugins:{legend:{position:"right"}},
+      drill:i=>({list:cset, title:"Laundry", step:{dim:"energy", label:"Energy "+eL[i], test:p=>laundryNorm(p).energy===eL[i]}})});
     else emptyChart("lEnergyChart","No energy data yet");
   }
 
@@ -3230,11 +3269,13 @@ function renderSecDashboard(D){
     if(priced.length){
       const [bins,labels]=D.priceBins, counts=labels.map(()=>0);
       priced.forEach(v=>{ for(let i=0;i<bins.length-1;i++){ if(v>=bins[i]&&v<bins[i+1]){counts[i]++;break;} } });
-      makeChart(I.price,"bar",{labels,datasets:[{data:counts,backgroundColor:"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}}});
+      makeChart(I.price,"bar",{labels,datasets:[{data:counts,backgroundColor:"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}},
+        drill:i=>({list:cset, title:DEPT_NAME[D.key], step:{dim:"price", label:"€"+labels[i], test:p=>{ const v=f.price(p); return v!=null&&v>=bins[i]&&v<bins[i+1]; }}})});
     } else emptyChart(I.price,"No price data yet");
     const enmix={}; cset.forEach(p=>{const e=D.norm(p).energy; if(e)enmix[e]=(enmix[e]||0)+1;});
     const eL=Object.keys(enmix).sort((a,b)=>cookEnergyRank(a)-cookEnergyRank(b));
-    if(eL.length) makeChart(I.energy,"doughnut",{labels:eL,datasets:[{data:eL.map(x=>enmix[x]),backgroundColor:eL.map(x=>L_EC[x[0]]||"#94A3B8")}]},{plugins:{legend:{position:"right"}}});
+    if(eL.length) makeChart(I.energy,"doughnut",{labels:eL,datasets:[{data:eL.map(x=>enmix[x]),backgroundColor:eL.map(x=>L_EC[x[0]]||"#94A3B8")}]},{plugins:{legend:{position:"right"}},
+      drill:i=>({list:cset, title:DEPT_NAME[D.key], step:{dim:"energy", label:"Energy "+eL[i], test:p=>D.norm(p).energy===eL[i]}})});
     else emptyChart(I.energy,"No energy data in view");
   }
   renderPromoSection(I.pp, cset);
@@ -3799,7 +3840,9 @@ function renderPromoSection(prefix, list){
       datasets:[{data:brandRows.map(r=>+r.share.toFixed(1)),
         backgroundColor:brandRows.map(r=>MY_BRANDS.some(m=>cap(m)===r.b)?"#0B6E6E":"#C9472F"),
         borderRadius:6,maxBarThickness:26}]},
-      {indexAxis:"y",plugins:{legend:{display:false}}});
+      {indexAxis:"y",plugins:{legend:{display:false}},
+       drill:i=>({list:priced, title:"Promotions", steps:[{dim:"brand", label:brandRows[i].b, test:p=>smBrand(p)===brandRows[i].b},
+                                                        {dim:"promo", label:"On promo", test:p=>!!promoNow(p)}]})});
   } else emptyChart(prefix+"BrandChart","No promos in the current view");
 
   // discount depth distribution (current promos)
@@ -3808,7 +3851,8 @@ function renderPromoSection(prefix, list){
   if(promos.length){
     makeChart(prefix+"DepthChart","bar",{labels:buckets.map(b=>b[2]),
       datasets:[{data:counts,backgroundColor:"#C77D33",borderRadius:6,maxBarThickness:46}]},
-      {plugins:{legend:{display:false}}});
+      {plugins:{legend:{display:false}},
+       drill:i=>({list:priced, title:"Promotions", step:{dim:"promo", label:"Promo "+buckets[i][2], test:p=>{ const pr=promoNow(p); return !!pr && pr.depth>=buckets[i][0] && pr.depth<buckets[i][1]; }}})});
   } else emptyChart(prefix+"DepthChart","No promos in the current view");
 
   // promo intensity by retailer (% of SKUs on promo, within the filtered view)
@@ -3818,7 +3862,8 @@ function renderPromoSection(prefix, list){
     makeChart(prefix+"RetailerChart","bar",{labels:["Kotsovolos","Public","Plaisio"],
       datasets:[{data:["kotsovolos","public","plaisio"].map(s=>siteAgg[s].n?+(siteAgg[s].p/siteAgg[s].n*100).toFixed(1):0),
         backgroundColor:["kotsovolos","public","plaisio"].map(s=>SITE_COLOR[s]),borderRadius:8,maxBarThickness:60}]},
-      {plugins:{legend:{display:false}}});
+      {plugins:{legend:{display:false}},
+       drill:i=>{ const s=["kotsovolos","public","plaisio"][i]; return {list:priced, title:"Promotions", step:{dim:"site", label:SITE_LABEL[s], test:p=>f.site(p)===s}}; }});
   } else emptyChart(prefix+"RetailerChart","No products in view");
 
   // longest-running promos over the selected window
@@ -4552,7 +4597,8 @@ function renderDashboard(){
     const bins=[0,200,400,600,800,1000,1500,2000,99999], labels=["<200","200-400","400-600","600-800","800-1k","1-1.5k","1.5-2k","2k+"];
     const counts=labels.map(()=>0);
     prices.forEach(p=>{ for(let i=0;i<bins.length-1;i++){ if(p>=bins[i]&&p<bins[i+1]){counts[i]++;break;} } });
-    makeChart("priceDistChart","bar",{labels,datasets:[{data:counts,backgroundColor:"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}}});
+    makeChart("priceDistChart","bar",{labels,datasets:[{data:counts,backgroundColor:"#10B981",borderRadius:6,maxBarThickness:46}]},{plugins:{legend:{display:false}},
+      drill:i=>({list:prods, title:"Cooling", step:{dim:"price", label:"€"+labels[i], test:p=>{ const v=f.price(p); return v!=null&&v>=bins[i]&&v<bins[i+1]; }}})});
   } else emptyChart("priceDistChart","No price data yet");
 
   // ── energy class mix ──────────────────────────────────────
@@ -4563,7 +4609,8 @@ function renderDashboard(){
   const ENERGY_COLOR={A:"#16A34A",B:"#4ADE80",C:"#A3E635",D:"#FACC15",E:"#F59E0B",F:"#F97316",G:"#EF4444"};
   const order=["A","B","C","D","E","F","G"]; const eLabels=order.filter(x=>en[x]);
   if(eLabels.length){
-    makeChart("energyChart","doughnut",{labels:eLabels,datasets:[{data:eLabels.map(x=>en[x]),backgroundColor:eLabels.map(x=>ENERGY_COLOR[x])}]},{plugins:{legend:{position:"right"}}});
+    makeChart("energyChart","doughnut",{labels:eLabels,datasets:[{data:eLabels.map(x=>en[x]),backgroundColor:eLabels.map(x=>ENERGY_COLOR[x])}]},{plugins:{legend:{position:"right"}},
+      drill:i=>({list:prods, title:"Cooling", step:{dim:"energy", label:"Energy "+eLabels[i], test:p=>energyOfP(p)===eLabels[i]}})});
   } else emptyChart("energyChart","Energy class fills in after the next price update");
 
   // ── new at competitors ────────────────────────────
@@ -7805,7 +7852,8 @@ function brandRangeChart(id, list){
   if(!top.length) return emptyChart(id,"No brand data yet");
   makeChart(id,"bar",{labels:top.map(t=>t[0]), datasets:[{label:"Models", data:top.map(t=>t[1]),
       backgroundColor:top.map(t=>t[2]?getCSS("--cobalt"):"#9CA3AF"), borderRadius:4, maxBarThickness:30}]},
-    {indexAxis:"y", plugins:{legend:{display:false}}});
+    {indexAxis:"y", plugins:{legend:{display:false}},
+     drill:i=>({list, title:DEPT_NAME[state.dept], step:{dim:"brand", label:top[i][0], test:p=>smBrand(p)===top[i][0]}})});
 }
 function getCSS(name){ try{ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#888"; }catch(_){ return "#888"; } }
 /* Charts redraw on every filter click and on the 2-minute refresh, so only a
@@ -7816,6 +7864,94 @@ function chartAnimation(id){
   _chartDrawn.add(id);
   return {duration:450, easing:"easeOutQuart"};
 }
+/* ===== DRILL-DOWN: click any bar or slice of the market and promotion charts to
+   open the products behind it in a side panel, then keep narrowing: break the
+   current set down by brand, price, energy, type, retailer, promotion or colour,
+   click a row to filter by it, remove any step from the trail. ===== */
+const DRILL_PRICE = {
+  cooling:[[0,200,400,600,800,1000,1500,2000,99999],["<200","200-400","400-600","600-800","800-1k","1-1.5k","1.5-2k","2k+"]],
+  laundry:[[0,200,300,400,500,700,1000,99999],["<200","200-300","300-400","400-500","500-700","700-1k","1k+"]],
+};
+const drillPriceBins = d => DRILL_PRICE[d] || (SEC_DEPTS[d] && SEC_DEPTS[d].priceBins) || DRILL_PRICE.cooling;
+const drillEnergy = (d,p) => d==="laundry" ? laundryNorm(p).energy : d==="cooling" ? energyOfP(p) : (SEC_DEPTS[d] ? SEC_DEPTS[d].norm(p).energy : null);
+const drillType = (d,p) => d==="cooling" ? (SUBCAT_LABEL[categorize(p)]||"Other")
+  : d==="laundry" ? (laundryNorm(p).typeLabel||"Other")
+  : (SEC_DEPTS[d] ? (SEC_DEPTS[d].typeLabel[SEC_DEPTS[d].norm(p).type]||"Other") : "Other");
+const DRILL_DIMS = [
+  {k:"brand",  label:"Brand",     of:(d,p)=>smBrand(p)||"Other"},
+  {k:"price",  label:"Price",     of:(d,p)=>{ const v=f.price(p), [b,l]=drillPriceBins(d); if(v==null) return "No price";
+                                            for(let i=0;i<b.length-1;i++) if(v>=b[i]&&v<b[i+1]) return "€"+l[i]; return "No price"; },
+                                  order:d=>[...drillPriceBins(d)[1].map(x=>"€"+x),"No price"]},
+  {k:"energy", label:"Energy",    of:(d,p)=>drillEnergy(d,p)||"Not stated"},
+  {k:"type",   label:"Type",      of:drillType},
+  {k:"site",   label:"Retailer",  of:(d,p)=>SITE_LABEL[f.site(p)]||f.site(p)},
+  {k:"promo",  label:"Promotion", of:(d,p)=>{ const pr=promoNow(p); return !pr?"Regular price":pr.depth<20?"On promo · under 20%":"On promo · 20%+"; }},
+  {k:"colour", label:"Colour",    of:(d,p)=>specMatchColour([p])||"Not stated"},
+];
+const DRILL = {dept:"cooling", base:[], root:"", steps:[], dim:"brand", n:30};
+/* spec = {list, title, step:{dim, label, test}} from a chart click */
+function drillOpen(spec){
+  DRILL.dept=state.dept; DRILL.base=spec.list||[]; DRILL.root=spec.title||DEPT_NAME[state.dept];
+  DRILL.steps=spec.steps||(spec.step?[spec.step]:[]); DRILL.n=30;
+  DRILL.dim=DRILL_DIMS.find(x=>!DRILL.steps.some(s=>s.dim===x.k)).k;
+  drillRender();
+  document.getElementById("drillDrawer").classList.add("open"); document.getElementById("drillScrim").classList.add("open");
+  document.getElementById("drillClose").focus();
+}
+function drillClose(){ document.getElementById("drillDrawer").classList.remove("open"); document.getElementById("drillScrim").classList.remove("open"); }
+function drillRender(){
+  const d=DRILL.dept, set=DRILL.base.filter(p=>DRILL.steps.every(s=>s.test(p)));
+  const priced=set.filter(p=>f.price(p)!=null), avg=priced.length?priced.reduce((a,p)=>a+f.price(p),0)/priced.length:null;
+  const models=benchDedupe(set).length, promo=priced.filter(p=>promoNow(p)).length;
+  document.getElementById("drillTitle").textContent=DRILL.steps.length?DRILL.steps[DRILL.steps.length-1].label:DRILL.root;
+  document.getElementById("drillSub").textContent=`${set.length.toLocaleString("en-GB")} listing${set.length===1?"":"s"} · ${models.toLocaleString("en-GB")} model${models===1?"":"s"} · average ${avg!=null?fmt(avg):"–"} · ${priced.length?Math.round(promo/priced.length*100):0}% on promo`;
+  document.getElementById("drillCrumbs").innerHTML=`<button class="dc-root" data-drill-pop="0">${esc(DRILL.root)}</button>`
+    + DRILL.steps.map((s,i)=>`<span class="dc-sep">›</span><span class="dc-step">${esc(s.label)}<button data-drill-rm="${i}" aria-label="Remove ${esc(s.label)}">✕</button></span>`).join("");
+  const dims=DRILL_DIMS.filter(x=>!DRILL.steps.some(s=>s.dim===x.k));
+  if(!dims.some(x=>x.k===DRILL.dim)) DRILL.dim=(dims[0]||DRILL_DIMS[0]).k;
+  document.getElementById("drillTabs").innerHTML=`<span class="dt-l">Break down by</span>`+dims.map(x=>`<button class="dr-tab${x.k===DRILL.dim?" on":""}" data-drill-dim="${x.k}">${x.label}</button>`).join("");
+  // breakdown of the current set by the chosen dimension
+  const D=DRILL_DIMS.find(x=>x.k===DRILL.dim), g={};
+  for(const p of set){ const v=D.of(d,p); (g[v]=g[v]||[]).push(p); }
+  let rows=Object.entries(g).map(([v,L])=>{ const pr=L.map(f.price).filter(x=>x!=null);
+    return {v, n:L.length, mine:L.filter(isMyBrand).length, avg:pr.length?pr.reduce((a,b)=>a+b,0)/pr.length:null}; });
+  const ord=D.order?D.order(d):null;
+  rows.sort((a,b)=> ord ? ord.indexOf(a.v)-ord.indexOf(b.v) : (b.n-a.n));
+  const max=Math.max(1,...rows.map(r=>r.n));
+  const brk = rows.length>1 ? rows.map(r=>`<button class="dk-row" data-drill-add="${esc(r.v)}">
+      <span class="dk-l">${esc(r.v)}${r.mine&&r.mine<r.n?` <small>${r.mine} yours</small>`:""}</span>
+      <span class="dk-bar"><i style="width:${(r.n/max*100).toFixed(1)}%"></i></span>
+      <span class="dk-n">${r.n}</span><span class="dk-a">${r.avg!=null?fmt(r.avg):"–"}</span></button>`).join("")
+    : `<div class="ph-note" style="margin:6px 2px">All ${set.length} listings share the same ${D.label.toLowerCase()}: ${esc(rows[0]?rows[0].v:"–")}.</div>`;
+  // the models at this level, cheapest first (one row per model, best price)
+  const list=benchDedupe(set).sort((a,b)=>f.price(a.p)-f.price(b.p));
+  const shown=list.slice(0,DRILL.n);
+  const mdl = shown.map(r=>{ const p=r.p, pr=promoNow(p), e=drillEnergy(d,p);
+    return `<div class="dm-row${isMyBrand(p)?" mine":""}"><a class="rl dm-name" href="#" data-model="${esc(String(f.id(p)))}">${esc(modelTitle(f.name(p),34))}</a>
+      <span class="dm-meta">${esc(drillType(d,p))}${e?` · ${esc(e)}`:""}${r.groupSize>1?` · ${r.groupSize} retailers`:""}</span>
+      <span class="pill ${SITE_PILL[f.site(p)]||"na"}">${SITE_LABEL[f.site(p)]||f.site(p)}</span>
+      <span class="dm-p">${fmt(f.price(p))}${pr?` <small class="dm-promo">−${pr.depth.toFixed(0)}%</small>`:""}</span></div>`; }).join("")
+    + (list.length>shown.length?`<button class="btn ghost ph-more" data-drill-more>Show ${Math.min(30,list.length-shown.length)} more of ${list.length}</button>`:"");
+  document.getElementById("drillBody").innerHTML=`<div class="dk">${brk}</div>
+    <div class="sw-sub" style="margin:16px 2px 6px">Models <b>${list.length}</b> · cheapest first</div>${mdl||'<div class="empty">No models.</div>'}`;
+}
+function drillAdd(v){
+  const D=DRILL_DIMS.find(x=>x.k===DRILL.dim), d=DRILL.dept;
+  DRILL.steps.push({dim:D.k, label:D.k==="energy"&&v!=="Not stated"?"Energy "+v:v, test:p=>D.of(d,p)===v}); DRILL.n=30;
+  const next=DRILL_DIMS.find(x=>!DRILL.steps.some(s=>s.dim===x.k)); if(next) DRILL.dim=next.k;
+  drillRender(); document.getElementById("drillBody").scrollTop=0;
+}
+document.addEventListener("click",e=>{
+  if(!e.target.closest("#drillDrawer")) return;
+  const a=e.target.closest("[data-drill-add]"); if(a){ drillAdd(a.dataset.drillAdd); return; }
+  const t=e.target.closest("[data-drill-dim]"); if(t){ DRILL.dim=t.dataset.drillDim; drillRender(); return; }
+  const r=e.target.closest("[data-drill-rm]"); if(r){ DRILL.steps.splice(+r.dataset.drillRm,1); DRILL.n=30; drillRender(); return; }
+  if(e.target.closest("[data-drill-pop]")){ DRILL.steps=[]; DRILL.n=30; drillRender(); return; }
+  if(e.target.closest("[data-drill-more]")){ DRILL.n+=30; drillRender(); return; }
+  if(e.target.closest("[data-model]")) drillClose();
+});
+document.addEventListener("keydown",e=>{ if(e.key==="Escape" && document.getElementById("drillDrawer")?.classList.contains("open")) drillClose(); });
+
 function makeChart(id,type,data,extra={}){
   if(charts[id]) charts[id].destroy();
   const animation = chartAnimation(id);
@@ -7829,7 +7965,10 @@ function makeChart(id,type,data,extra={}){
     x:{grid:{display:!horiz,color:getCSS("--grid")},beginAtZero:horiz,stacked:!!sx.stacked,ticks: horiz?valTicks:catTicks},
     y:{grid:{color:horiz?"transparent":getCSS("--grid")},beginAtZero:!horiz,stacked:!!sy.stacked,ticks: horiz?catTicks:valTicks}
   };
-  charts[id]=new Chart(document.getElementById(id),{type,data,plugins:extra.chartPlugins||[],options:{
+  const drill = extra.drill ? {
+    onClick:(evt,els)=>{ if(els && els.length) drillOpen(extra.drill(els[0].index)); },
+    onHover:(evt,els)=>{ const c=evt.native && evt.native.target; if(c) c.style.cursor = els && els.length ? "pointer" : "default"; } } : {};
+  charts[id]=new Chart(document.getElementById(id),{type,data,plugins:extra.chartPlugins||[],options:{...drill,
     responsive:true,maintainAspectRatio:false,animation,
     indexAxis: extra.indexAxis||"x",
     interaction: (type==="line")?{mode:"index",intersect:false}:{mode:"nearest",intersect:true},
