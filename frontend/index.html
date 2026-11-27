@@ -677,7 +677,8 @@ label{display:block;font-size:12px;font-weight:600;color:var(--ink-soft);margin:
 @media(max-width:640px){ .bl-top{top:20px;left:18px} .bl-count{right:18px;bottom:24px} }
 
 /* ---------- 2. Dashboard header: a dark band with a live dotted wave ---------- */
-.l-hero{background:#06080a;border-color:#06080a;color:#f2f2f2;isolation:isolate;
+main .l-hero{background:#06080a;border-color:#06080a;color:#f2f2f2;isolation:isolate;   /* "main" outranks the base .l-hero rule further down */
+
   --ink:#f2f2f2;--ink-soft:#a7a7a7;--line-soft:rgba(255,255,255,.09);--teal:#6FD3D3;--cobalt:#6FD3D3}
 .l-hero > :not(canvas){position:relative;z-index:1}
 .l-wave{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;
@@ -1250,7 +1251,7 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S51</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-27-S52</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="side-edge" id="sideEdge" aria-hidden="true"></div>
@@ -2888,7 +2889,7 @@ function renderLBrands(){
       flag = pct>=0.10 ? '<span class="bp-flag erosion">parity break</span>'
            : pct>=0.04 ? '<span class="bp-flag watch">watch</span>'
            : '<span class="bp-flag parity">in parity</span>';
-    } else { spread="<span style='color:var(--ink-faint);font-weight:400'>1 listing</span>"; }
+    } else { spread="<span style='color:var(--ink-soft);font-weight:400'>1 listing</span>"; }
     if(mapBreach) flag = '<span class="bp-flag erosion">MAP breach</span> ' + flag;
     const n=m.n;
     const kgTxt = n.type==="washer_dryer" && n.wash_kg && n.dry_kg ? n.wash_kg+"/"+n.dry_kg+" kg"
@@ -3313,7 +3314,7 @@ function renderSecBrands(D){
       flag = pct>=0.10 ? '<span class="bp-flag erosion">parity break</span>'
            : pct>=0.04 ? '<span class="bp-flag watch">watch</span>'
            : '<span class="bp-flag parity">in parity</span>';
-    } else { spread="<span style='color:var(--ink-faint);font-weight:400'>1 listing</span>"; }
+    } else { spread="<span style='color:var(--ink-soft);font-weight:400'>1 listing</span>"; }
     if(mapBreach) flag = '<span class="bp-flag erosion">MAP breach</span> ' + flag;
     const n=m.n;
     const specLine=[D.typeLabel[n.type]||"", D.tierLabel(n), n.energy||null].filter(Boolean).join(" · ");
@@ -5731,7 +5732,7 @@ function renderBrands(){
       flag = pct>=0.10 ? '<span class="bp-flag erosion">parity break</span>'
            : pct>=0.04 ? '<span class="bp-flag watch">watch</span>'
            : '<span class="bp-flag parity">in parity</span>';
-    } else { spread="<span style='color:var(--ink-faint);font-weight:400'>1 listing</span>"; }
+    } else { spread="<span style='color:var(--ink-soft);font-weight:400'>1 listing</span>"; }
     if(mapBreach) flag = '<span class="bp-flag erosion">MAP breach</span> ' + flag;
     return `<div class="bp-row">
       <div class="bp-name"><b>${esc(m.code.startsWith("U:")?short(m.name,26):(m.label||((cap(m.brand)||"")+" "+m.code).trim()))}</b><span>${m.code.startsWith("U:")?"":esc(m.code)}</span></div>
