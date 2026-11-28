@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, BackgroundTasks, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import StreamingResponse, FileResponse, JSONResponse, HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -53,6 +54,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Compress JSON responses: /api/products is ~6 MB raw, ~0.7 MB gzipped.
+# Cuts Railway egress (billed per GB) and speeds up the dashboard on phones.
+app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
 
 init_db()
 
