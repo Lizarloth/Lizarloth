@@ -11,5 +11,9 @@ if not exist logs mkdir logs
 echo. >> logs\daily.log
 echo ===== %date% %time% ===== >> logs\daily.log
 rem Pick up the latest code first; if the pull fails (offline, local edits) run what is here.
-git pull --ff-only >> logs\daily.log 2>&1 || echo git pull failed - running the local copy >> logs\daily.log
-py -X utf8 local_runner.py --plp --enrich-prices --market --check-stock --reviews --enrich-specs --due --max-minutes 120 >> logs\daily.log 2>&1
+rem Both lines sit in one ( ) block: cmd reads the block before running it, so a
+rem pull that rewrites this file cannot shift what runs next.
+(
+  git pull --ff-only >> logs\daily.log 2>&1 || echo git pull failed - running the local copy >> logs\daily.log
+  py -X utf8 local_runner.py --plp --enrich-prices --market --check-stock --reviews --enrich-specs --due --max-minutes 120 >> logs\daily.log 2>&1
+)
