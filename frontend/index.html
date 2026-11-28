@@ -1334,7 +1334,12 @@ html[data-motion="reduce"] body.side-auto .sidebar{transition:none}
 .gz-tk:hover{border-color:rgba(127,230,174,.5);background:rgba(127,230,174,.07)}
 .gz-tk .r{font:700 10px 'JetBrains Mono',monospace;letter-spacing:.06em;padding:4px 7px;border-radius:99px;color:#fff}
 .gz-tk s{color:rgba(255,255,255,.38)} .gz-tk em{font:600 12.5px 'JetBrains Mono',monospace;font-style:normal;color:#7FE6AE}
-html[data-motion="reduce"] .gz-track{animation:none;flex-wrap:wrap;width:auto;padding:11px 18px}
+/* motion off: no auto-scroll; one row you can swipe instead */
+html[data-motion="reduce"] .gz-marquee{overflow-x:auto;scroll-snap-type:x proximity;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+html[data-motion="reduce"] .gz-marquee::-webkit-scrollbar{display:none}
+html[data-motion="reduce"] .gz-track{animation:none;padding:11px 18px}
+html[data-motion="reduce"] .gz-tk{scroll-snap-align:start}
+@media(max-width:640px){.gz-tk{font-size:12.5px}.gz-track{gap:8px}}
 
 .gz{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px;margin:18px 0 26px}
 .gz-card{position:relative;grid-column:span 12;min-width:0;border:1px solid var(--line);border-radius:20px;padding:18px 20px;
@@ -1432,6 +1437,12 @@ html[data-motion="reduce"] .gz-track{animation:none;flex-wrap:wrap;width:auto;pa
 .gz-ring text{font:600 9.5px 'JetBrains Mono',monospace;fill:var(--ink)}
 .gz-split{display:flex;height:4px;gap:2px;margin-top:9px;border-radius:4px;overflow:hidden}
 .gz-split i{display:block}
+/* phones: brand tiles become one swipeable row instead of a tall grid */
+@media(max-width:640px){
+  .gz-wall{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;margin:0 -20px;padding:2px 20px 6px;gap:10px;perspective:none}
+  .gz-wall::-webkit-scrollbar{display:none}
+  .gz-brand{flex:0 0 46%;scroll-snap-align:start}
+}
 .gz-tm{margin:12px 0 0;font-size:11px;color:var(--ink-faint);line-height:1.4}
 
 /* coverage chart */
@@ -1506,7 +1517,7 @@ html[data-motion="reduce"] .gz.gz-enter :is(.gz-card,.gz-bar){animation:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-28-S59</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-28-S60</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="side-edge" id="sideEdge" aria-hidden="true"></div>
