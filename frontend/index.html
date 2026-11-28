@@ -7,13 +7,9 @@
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#05080A">
 <meta name="color-scheme" content="light dark">
 <script>
-/* Motion switch, applied before first paint: "auto" follows the computer's
-   reduced-motion setting, "on" / "off" override it (per browser). */
-(function(){
-  var pref="auto"; try{ pref=JSON.parse(localStorage.getItem("pricedge_motion"))||"auto"; }catch(_){}
-  var os=false; try{ os=matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(_){}
-  document.documentElement.dataset.motion = (pref==="off" || (pref==="auto" && os)) ? "reduce" : "full";
-})();
+/* Motion is always on (owner's choice): animations play even when the device asks
+   for reduced motion. The html[data-motion="reduce"] rules stay but are never used. */
+document.documentElement.dataset.motion = "full";
 </script>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
@@ -1517,7 +1513,7 @@ html[data-motion="reduce"] .gz.gz-enter :is(.gz-card,.gz-bar){animation:none}
     <button data-page="products"><span class="ico" data-ico="products"></span> Coverage</button>
     <button data-page="about"><span class="ico" data-ico="about"></span> About</button>
   </nav>
-  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-28-S60</span></div>
+  <div class="sidebar-foot">Pricedge · price intelligence<br>by Stefanos Pappas<br><span style="opacity:.5;font-size:11px">build 2026-11-28-S61</span></div>
 </aside>
 <div class="side-backdrop" id="sideBackdrop"></div>
 <div class="side-edge" id="sideEdge" aria-hidden="true"></div>
@@ -1542,7 +1538,6 @@ html[data-motion="reduce"] .gz.gz-enter :is(.gz-card,.gz-bar){animation:none}
     <div class="gs-panel" id="gsPanel" role="listbox" aria-label="Search results" hidden></div></div>
   <div class="spacer"></div>
   <div class="fresh" id="freshBadge" title="Data freshness — most recent scrape per retailer"></div>
-  <button class="icon-btn motion-btn" id="motionToggle" data-mode="auto" title="Motion" aria-label="Motion"><svg class="ic" viewBox="0 0 24 24"><path d="M3 8h7M2 12h8M3 16h7"/><circle cx="16.5" cy="12" r="4.5"/></svg><span class="mbadge" id="motionBadge">Auto</span></button>
   <button class="icon-btn" id="themeToggle" title="Toggle dark mode" aria-label="Toggle dark mode"><svg class="ic" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8"/></svg></button>
   <button class="icon-btn" id="notifBtn" title="Alerts" aria-label="Alerts"><span class="ico" data-ico="alerts"></span><span class="badge" id="notifBadge" style="display:none">0</span></button>
   <button class="run-btn" id="dealRadar" title="Deal Radar"><span class="ico" data-ico="deal"></span><span class="rb-txt"> Deal Radar</span><span class="dr-count" id="dealCount"></span></button>
@@ -6932,8 +6927,8 @@ function countUpIn(page, sel=".today-tile .n, .stat-card .metric-value, .l-stat 
   });
 }
 function applyMotion(){
-  const pref = store.get("motion","auto");
-  document.documentElement.dataset.motion = (pref==="off" || (pref==="auto" && osReducedMotion())) ? "reduce" : "full";
+  document.documentElement.dataset.motion = "full";   // always on
+  const pref = "on";
   const btn=document.getElementById("motionToggle"), badge=document.getElementById("motionBadge");
   if(!btn) return;
   btn.dataset.mode = pref;
@@ -8429,7 +8424,7 @@ const BCOL={SMEG:"#2A2A2A",HISENSE:"#00A3A0",WHIRLPOOL:"#D9A400",LG:"#A50034",BO
   MORRIS:"#6B4FBB",MIELE:"#8C0014",BEKO:"#0066B3",INDESIT:"#4A4A4A",SIEMENS:"#009999",AEG:"#C8102E",ELECTROLUX:"#041E42",HOTPOINT:"#1D1D1B",
   PITSOS:"#E2001A",CANDY:"#E4002B",HAIER:"#005AAA",GORENJE:"#3C3C3C",NEFF:"#C8102E",TEKA:"#E30613",DELONGHI:"#00205B",ESKIMO:"#1C75BC",
   "LA SOMMELIERE":"#7A1E2C",TESLA:"#CC0000",XIAOMI:"#FF6900",SHARP:"#E60012",KRUGER:"#0B4F8A",FRANKE:"#5A5A5A",KITCHENAID:"#B5121B",CONTINENTAL:"#00427A"};
-const reduced=()=> (typeof motionReduced==="function" && motionReduced()) || matchMedia("(prefers-reduced-motion: reduce)").matches;
+const reduced=()=> typeof motionReduced==="function" && motionReduced();
 const eur=n=> n==null?"–":"€"+Math.round(n).toLocaleString("el-GR");
 const pct=(a,b)=> b? Math.round(a/b*100):0;
 const hashCol=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;return `hsl(${h%360} 45% 38%)`};
