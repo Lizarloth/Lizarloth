@@ -56,4 +56,6 @@ reduced-motion.
 - Branch, then pull request into `claude/price-intelligence-audit-5xh7xs`; the
   owner has okayed merging small, checked changes.
 - After a frontend change, confirm on pricedge.com that it deployed.
+- Netlify deploy credits are limited: batch changes into few merges. `netlify.toml`
+  makes Netlify skip builds when `frontend/` didn't change.
 - Never commit tokens or keys.

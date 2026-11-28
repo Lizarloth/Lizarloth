@@ -1,0 +1,9 @@
+# Netlify reads this from the repo root. Only the "ignore" check is set here;
+# publish settings stay as configured in the Netlify UI.
+#
+# Skip the build (and save deploy credits) when nothing under frontend/ changed
+# since the last deploy - e.g. backend, scraper or notes-only merges.
+# Exit 0 = skip, 1 = build. If there is no previous deploy to compare against,
+# git diff fails and the build runs as normal.
+[build]
+  ignore = "git diff --quiet $CACHED_COMMIT_REF $COMMIT_REF -- frontend/"
