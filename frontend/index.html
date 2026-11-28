@@ -1418,6 +1418,9 @@ html[data-motion="reduce"] .gz-track{animation:none;flex-wrap:wrap;width:auto;pa
 .gz-brand.mine .gz-logo{box-shadow:0 0 0 2px var(--frost),0 0 0 3.5px var(--cobalt),0 0 14px color-mix(in srgb,var(--cobalt) 55%,transparent)}
 .gz-wm{font:700 12px 'Bricolage Grotesque',sans-serif;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gz-brand.mine .gz-wm{color:var(--cobalt)}
+.gz-plate{height:30px;width:92px;max-width:100%;border-radius:8px;background:#fff;display:flex;align-items:center;justify-content:center;padding:5px 9px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06)}
+.gz-plate img{max-width:100%;max-height:100%;object-fit:contain;display:block}
+.gz-brand.mine .gz-plate{box-shadow:0 0 0 2px var(--frost),0 0 0 3.5px var(--cobalt),0 0 14px color-mix(in srgb,var(--cobalt) 55%,transparent)}
 .gz-bst{display:flex;justify-content:space-between;align-items:end;margin-top:10px;gap:6px}
 .gz-bst b{display:block;font:700 20px/1 'Bricolage Grotesque',sans-serif;font-variant-numeric:tabular-nums}
 .gz-bst small{font-size:11px;color:var(--ink-soft)}
@@ -8423,6 +8426,8 @@ const nice=b=> b.length<=3? b : b.split(" ").map(w=>w[0]+w.slice(1).toLowerCase(
 const ini=b=> b.length<=3? b : b[0]+b[1].toLowerCase();
 const q=(a,p)=>{ if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), i=(s.length-1)*p, lo=Math.floor(i); return s[lo]+(s[Math.min(s.length-1,lo+1)]-s[lo])*(i-lo); };
 const niceMax=v=>{ const steps=[500,750,1000,1250,1500,2000,2500,3000,4000,5000,6000,8000,10000]; return steps.find(s=>s>=v)||Math.ceil(v/1000)*1000; };
+const LOGOS=new Set(["aeg","beko","bosch","electrolux","franke","haier","hisense","lg","liebherr","teka","miele","pitsos","samsung","siemens","smeg","whirlpool"]);
+const logoOf=b=>{ const k=b.toLowerCase().replace(/[^a-z]/g,""); return LOGOS.has(k)? "logos/"+k+".svg" : null; };
 const brandOfP=p=> (String((typeof extractModel==="function"? extractModel(f.name(p)).brand : "")||"").toUpperCase().trim());
 
 /* ---------- data ---------- */
@@ -8635,7 +8640,7 @@ function wall(st){
   const d=st.d, R=st.z.R;
   if(!d.brands.find(b=>b.b===st.sel)) st.sel=(d.brands.find(b=>b.mine)||d.brands[0]||{}).b;
   R.wall.innerHTML=d.brands.map(b=>`<button class="gz-brand${b.mine?" mine":""}" data-b="${esc(b.b)}" aria-pressed="${b.b===st.sel}" aria-label="${esc(nice(b.b))}: ${b.n} listings, ${b.promoPct}% on promo">
-   <span class="shine"></span><div class="gz-mark"><span class="gz-logo" style="background:${bcol(b.b)}">${esc(ini(b.b))}</span><span class="gz-wm">${esc(b.b)}</span></div>
+   <span class="shine"></span><div class="gz-mark">${logoOf(b.b)? `<span class="gz-plate"><img src="${logoOf(b.b)}" alt="${esc(nice(b.b))}" loading="lazy" decoding="async"></span>` : `<span class="gz-logo" style="background:${bcol(b.b)}">${esc(ini(b.b))}</span><span class="gz-wm">${esc(b.b)}</span>`}</div>
    <div class="gz-bst"><div><b>${b.n}</b><small>${eur(b.med)} median</small></div>
    <svg class="gz-ring" viewBox="0 0 38 38" aria-hidden="true"><circle class="bg" cx="19" cy="19" r="15"/><circle class="fg" cx="19" cy="19" r="15" stroke-dasharray="${RC}" stroke-dashoffset="${st.ringsShown?RC*(1-b.promoPct/100):RC}" data-p="${b.promoPct}" transform="rotate(-90 19 19)"/><text x="19" y="22.3" text-anchor="middle">${b.promoPct}%</text></svg></div>
    <div class="gz-split" aria-hidden="true">${SITES.map(s=>`<i style="flex:${b.sites[s]};background:${SCOL[s]}"></i>`).join("")}</div></button>`).join("");
