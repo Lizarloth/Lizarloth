@@ -1432,6 +1432,7 @@ html[data-motion="reduce"] .gz-track{animation:none;flex-wrap:wrap;width:auto;pa
 .gz-ring text{font:600 9.5px 'JetBrains Mono',monospace;fill:var(--ink)}
 .gz-split{display:flex;height:4px;gap:2px;margin-top:9px;border-radius:4px;overflow:hidden}
 .gz-split i{display:block}
+.gz-tm{margin:12px 0 0;font-size:11px;color:var(--ink-faint);line-height:1.4}
 
 /* coverage chart */
 .gz-cov svg{width:100%;height:auto;display:block;overflow:visible}
@@ -8426,8 +8427,9 @@ const nice=b=> b.length<=3? b : b.split(" ").map(w=>w[0]+w.slice(1).toLowerCase(
 const ini=b=> b.length<=3? b : b[0]+b[1].toLowerCase();
 const q=(a,p)=>{ if(!a.length) return null; const s=[...a].sort((x,y)=>x-y), i=(s.length-1)*p, lo=Math.floor(i); return s[lo]+(s[Math.min(s.length-1,lo+1)]-s[lo])*(i-lo); };
 const niceMax=v=>{ const steps=[500,750,1000,1250,1500,2000,2500,3000,4000,5000,6000,8000,10000]; return steps.find(s=>s>=v)||Math.ceil(v/1000)*1000; };
-const LOGOS=new Set(["aeg","beko","bosch","electrolux","franke","haier","hisense","lg","liebherr","teka","miele","pitsos","samsung","siemens","smeg","whirlpool"]);
-const logoOf=b=>{ const k=b.toLowerCase().replace(/[^a-z]/g,""); return LOGOS.has(k)? "logos/"+k+".svg" : null; };
+// official brand logos from Wikimedia Commons, loaded by the browser; a tile falls back to initials if one fails
+const LOGOS={"aeg": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Allgemeine_Elektricit%C3%A4ts-Gesellschaft_%28logo%29.svg", "beko": "https://upload.wikimedia.org/wikipedia/commons/d/d1/Beko_logo.svg", "bosch": "https://upload.wikimedia.org/wikipedia/commons/1/16/Bosch-logo.svg", "electrolux": "https://upload.wikimedia.org/wikipedia/commons/8/81/Electrolux_logo.svg", "franke": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Franke_logo.svg", "haier": "https://upload.wikimedia.org/wikipedia/commons/6/64/Haier_logo.svg", "hisense": "https://upload.wikimedia.org/wikipedia/commons/d/da/Hisense_logo.svg", "lg": "https://upload.wikimedia.org/wikipedia/commons/8/8d/LG_logo_%282014%29.svg", "liebherr": "https://upload.wikimedia.org/wikipedia/commons/6/66/Liebherr_logo.svg", "teka": "https://upload.wikimedia.org/wikipedia/commons/0/0f/Logo_Teka_svg.svg", "miele": "https://upload.wikimedia.org/wikipedia/commons/2/25/Miele_logo.svg", "pitsos": "https://upload.wikimedia.org/wikipedia/commons/4/4a/Pitsos_logo.svg", "samsung": "https://upload.wikimedia.org/wikipedia/commons/6/61/Samsung_old_logo_before_year_2015.svg", "siemens": "https://upload.wikimedia.org/wikipedia/commons/3/3c/Siemens_AG_logo.svg", "smeg": "https://upload.wikimedia.org/wikipedia/commons/0/06/Smeg_logo.svg", "whirlpool": "https://upload.wikimedia.org/wikipedia/commons/9/9d/Whirlpool_logo.svg"};
+const logoOf=b=> LOGOS[b.toLowerCase().replace(/[^a-z]/g,"")]||null;
 const brandOfP=p=> (String((typeof extractModel==="function"? extractModel(f.name(p)).brand : "")||"").toUpperCase().trim());
 
 /* ---------- data ---------- */
@@ -8549,7 +8551,7 @@ function skeleton(prefix){
       <canvas class="gz-flow" data-r="flow" aria-label="Your listings at each retailer flowing into one total"></canvas><div data-r="tags"></div></div>
     <div class="gz-copy"><h4>Shelf presence</h4><p>Every shop's listings, flowing into your share.</p><span class="gz-corner" aria-hidden="true">${ICON.flow}</span></div>
   </article>
-  <section class="gz-card gz-s7" style="--i:3"><div class="gz-h"><h3>Brands on the shelf</h3><span class="sub">Ring = promo share · strip = Kotsovolos / Plaisio / Public · tap a brand to chart it</span></div><div class="gz-wall" data-r="wall"></div></section>
+  <section class="gz-card gz-s7" style="--i:3"><div class="gz-h"><h3>Brands on the shelf</h3><span class="sub">Ring = promo share · strip = Kotsovolos / Plaisio / Public · tap a brand to chart it</span></div><div class="gz-wall" data-r="wall"></div><p class="gz-tm">Brand names and logos belong to their owners and are shown only to identify products. Pricedge is not affiliated with them.</p></section>
   <section class="gz-card gz-s5" style="--i:4"><div class="gz-h"><h3>Price coverage</h3><span class="sub" data-r="covSub"></span></div><div class="gz-cov" data-r="cov"></div>
     <div class="gz-read"><div><b data-r="rP"></b><span>price point</span></div><div><b data-r="rM"></b><span>of market below it</span></div><div><b class="t" data-r="rB"></b><span data-r="rBl"></span></div></div></section>
   <section class="gz-card" style="--i:5"><div class="gz-h"><h3>Who fills each shop</h3><div class="gz-tabs" role="group" aria-label="Retailer">${SITES.map((s,i)=>`<button class="gz-tab" data-site="${s}" aria-pressed="${i===0}"><i style="background:${SCOL[s]}"></i>${SITE_LABEL[s]}</button>`).join("")}</div></div><div class="gz-race" data-r="race"></div></section>`;
@@ -8640,7 +8642,7 @@ function wall(st){
   const d=st.d, R=st.z.R;
   if(!d.brands.find(b=>b.b===st.sel)) st.sel=(d.brands.find(b=>b.mine)||d.brands[0]||{}).b;
   R.wall.innerHTML=d.brands.map(b=>`<button class="gz-brand${b.mine?" mine":""}" data-b="${esc(b.b)}" aria-pressed="${b.b===st.sel}" aria-label="${esc(nice(b.b))}: ${b.n} listings, ${b.promoPct}% on promo">
-   <span class="shine"></span><div class="gz-mark">${logoOf(b.b)? `<span class="gz-plate"><img src="${logoOf(b.b)}" alt="${esc(nice(b.b))}" loading="lazy" decoding="async"></span>` : `<span class="gz-logo" style="background:${bcol(b.b)}">${esc(ini(b.b))}</span><span class="gz-wm">${esc(b.b)}</span>`}</div>
+   <span class="shine"></span><div class="gz-mark">${logoOf(b.b)? `<span class="gz-plate"><img src="${logoOf(b.b)}" alt="${esc(nice(b.b))}" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.parentNode.outerHTML='<span class=&quot;gz-logo&quot; style=&quot;background:${bcol(b.b)}&quot;>${esc(ini(b.b))}</span><span class=&quot;gz-wm&quot;>${esc(b.b)}</span>'"></span>` : `<span class="gz-logo" style="background:${bcol(b.b)}">${esc(ini(b.b))}</span><span class="gz-wm">${esc(b.b)}</span>`}</div>
    <div class="gz-bst"><div><b>${b.n}</b><small>${eur(b.med)} median</small></div>
    <svg class="gz-ring" viewBox="0 0 38 38" aria-hidden="true"><circle class="bg" cx="19" cy="19" r="15"/><circle class="fg" cx="19" cy="19" r="15" stroke-dasharray="${RC}" stroke-dashoffset="${st.ringsShown?RC*(1-b.promoPct/100):RC}" data-p="${b.promoPct}" transform="rotate(-90 19 19)"/><text x="19" y="22.3" text-anchor="middle">${b.promoPct}%</text></svg></div>
    <div class="gz-split" aria-hidden="true">${SITES.map(s=>`<i style="flex:${b.sites[s]};background:${SCOL[s]}"></i>`).join("")}</div></button>`).join("");
