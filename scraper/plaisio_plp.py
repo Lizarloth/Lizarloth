@@ -394,7 +394,10 @@ def parse_items(items, cat_name, dept="cooling", spec_map=None, avail_map=None):
                 base[k] = la.get(k) or tla.get(k, "")
         else:
             cap, cooling, dims = mine_specs(name, desc)
-            base.update({"capacity": cap, "cooling": cooling, "dimensions": dims})
+            base.update({"capacity": cap, "cooling": cooling, "dimensions": dims,
+                         # the card's labelled spec line first, then the name/description
+                         "energy": (_energy_of(_LS_EN.search(spec_map.get(sku, "")))
+                                    or _energy_of(_EN.search(f"{name} {desc}")))})
         out.append(base)
     return out
 
@@ -430,7 +433,7 @@ def collect_category(driver, cat_path, cat_name, debug=True, dept="cooling"):
     base_url = BASE + cat_path
 
     for page in range(1, MAX_PAGES + 1):
-        lay = "&layout=landscape" if dept in ("laundry", "cooking", "dishwashing") else ""
+        lay = "&layout=landscape"      # the landscape cards print a labelled spec line (energy, capacity...)
         url = f"{base_url}?page={page}{lay}"
         driver.get(url)
         if page == 1:

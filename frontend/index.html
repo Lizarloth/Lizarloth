@@ -1042,6 +1042,36 @@ main .l-pulse{--steel:#9DB3EA;--br-track:rgba(255,255,255,.035);--br-edge:rgba(2
 .br-ticks{display:flex;justify-content:space-between;font:500 9px 'JetBrains Mono';color:var(--ink-faint)}
 .br-ticks i{font-style:normal}
 html[data-motion="reduce"] .br-track i{transition:none}
+/* ---- Run bars: one element per bar, moved with transform only (no layout shift).
+   The bar is as wide as its track and slides in from the left; --p (0-100) is how
+   far it reaches. Rendered at --p:0 and set when it scrolls into view (growOnView). */
+.run-track{position:relative;overflow:hidden;border-radius:99px;background:var(--br-track,rgba(127,127,127,.12))}
+.run-track > .run{position:absolute;inset:0;border-radius:99px;background:linear-gradient(90deg,transparent,var(--run-c,var(--cobalt)));
+  transform:translateX(calc(var(--p,0) * 1% - 100%));transition:transform 1.1s cubic-bezier(.16,1,.3,1) var(--run-d,0s)}
+.run-track > .run::after{content:"";position:absolute;right:0;top:0;bottom:0;width:3px;border-radius:3px;background:var(--run-c,var(--cobalt));box-shadow:0 0 8px var(--run-c,var(--cobalt))}
+html[data-motion="reduce"] .run-track > .run{transition:none}
+/* cheapest entry: where your model sits between the floor (#1) and the dearest */
+.st-meter{margin-top:9px;max-width:420px}
+.st-meter .run-track{height:6px;background:rgba(255,255,255,.14)}
+.st-meter .run{--run-c:#5EEAD4}
+.st-meter .run::after{width:10px;top:-2px;bottom:-2px;border-radius:99px;background:#fff;box-shadow:0 0 0 2px #5EEAD4,0 0 10px #5EEAD4}
+.st-meter .run-track{overflow:visible;clip-path:inset(-4px 0 -4px 0 round 99px)}
+.st-ends{display:flex;justify-content:space-between;margin-top:4px;font:500 10px 'JetBrains Mono';color:#9FD3CC;letter-spacing:.04em}
+/* price moves: how deep the move was (full track = 50% or the deepest in the list) */
+.mv-depth{flex:none;width:72px;height:5px}
+.mv-depth.down{--run-c:var(--mint)} .mv-depth.up{--run-c:var(--heat)}
+@media(max-width:560px){.mv-depth{display:none}}
+/* what changed: share-of-rivals meter under a percentage tile */
+.today-tile .t-meter{width:100%;height:4px;margin:6px 0 2px}
+/* live data: the dot beside "Price moves" breathes */
+[id$="MovesCard"] > h3 > .dot{position:relative}
+[id$="MovesCard"] > h3 > .dot::after{content:"";position:absolute;inset:0;border-radius:99px;background:inherit;animation:live-ring 2.4s cubic-bezier(.2,.6,.3,1) infinite}
+@keyframes live-ring{0%{transform:scale(1);opacity:.7}80%,100%{transform:scale(2.8);opacity:0}}
+html[data-motion="reduce"] [id$="MovesCard"] > h3 > .dot::after{animation:none;opacity:0}
+/* price move rows arrive one after another the first time they're shown */
+.mini-row.row-in{animation:row-in .5s cubic-bezier(.16,1,.3,1) both;animation-delay:var(--rd,0s)}
+@keyframes row-in{from{opacity:0;transform:translateX(-8px)}}
+html[data-motion="reduce"] .mini-row.row-in{animation:none}
 
 main .l-pulse .card h3{font:600 10.5px 'JetBrains Mono'!important;letter-spacing:.14em;text-transform:uppercase;color:#9aa3a6!important}
 main .l-pulse .card{border-left:1px solid rgba(255,255,255,.06)!important;padding-left:14px!important}
@@ -4111,11 +4141,15 @@ function stripIndexHTML(dept, list, sparkId){
 }
 function moverRowsHTML(list){
   const mk=_seen.marks[state.dept];   // set by renderToday just before
-  return list.map(m=>{ const nm=esc(modelTitle(m.name||"—",30)), k=moverKey(m);
+  const top=Math.max(50, ...list.map(m=>Math.abs(m.pct)));       // full bar = a 50% move, or the deepest here
+  const gk=list.length ? "moves:"+state.dept+":"+(list[0].delta<0?"d":"u") : null, enter=growFirst(gk);
+  return list.map((m,i)=>{ const nm=esc(modelTitle(m.name||"—",30)), k=moverKey(m);
     const isNew=mk && mk.newMoves.has(k), fa=seenFlashAttr(state.dept+":mv:"+k, !!(mk && mk.flashMoves.has(k)));
-    return `<div class="mini-row${fa?" seen-flash":""}"${fa}>
+    const rowCls=(fa?" seen-flash":"")+(enter&&!fa?" row-in":"");
+    return `<div class="mini-row${rowCls}"${fa||(enter?` style="--rd:${i*70}ms"`:"")}>
     <span class="pill ${SITE_PILL[normSite(m.site)]||"na"}">${SITE_LABEL[normSite(m.site)]||m.site||""}</span>
     <span class="mini-name" title="${esc(m.name||"")} · was ${fmt(m.was)}, now ${fmt(m.price)}">${m.id!=null?`<a class="rl" href="#" data-model="${esc(m.id)}">${nm}</a>`:nm}${moverIsMine(m)?'<span class="mv-mine">YOURS</span>':""}${isNew?'<span class="seen-new" title="Not shown on your last visit">NEW</span>':""}</span>
+    <span class="mv-depth run-track ${m.delta<0?"down":"up"}" title="${Math.abs(m.pct).toFixed(0)}% ${m.delta<0?"drop":"rise"}">${runBar(Math.abs(m.pct)/top*100, gk, i*70)}</span>
     <span class="radar-delta ${m.delta<0?"down":"up"}" style="font-size:13px">${m.delta<0?"▼":"▲"} ${fmt(Math.abs(m.delta))}<small>${m.pct>0?"+":"−"}${Math.abs(m.pct).toFixed(0)}%</small></span></div>`; }).join("");
 }
 
@@ -4189,17 +4223,18 @@ function renderToday(prefix){
   const hl=seenDiff(dept, {cuts:rivalCuts.length, launch:launches.length, promo:promoPct}, mv.map(moverKey));
   const chip=(k,unit)=>{ const d=hl.chip[k]; if(!d) return "";
     return `<span class="seen-chip" title="Since your last visit">${d>0?"▲":"▼"} ${Math.abs(d)}${unit||""} since last visit</span>`; };
-  const tile=(k,target,n,title,sub,tone,go,unit)=>{ const fa=seenFlashAttr(dept+":"+k, hl.flash.has(k));
+  const tile=(k,target,n,title,sub,tone,go,unit,meter)=>{ const fa=seenFlashAttr(dept+":"+k, hl.flash.has(k));
     const nav = target.startsWith("goto:") ? `data-goto="${target.slice(5)}"` : `data-jump="${target}"`;   // a card on this page, or another page
     return `<button class="today-tile ${tone}${fa?" seen-flash":""}"${fa} ${nav}>
-      <span class="n">${n}</span>${chip(k,unit)}<span class="t">${title}</span><span class="s">${sub}</span><span class="go">${go} ${target.startsWith("goto:")?"→":"↓"}</span></button>`; };
+      <span class="n">${n}</span>${chip(k,unit)}<span class="t">${title}</span><span class="s">${sub}</span>${meter||""}<span class="go">${go} ${target.startsWith("goto:")?"→":"↓"}</span></button>`; };
   el.innerHTML =
       tile("cuts", prefix+"MovesCard", rivalCuts.length, "Rival price cuts",
            `${myCuts.length} of yours cut too · ${rises.length} rise${rises.length===1?"":"s"}`, rivalCuts.length?"alert":"calm", "See price moves")
     + tile("launch", prefix+"LaunchCard", launches.length, "Rival launches this week",
            launches.length?[...new Set(launches.map(g=>cap(extractModel(g.r.name||"").brand||"")).filter(Boolean))].slice(0,3).join(", "):"nothing new listed", launches.length?"":"calm", "See launches")
     + tile("promo", "goto:promofreq", promoPct!=null?promoPct+"%":"–", "Rivals on promo now",
-           onPromo.length?`${onPromo.length} listings · average −${avgDepth.toFixed(0)}%`:"no rival promos", "", "Open Promotions", " pts");
+           onPromo.length?`${onPromo.length} listings · average −${avgDepth.toFixed(0)}%`:"no rival promos", "", "Open Promotions", " pts",
+           promoPct!=null?`<span class="t-meter run-track" aria-hidden="true">${runBar(promoPct, "promo:"+dept)}</span>`:"");
   const meta=document.getElementById(prefix+"TodayMeta");
   const last=(state.histDays||[]).slice(-1)[0];
   const when=t=>new Date(t).toLocaleString("en-GB",{weekday:"short",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"});
@@ -4232,7 +4267,11 @@ function benchStandHTML(rows, typeWord, withLink){
   const tail = gap<=0
     ? `holds the <span class="good">floor</span> at ${fmt(floor)}.`
     : `sits <span class="good">#${rank} of ${rows.length}</span> ${esc(typeWord)} · <b>${fmt(gap)}</b> above the floor (${fmt(floor)})`;
-  return `<div class="l-stand"><div class="badge">#${rank}</div><div class="txt"><div class="lbl">Your cheapest entry</div><div class="line"><b>${esc(nm)}</b> ${tail}${link}</div></div></div>`;
+  // position along the shelf: #1 (the floor) at the left, the dearest at the right
+  const pos = rows.length>1 ? (rank-1)/(rows.length-1)*100 : 0;
+  const meter = `<div class="st-meter" aria-hidden="true"><div class="run-track">${runBar(pos, "stand:"+state.dept)}</div>
+    <div class="st-ends"><span>#1 · ${fmt(floor)}</span><span>#${rows.length}</span></div></div>`;
+  return `<div class="l-stand"><div class="badge">#${rank}</div><div class="txt"><div class="lbl">Your cheapest entry</div><div class="line"><b>${esc(nm)}</b> ${tail}${link}</div>${meter}</div></div>`;
 }
 
 function benchDetailHTML(row, dept){
@@ -6691,7 +6730,7 @@ function _numOut(v,F){
   if(F.th) i=i.replace(/\B(?=(\d{3})+(?!\d))/g,F.th);
   return F.sign+i+(d!==undefined?F.dec+d:"");
 }
-function countUpIn(page, sel=".today-tile .n, .stat-card .metric-value, .l-stat .v", base=0){
+function countUpIn(page, sel=".today-tile .n, .stat-card .metric-value, .l-stat .v, .l-stand .badge", base=0){
   const targets=[...page.querySelectorAll(sel)].filter(el=>el.offsetParent!==null).slice(0,12);
   targets.forEach((el,k)=>{
     // the first text node holding a number (values can sit inside a coloured span)
@@ -7901,7 +7940,7 @@ function barRows(id, rows, opts={}){
   host._drill=opts.drill||null;
   const max=Math.max(...rows.map(r=>r.value))||1, step=Math.pow(10,Math.floor(Math.log10(max))), top=Math.ceil(max/step)*step;
   const ticks=[0,.25,.5,.75,1].map(k=>Math.round(top*k));
-  const animate = !_barRowsSeen.has(id) && !motionReduced(); _barRowsSeen.add(id);
+  const animate = !_barRowsSeen.has(id) && !motionReduced();      // seen = its entrance has played on screen
   const rival=opts.rival||cssAt(cv,"--steel")||"#9DB3EA", mine=cssAt(cv,"--cobalt");
   host.innerHTML = rows.map((r,i)=>{ const c=r.mine?mine:(r.color||rival);
     return `<button class="br-row${r.mine?" mine":""}" data-bri="${i}" ${opts.drill?"":"disabled"} style="--c0:${_rgba(c,.18)};--c1:${_rgba(c,.95)};--glow:${_rgba(c,.55)}">
@@ -7909,16 +7948,40 @@ function barRows(id, rows, opts={}){
       <span class="br-track"><i style="width:${animate?0:(r.value/top*100).toFixed(2)}%" data-w="${(r.value/top*100).toFixed(2)}"></i></span>
       <span class="br-v">${esc(String(r.value))}${opts.suffix||""}</span></button>`; }).join("")
     + `<div class="br-axis" aria-hidden="true"><span></span><span class="br-ticks">${ticks.map(t=>`<i>${t}${opts.suffix||""}</i>`).join("")}</span><span></span></div>`;
-  if(animate) requestAnimationFrame(()=>requestAnimationFrame(()=>host.querySelectorAll(".br-track i").forEach((b,i)=>{
-    b.style.transitionDelay=(i*60)+"ms"; b.style.width=b.dataset.w+"%"; })));
+  if(animate) onFirstView(host, ()=>requestAnimationFrame(()=>{ _barRowsSeen.add(id);
+    host.querySelectorAll(".br-track i").forEach((b,i)=>{ b.style.transitionDelay=(i*60)+"ms"; b.style.width=b.dataset.w+"%"; }); }));
 }
 function getCSS(name){ try{ return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#888"; }catch(_){ return "#888"; } }
 /* Charts redraw on every filter click and on the 2-minute refresh, so only a
    chart's first draw animates (a short ease-out); redraws are instant. */
-const _chartDrawn = new Set();
+const _chartDrawn = new Set(), _chartWaiting = new Set();
+/* ---- Grow on view: bars, meters and charts play their entrance when they
+   scroll into view (not when drawn, which is often below the fold, so it was
+   never seen), and only the first time per key; refreshes are instant. */
+// a key counts as played once its entrance has actually run on screen, so the
+// redraws while data is still arriving keep it waiting instead of using it up
+const _growPlayed = new Set();
+function growFirst(key){ return !!key && !_growPlayed.has(key) && !motionReduced(); }
+function runBar(p, key, delayMs){
+  const v=Math.max(0,Math.min(100,+p||0)).toFixed(1), animate=growFirst(key);
+  return `<i class="run" style="--p:${animate?0:v}${delayMs?`;--run-d:${delayMs}ms`:""}"${animate?` data-p="${v}" data-k="${esc(key)}"`:""}></i>`;
+}
+let _viewIO=null;
+function onFirstView(el, fn){
+  if(!el) return;
+  if(!("IntersectionObserver" in window) || motionReduced()){ fn(); return; }
+  if(!_viewIO) _viewIO=new IntersectionObserver(es=>es.forEach(e=>{ if(!e.isIntersecting) return;
+    _viewIO.unobserve(e.target); const f=e.target._onView; e.target._onView=null; if(f) f(); }), {threshold:0.3});
+  el._onView=fn; _viewIO.observe(el);
+  setTimeout(()=>{ if(el._onView && !el.isConnected) el._onView=null; }, 60000);
+}
+// pending run bars anywhere in the page start when they come into view
+new MutationObserver(()=>document.querySelectorAll(".run[data-p]:not([data-wait])").forEach(el=>{
+  el.dataset.wait="1"; onFirstView(el.parentElement, ()=>requestAnimationFrame(()=>{ _growPlayed.add(el.dataset.k); el.style.setProperty("--p", el.dataset.p); el.removeAttribute("data-p"); }));
+})).observe(document.documentElement, {childList:true, subtree:true});
 function chartAnimation(id){
   if(_chartDrawn.has(id) || motionReduced()) return false;
-  _chartDrawn.add(id);
+  if(!_chartWaiting.has(id)) _chartDrawn.add(id);
   return {duration:450, easing:"easeOutQuart"};
 }
 /* ===== DRILL-DOWN: click any bar or slice of the market and promotion charts to
@@ -8096,7 +8159,7 @@ function makeChart(id,type,data,extra={}){
     ds.backgroundColor=ctx=>{ const col=Array.isArray(base)?base[ctx.dataIndex]:base, hi=ctx.chart.$hi; return hi!=null&&hi!==ctx.dataIndex ? _rgba(col,.28) : col; };
     ds.borderWidth=2; ds.borderColor=cssAt(cv,"--frost")||"#fff"; ds.hoverOffset=6; ds.spacing=1; });
   // first draw: bars grow in one after another; later redraws are instant
-  const animation = first ? {duration:700, easing:"easeOutQuart",
+  const animation = first ? {duration:900, easing:"easeOutQuart",
       delay:ctx=> ctx.type==="data" && ctx.mode==="default" ? ctx.dataIndex*55 : 0} : false;
   const focus = (evt, els, chart)=>{ const i = els && els.length ? els[0].index : null;
     if(chart.$hi!==i){ chart.$hi=i; chart.update("none"); } };
@@ -8131,7 +8194,12 @@ function makeChart(id,type,data,extra={}){
     },
     scales: (type==="doughnut"||type==="pie")? {} : {x:{...baseScales.x,...sx(extra),ticks:baseScales.x.ticks},y:{...baseScales.y,...sy(extra),ticks:baseScales.y.ticks}},
   };
-  charts[id]=new Chart(cv,{type,data,plugins:[...(extra.chartPlugins||[]), skinPlugin()],options:opts});
+  const made=charts[id]=new Chart(cv,{type,data,plugins:[...(extra.chartPlugins||[]), skinPlugin()],options:opts});
+  // drawn below the fold: hold the entrance until the chart scrolls into view
+  if(first){ const r=cv.getBoundingClientRect();
+    if(!(r.width && r.top<innerHeight*0.9 && r.bottom>0)){ made.stop(); made.reset(); made.draw(); _chartWaiting.add(id); _chartDrawn.delete(id);
+      onFirstView(cv.parentElement, ()=>{ _chartWaiting.delete(id); _chartDrawn.add(id); const c=charts[id]; if(c){ c.reset(); c.update(); } }); }
+    else { _chartWaiting.delete(id); _chartDrawn.add(id); } }
   const ch=charts[id]; ch.$hi=null;
   cv.onmouseleave=()=>{ if(ch.$hi!=null){ ch.$hi=null; ch.update("none"); } };
 }

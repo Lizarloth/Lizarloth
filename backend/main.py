@@ -413,6 +413,12 @@ def list_products(db: Session = Depends(get_db)):
                 image = raw.get("image") or None   # scraped but previously never served
             except Exception:
                 specs = {}
+        if p.pdp_specs:                       # product-page specs fill what the listing lacks
+            try:
+                pdp = json.loads(p.pdp_specs) or {}
+                specs = {**pdp, **specs}
+            except Exception:
+                pass
         out.append({
             "id": p.id, "name": p.name, "url": p.url, "site": p.site,
             "sku": getattr(p, "retailer_sku", None),
@@ -427,7 +433,54 @@ def list_products(db: Session = Depends(get_db)):
             "image": image,
             "scraped_at": latest.scraped_at.isoformat() if latest and latest.scraped_at else None,
         })
+    _fill_energy_from_matches(out, db)
     return out
+
+
+# ---- Energy class from the same model at another retailer ----
+# Plaisio's listing pages don't print the energy class for fridges, so those rows
+# arrive without one. A product matched to the same model elsewhere (match group
+# confirmed by EAN/MPN/override, or by model code) takes the class its siblings
+# agree on. Groups flagged as conflicts, or whose siblings disagree, are left alone.
+_ENERGY_KEYS = ("Ενεργειακή κλάση", "Ενεργειακή Κλάση", "Ενεργειακή κλάση:", "Energy Class")
+_NO_ENERGY_LABEL = {"hob", "microwave"}       # no EU energy label: "not stated" is correct
+_GR_LAT = {"Α": "A", "Β": "B", "Ε": "E", "Ζ": "Z"}
+
+
+def _energy_class(specs):
+    for k in _ENERGY_KEYS:
+        v = (specs or {}).get(k)
+        if v:
+            m = _re.search(r"([A-GΑΒΕΖ])(\+{0,3})", str(v))
+            if m:
+                return _GR_LAT.get(m.group(1), m.group(1)) + m.group(2)
+    return None
+
+
+def _fill_energy_from_matches(out, db):
+    try:
+        rows = (db.query(ProductMatch.group_key, ProductMatch.product_id)
+                .filter(ProductMatch.status.in_(["confirmed", "codeonly"])).all())
+    except Exception:
+        return
+    by_id = {p["id"]: p for p in out}
+    groups = {}
+    for gk, pid in rows:
+        if pid in by_id:
+            groups.setdefault(gk, []).append(by_id[pid])
+    for members in groups.values():
+        have = {}
+        for p in members:
+            e = _energy_class(p["specs"])
+            if e:
+                have.setdefault(e, p["site"])
+        if len(have) != 1:
+            continue
+        (cls, src), = have.items()
+        for p in members:
+            if p["category"] in _NO_ENERGY_LABEL or _energy_class(p["specs"]):
+                continue
+            p["specs"] = {**(p["specs"] or {}), "Ενεργειακή κλάση": cls, "__energy_from": src}
 
 
 @app.get("/api/products/delisted")
@@ -892,6 +945,77 @@ def ingest_missing_ids(request: Request, site: Optional[str] = None,
     if site:
         q = q.filter(Product.site == site)
     return [{"id": pid, "url": url, "site": s} for pid, url, s in q.limit(max(1, min(limit, 2000))).all()]
+
+
+@app.get("/api/ingest/missing-specs")
+def ingest_missing_specs(request: Request, site: Optional[str] = None,
+                         limit: int = 150, db: Session = Depends(get_db)):
+    """Products whose product page (PDP) should be read for specs the listing
+    doesn't carry — the runner's spec pass visits them and pushes the spec
+    table back via /api/ingest/specs. Most needed first: no energy class at
+    all, then a class only borrowed from another retailer, then thin specs.
+    A page read in the last 60 days is not asked for again."""
+    token = os.getenv("INGEST_TOKEN", "")
+    if not token or request.headers.get("X-Ingest-Token") != token:
+        raise HTTPException(401, "Invalid or missing X-Ingest-Token")
+    fresh = datetime.utcnow() - timedelta(days=60)
+    recent = {pid for pid, at in db.query(Product.id, Product.pdp_specs_at)
+              .filter(Product.pdp_specs_at != None).all() if at and at >= fresh}
+    ranked = []
+    for p in list_products(db):
+        if p["id"] in recent or not p.get("url") or (site and p["site"] != site):
+            continue
+        specs = p.get("specs") or {}
+        n = sum(1 for k in specs if not str(k).startswith("__"))
+        labelled = p["category"] not in _NO_ENERGY_LABEL
+        if labelled and not _energy_class(specs):
+            rank = 0
+        elif labelled and specs.get("__energy_from"):
+            rank = 1
+        elif n < 5:
+            rank = 2
+        else:
+            continue
+        ranked.append((rank, n, p))
+    ranked.sort(key=lambda t: (t[0], t[1]))
+    return [{"id": p["id"], "url": p["url"], "site": p["site"], "category": p["category"], "need": r}
+            for r, _, p in ranked[:max(1, min(limit, 2000))]]
+
+
+class SpecsPayload(BaseModel):
+    items: list[dict]       # [{id, specs: {label: value}}]
+
+
+@app.post("/api/ingest/specs")
+def ingest_specs(payload: SpecsPayload, request: Request, db: Session = Depends(get_db)):
+    """Spec tables read from product pages. Stored on the product (not as a
+    price reading), merged under the listing specs by /api/products. An empty
+    table still records the visit, so that page isn't re-read for 60 days."""
+    token = os.getenv("INGEST_TOKEN", "")
+    if not token or request.headers.get("X-Ingest-Token") != token:
+        raise HTTPException(401, "Invalid or missing X-Ingest-Token")
+    updated = 0
+    now = datetime.utcnow()
+    for it in payload.items:
+        try:
+            product = db.query(Product).filter(Product.id == int(it.get("id"))).first()
+        except Exception:
+            product = None
+        if not product:
+            continue
+        specs = {str(k)[:80]: str(v)[:200] for k, v in (it.get("specs") or {}).items()
+                 if k and v and not str(k).startswith("__")}
+        if specs:
+            old = {}
+            try:
+                old = json.loads(product.pdp_specs) if product.pdp_specs else {}
+            except Exception:
+                pass
+            product.pdp_specs = json.dumps({**old, **specs}, ensure_ascii=False)
+            updated += 1
+        product.pdp_specs_at = now
+    db.commit()
+    return {"updated": updated, "received": len(payload.items)}
 
 
 class IdsPayload(BaseModel):
